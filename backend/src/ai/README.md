@@ -30,17 +30,24 @@ This directory is reserved for future AI, RAG (Retrieval-Augmented Generation), 
 
 ---
 
-## Planned Folder Layout
+## Planned Folder Layout & Implemented Foundation
 
 ```
 src/ai/
-├── README.md               # AI architecture overview & guidelines
-├── rag/                    # Vector retrieval, chunking, and document indexing pipelines
-├── embeddings/             # Ollama / embedding model integration wrappers
-├── agents/                 # LangChain agent definitions and state graphs
-├── tools/                  # Deterministic tools callable by agents (e.g. fetchProposalScope, checkCapacity)
-└── prompts/                # Versioned prompt templates and system instructions
+├── ARCHITECTURE.md          # Comprehensive AI architecture, boundaries, and contracts (Review 1)
+├── README.md                # AI architecture overview & guidelines
+├── contracts/               # Shared contracts (exported via src/contracts/aiAnalysis.contract.js)
+├── fixtures/                # Canonical test payloads & sample scopes (changeAnalysisFixtures.js)
+├── services/                # Deterministic rule-based mock engine (changeAnalysisMock.service.js)
+├── rag/                     # Vector retrieval, chunking, and document indexing pipelines
+├── embeddings/              # Ollama / embedding model integration wrappers
+├── agents/                  # LangChain agent definitions and state graphs
+├── tools/                   # Deterministic tools callable by agents (e.g. fetchProposalScope, checkCapacity)
+└── prompts/                 # Versioned prompt templates and system instructions
 ```
+
+> **Review 1 Milestone Completed**: Formal Zod input/output contract established at `src/contracts/aiAnalysis.contract.js`, deterministic mock engine at `src/ai/services/changeAnalysisMock.service.js`, and test suite passing at `tests/ai.contracts.test.js`.
+
 
 ---
 
