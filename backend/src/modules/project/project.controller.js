@@ -12,7 +12,13 @@ const getProjectById = asyncHandler(async (req, res) => {
   return ApiResponse.success(res, 'Project retrieved successfully', project);
 });
 
+const listProjects = asyncHandler(async (req, res) => {
+  const projects = await projectService.listProjects(req.user._id, req.query);
+  return ApiResponse.success(res, 'Projects retrieved successfully', projects);
+});
+
 module.exports = {
   createProject,
   getProjectById,
+  listProjects,
 };

@@ -53,6 +53,22 @@ const projectSchema = new mongoose.Schema(
 projectSchema.index({ workspace: 1, status: 1 });
 projectSchema.index({ freelancer: 1, client: 1 });
 
+// Virtual field aliases for API compatibility
+projectSchema.virtual('workspaceId').get(function () {
+  return this.workspace;
+});
+
+projectSchema.virtual('freelancerId').get(function () {
+  return this.freelancer;
+});
+
+projectSchema.virtual('clientId').get(function () {
+  return this.client;
+});
+
+projectSchema.set('toJSON', { virtuals: true });
+projectSchema.set('toObject', { virtuals: true });
+
 const Project = mongoose.model('Project', projectSchema);
 
 module.exports = Project;
