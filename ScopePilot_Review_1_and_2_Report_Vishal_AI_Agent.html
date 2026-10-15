@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ScopePilot - Combined Review 1 &amp; 2 Technical Report | Vishal (AI Agent Developer)</title>
+<style>
+  @page {
+    size: A4;
+    margin: 12mm 12mm 12mm 12mm;
+    @bottom-right {
+      content: counter(page);
+    }
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: #1e293b;
+    line-height: 1.36;
+    font-size: 9.1pt;
+    margin: 0;
+    padding: 0;
+  }
+
+  .header {
+    border-bottom: 2px solid #2563eb;
+    padding-bottom: 7px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+
+  .header-left h1 {
+    margin: 0 0 2px 0;
+    font-size: 16.5pt;
+    color: #0f172a;
+    font-weight: 700;
+  }
+
+  .header-left .subtitle {
+    font-size: 9.8pt;
+    color: #2563eb;
+    font-weight: 600;
+  }
+
+  .meta-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 5px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 7px 9px;
+    margin-bottom: 10px;
+    font-size: 8.3pt;
+  }
+
+  .meta-item {
+    display: flex;
+  }
+
+  .meta-label {
+    font-weight: 600;
+    color: #475569;
+    width: 130px;
+    flex-shrink: 0;
+  }
+
+  .meta-value {
+    color: #0f172a;
+    font-weight: 500;
+  }
+
+  h2 {
+    font-size: 11pt;
+    color: #0f172a;
+    border-bottom: 1px solid #cbd5e1;
+    padding-bottom: 3px;
+    margin-top: 12px;
+    margin-bottom: 5px;
+    font-weight: 700;
+    page-break-after: avoid;
+  }
+
+  h3 {
+    font-size: 9.2pt;
+    color: #1e3a8a;
+    margin-top: 7px;
+    margin-bottom: 3px;
+    font-weight: 600;
+    page-break-after: avoid;
+  }
+
+  p {
+    margin: 0 0 4px 0;
+  }
+
+  ul, ol {
+    margin: 0 0 5px 0;
+    padding-left: 17px;
+  }
+
+  li {
+    margin-bottom: 2px;
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 7.2pt;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+
+  .badge-success {
+    background-color: #dcfce7;
+    color: #15803d;
+    border: 1px solid #86efac;
+  }
+
+  .badge-blue {
+    background-color: #dbeafe;
+    color: #1d4ed8;
+    border: 1px solid #93c5fd;
+  }
+
+  .callout {
+    border-left: 3px solid #2563eb;
+    background: #eff6ff;
+    padding: 6px 9px;
+    border-radius: 0 5px 5px 0;
+    margin: 7px 0;
+    font-size: 8.3pt;
+  }
+
+  .callout-warning {
+    border-left-color: #f59e0b;
+    background: #fffbeb;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 5px 0 8px 0;
+    font-size: 8pt;
+    page-break-inside: avoid;
+  }
+
+  th, td {
+    border: 1px solid #cbd5e1;
+    padding: 4px 6px;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  th {
+    background: #f1f5f9;
+    color: #334155;
+    font-weight: 600;
+  }
+
+  tr:nth-child(even) {
+    background: #f8fafc;
+  }
+
+  pre {
+    background: #0f172a;
+    color: #f8fafc;
+    padding: 6px 8px;
+    border-radius: 5px;
+    font-family: "Consolas", "Courier New", monospace;
+    font-size: 7.2pt;
+    line-height: 1.28;
+    white-space: pre-wrap;
+    word-break: break-word;
+    margin: 4px 0 6px 0;
+    page-break-inside: avoid;
+  }
+
+  code {
+    font-family: "Consolas", "Courier New", monospace;
+    font-size: 7.6pt;
+    background: #f1f5f9;
+    color: #0f172a;
+    padding: 1px 3px;
+    border-radius: 3px;
+    border: 1px solid #e2e8f0;
+  }
+
+  pre code {
+    background: transparent;
+    color: inherit;
+    padding: 0;
+    border: none;
+  }
+
+  .diagram {
+    background: #f8fafc;
+    border: 1px solid #cbd5e1;
+    border-radius: 5px;
+    padding: 7px;
+    font-family: "Consolas", "Courier New", monospace;
+    font-size: 7.2pt;
+    line-height: 1.22;
+    white-space: pre;
+    color: #0f172a;
+    margin: 5px 0;
+    page-break-inside: avoid;
+  }
+
+  .page-break {
+    page-break-before: always;
+  }
+
+  .footer-note {
+    margin-top: 12px;
+    border-top: 1px solid #e2e8f0;
+    padding-top: 4px;
+    font-size: 7.2pt;
+    color: #64748b;
+    text-align: center;
+    page-break-inside: avoid;
+  }
+</style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="header-left">
+      <h1>ScopePilot</h1>
+      <div class="subtitle">Consolidated Technical Report: Review 1 &amp; Review 2 (AI Architecture &amp; Mock Engine)</div>
+    </div>
+    <div style="text-align: right;">
+      <span class="badge badge-success">Reviews 1 &amp; 2 Completed</span><br>
+      <span style="font-size: 7.5pt; color: #64748b;">Date: Oct 15, 2026</span>
+    </div>
+  </div>
+
+  <div class="meta-grid">
+    <div class="meta-item">
+      <span class="meta-label">Student / Developer:</span>
+      <span class="meta-value">Vishal</span>
+    </div>
+    <div class="meta-item">
+      <span class="meta-label">Assigned Role:</span>
+      <span class="meta-value">AI / RAG / Change-Analysis Agent</span>
+    </div>
+    <div class="meta-item">
+      <span class="meta-label">Review Stages Covered:</span>
+      <span class="meta-value">Review 1 (Architecture &amp; Contract) &bull; Review 2 (Mock Engine &amp; Output)</span>
+    </div>
+    <div class="meta-item">
+      <span class="meta-label">Git Repository:</span>
+      <span class="meta-value">github.com/Vivek-teja/ScopePilot</span>
+    </div>
+    <div class="meta-item">
+      <span class="meta-label">Working Feature Branch:</span>
+      <span class="meta-value"><code>Vishal</code> (Aligned with latest <code>origin/main</code>)</span>
+    </div>
+    <div class="meta-item">
+      <span class="meta-label">Verification Status:</span>
+      <span class="meta-value"><span class="badge badge-blue">48/48 Tests Passing &bull; 5 Cases Verified</span></span>
+    </div>
+  </div>
+
+  <h2>1. Executive Summary &amp; Problem Solved</h2>
+  <p>
+    In freelance client-contractor engagements, <strong>scope creep</strong> is the primary source of project delays, budget overruns, and contractual disputes. Clients frequently introduce additions informally via chat or email, and freelancers often accept them without evaluating divergence from the agreed project baseline.
+  </p>
+  <div class="callout">
+    <strong>ScopePilot AI Agent Solution:</strong> ScopePilot introduces an automated change-analysis agent that evaluates incoming client requests against approved proposal scopes (<code>ProposalVersion</code>) and deliverables (<code>Deliverable</code>) before extra work is accepted.
+    <br>&bull; <strong>Review 1 Milestone:</strong> Established strict architectural boundaries, inspected existing domain schemas, and authored typed Zod input/output contracts.
+    <br>&bull; <strong>Review 2 Milestone:</strong> Built a deterministic rule-based mock engine proving reproducible contract behavior across 5 required canonical case outcomes before introducing probabilistic LLMs.
+  </div>
+
+  <h2>2. Review 1 Summary: Architecture, Schemas &amp; Contracts</h2>
+  <p>
+    The AI subsystem is strictly partitioned inside <code>backend/src/ai/</code> to avoid coupling with business controllers, financial transactions, or route handlers:
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 24%;">Domain Entity</th>
+        <th style="width: 28%;">Code Location</th>
+        <th>Role &amp; Attributes Leveraged by AI Agent</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>ProposalVersion</strong></td>
+        <td><code>src/modules/proposal/proposal.model.js</code></td>
+        <td>Immutable scope snapshot: <code>versionNumber</code>, <code>title</code>, <code>scopeSummary</code>, <code>scopeItems: [{ title, description, estimatedHours, price }]</code>, <code>status: 'approved'</code>, <code>contentHash</code>.</td>
+      </tr>
+      <tr>
+        <td><strong>Deliverable</strong></td>
+        <td><code>src/modules/deliverable/deliverable.model.js</code></td>
+        <td>Auditable baseline units: <code>scopeReference</code> (e.g. <code>DEL-CAT-01</code>), <code>title</code>, <code>description</code>, <code>acceptanceCriteria: [string]</code>.</td>
+      </tr>
+      <tr>
+        <td><strong>ChangeRequest</strong></td>
+        <td><code>src/modules/changeRequest/changeRequest.model.js</code></td>
+        <td>Target persistence container with AI extensions: <code>aiAnalysis: { summary, confidenceScore, rawOutput, analyzedAt }</code>, <code>scopeComparison: { outOfScopeItems, inScopeItems, similarityScore }</code>.</td>
+      </tr>
+      <tr>
+        <td><strong>Decision &amp; Project</strong></td>
+        <td><code>src/modules/project/project.model.js</code></td>
+        <td><code>currentApprovedProposal</code>, <code>freelancer</code>, <code>client</code>. Final human sign-off via <code>decisionService</code>.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>Formal Zod Input &amp; Output Contracts (<code>aiAnalysis.contract.js</code>)</h3>
+  <ul>
+    <li><strong>Input Contract (<code>ChangeAnalysisInputSchema</code>):</strong> Requires <code>projectId</code>, <code>approvedProposalVersion</code> (version number, summary, scope items), array of <code>deliverables</code> (audit <code>scopeReference</code>, criteria), and <code>newClientRequest</code> (title, description). Rejects malformed requests upfront.</li>
+    <li><strong>Output Contract (<code>ChangeAnalysisOutputSchema</code>):</strong> Enforces structured evaluation fields: <code>summary</code>, <code>reviewStatus</code> enum, <code>confidenceScore</code> (0.0–1.0), <code>inScopeItems</code>, <code>outOfScopeItems</code>, <code>uncertainItems</code>, <code>affectedDeliverables</code>, <code>evidence</code>, <code>recommendations</code>, and mandatory <code>disclaimer</code>.</li>
+  </ul>
+
+  <div class="callout callout-warning">
+    <strong>Review 1 Human Authority Boundary:</strong> The AI provides an advisory draft only. Final decisions to approve, reject, or renegotiate changes remain exclusively with authenticated humans. Financial adjustments and schedule dates are computed deterministically, never hallucinated by AI.
+  </div>
+
+  <h2>3. Review 2 Summary: Deterministic Mock Engine &amp; 5 Canonical Cases</h2>
+  <p>
+    Review 2 proves the contract with predictable, reproducible behavior across the 5 required real-world categories:
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 12%;">Case ID</th>
+        <th style="width: 18%;">Category</th>
+        <th style="width: 32%;">Incoming Request Description</th>
+        <th style="width: 18%;">Review Status</th>
+        <th style="width: 20%;">Confidence &amp; Rationale</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Case 1</strong></td>
+        <td><strong>Clearly In Scope</strong></td>
+        <td>Checkout phone number validation &amp; international E.164 formatting</td>
+        <td><code>in_scope</code></td>
+        <td><strong>95%</strong> &bull; Directly refines <code>DEL-CHK-01</code> checkout flow without unbudgeted scope additions.</td>
+      </tr>
+      <tr>
+        <td><strong>Case 2</strong></td>
+        <td><strong>Clearly Out of Scope</strong></td>
+        <td>Cryptocurrency Wallet Integration &amp; Web3 Token Settlement</td>
+        <td><code>out_of_scope</code></td>
+        <td><strong>92%</strong> &bull; Introduces Web3 smart contracts and blockchain wallets not scoped in proposal.</td>
+      </tr>
+      <tr>
+        <td><strong>Case 3</strong></td>
+        <td><strong>Partial Overlap</strong></td>
+        <td>Catalog CSV Bulk Import and Automated Supplier Inventory Sync</td>
+        <td><code>partially_out_of_scope</code></td>
+        <td><strong>88%</strong> &bull; Touches <code>DEL-CAT-01</code> (Catalog UI) but adds bulk CSV ingestion &amp; background sync jobs.</td>
+      </tr>
+      <tr>
+        <td><strong>Case 4</strong></td>
+        <td><strong>Ambiguous Request</strong></td>
+        <td>"Make store experience significantly faster and enhance overall UI"</td>
+        <td><code>needs_clarification</code></td>
+        <td><strong>60%</strong> &bull; Contains subjective words (faster, enhance); asks client for Core Web Vitals &amp; Figma specs.</td>
+      </tr>
+      <tr>
+        <td><strong>Case 5</strong></td>
+        <td><strong>Insufficient Evidence</strong></td>
+        <td>Sync orders to internal enterprise ERP via custom warehouse connector</td>
+        <td><code>uncertain</code></td>
+        <td><strong>45%</strong> &bull; Baseline contains zero documentation on on-premise ERP/SAP; flags missing evidence honestly.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="page-break"></div>
+
+  <h2>4. CLI Demonstration Output (Summary Table: <code>npm run mock:cases</code>)</h2>
+  <p>
+    The standalone CLI test runner (<code>backend/src/ai/scripts/runMockCases.js</code>) verifies contract compliance and bit-for-bit determinism across consecutive executions:
+  </p>
+
+  <pre><code>================================================================================
+ SUMMARY TABLE: 5 CANONICAL CASE EVALUATION
+================================================================================
+┌─────────┬──────────┬─────────────────────────┬───────────────────────────────────────────┬──────────────────────────┬────────────┬─────────┬────────────┬───────────┬───────────────┐
+│ (index) │ caseId   │ category                │ requestTitle                              │ reviewStatus             │ confidence │ inScope │ outOfScope │ uncertain │ deterministic │
+├─────────┼──────────┼─────────────────────────┼───────────────────────────────────────────┼──────────────────────────┼────────────┼─────────┼────────────┼───────────┼───────────────┤
+│ 0       │ 'case-1' │ 'Clearly In Scope'      │ 'Checkout phone number validation...'     │ 'in_scope'               │ '95%'      │ 1       │ 0          │ 0         │ 'YES'         │
+│ 1       │ 'case-2' │ 'Clearly Out of Scope'  │ 'Cryptocurrency Wallet Integration & ...' │ 'out_of_scope'           │ '92%'      │ 0       │ 7          │ 0         │ 'YES'         │
+│ 2       │ 'case-3' │ 'Partial Overlap'       │ 'Product Catalog CSV Bulk Import and ...' │ 'partially_out_of_scope' │ '88%'      │ 1       │ 4          │ 0         │ 'YES'         │
+│ 3       │ 'case-4' │ 'Ambiguous Request'     │ 'Make store experience significantly ...' │ 'needs_clarification'    │ '60%'      │ 0       │ 0          │ 1         │ 'YES'         │
+│ 4       │ 'case-5' │ 'Insufficient Evidence' │ 'Sync orders to internal enterprise E...' │ 'uncertain'              │ '45%'      │ 0       │ 1          │ 6         │ 'YES'         │
+└─────────┴──────────┴─────────────────────────┴───────────────────────────────────────────┴──────────────────────────┴────────────┴─────────┴────────────┴───────────┴───────────────┘
+All 5 cases successfully validated against Zod schema and verified deterministic.</code></pre>
+
+  <h2>5. Sample Structured JSON Outputs</h2>
+
+  <h3>A. Partial Overlap Output (Case 3)</h3>
+  <pre><code>{
+  "summary": "The request touches approved deliverables (Product Catalog and Search UI) but introduces substantial new out-of-scope features.",
+  "reviewStatus": "partially_out_of_scope",
+  "confidenceScore": 0.88,
+  "inScopeItems": [{
+    "item": "Product Catalog and Search UI",
+    "matchedDeliverableId": "del_cat_01",
+    "matchedScopeReference": "DEL-CAT-01",
+    "reason": "Request references functionality covered under approved deliverable \"Product Catalog and Search UI\"."
+  }],
+  "outOfScopeItems": [
+    { "item": "CSV Bulk Ingestion Engine", "reason": "Not included in approved proposal scope.", "potentialImpact": "Requires streaming CSV parser." },
+    { "item": "Automated Supplier Inventory Sync", "reason": "Requires background cron job and external supplier adapter." }
+  ],
+  "affectedDeliverables": [{ "deliverableId": "del_cat_01", "scopeReference": "DEL-CAT-01", "title": "Product Catalog and Search UI" }],
+  "disclaimer": "AI analysis is an advisory draft only. Approval or rejection must be finalized by authorized project participants."
+}</code></pre>
+
+  <h3>B. Insufficient Evidence Output (Case 5 - Missing Documentation Flagged)</h3>
+  <pre><code>{
+  "summary": "Insufficient evidence in the approved proposal to determine feasibility or baseline alignment for requested external integrations.",
+  "reviewStatus": "uncertain",
+  "confidenceScore": 0.45,
+  "inScopeItems": [],
+  "uncertainItems": [{
+    "item": "On-premise SAP ERP Integration",
+    "question": "Can the client provide technical specifications, API schemas, sandbox credentials, and network requirements for the sap integration?",
+    "missingEvidence": "The approved proposal scope and deliverables contain zero architecture documentation or interface specifications for \"sap\"."
+  }],
+  "evidence": [],
+  "recommendations": [
+    "Request architectural specifications and security protocols from client engineering.",
+    "Schedule a technical discovery session before providing any cost or timeline estimates."
+  ]
+}</code></pre>
+
+  <h2>6. HTTP Mock Routes &amp; Controller Architecture</h2>
+  <p>
+    HTTP endpoints are mounted under <code>/api/ai/*</code> in <code>backend/src/routes.js</code>:
+  </p>
+  <ul>
+    <li><code>GET /api/ai/cases</code> — Discovery endpoint listing all 5 canonical cases with metadata and sample requests.</li>
+    <li><code>GET /api/ai/cases/:caseId</code> — Fetches full input payload and rationale for a single case.</li>
+    <li><code>POST /api/ai/cases/:caseId/run</code> (and <code>GET</code>) — Runs mock analysis on a named canonical case.</li>
+    <li><code>GET /api/ai/cases/run-all</code> — Batch executes all 5 cases and returns an aggregated health report.</li>
+    <li><code>POST /api/ai/analyze-mock</code> — Accepts dynamic payloads, validated with <code>validate({ body: ChangeAnalysisInputSchema })</code> and <code>optionalAuth</code> middleware.</li>
+  </ul>
+
+  <h2>7. Comprehensive File Inventory &amp; Ownership</h2>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 40%;">File Path</th>
+        <th>Description &amp; Role in Reviews 1 &amp; 2</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>backend/src/contracts/aiAnalysis.contract.js</code></td>
+        <td>Formal Zod schema declarations for input payloads and structured output analysis.</td>
+      </tr>
+      <tr>
+        <td><code>backend/src/contracts/index.js</code></td>
+        <td>Unified module export index for shared contract schemas.</td>
+      </tr>
+      <tr>
+        <td><code>backend/src/ai/services/changeAnalysisMock.service.js</code></td>
+        <td>Deterministic rule-based mock engine supporting all 5 case categories with reproducible outputs.</td>
+      </tr>
+      <tr>
+        <td><code>backend/src/ai/fixtures/changeAnalysisFixtures.js</code></td>
+        <td>Five canonical test cases with complete proposal snapshots, deliverables, and explanations.</td>
+      </tr>
+      <tr>
+        <td><code>backend/src/ai/scripts/runMockCases.js</code></td>
+        <td>CLI runner executable via <code>npm run mock:cases</code> with summary table and determinism verification.</td>
+      </tr>
+      <tr>
+        <td><code>backend/src/ai/ai.controller.js</code></td>
+        <td>Express controller exposing dynamic mock analysis and test case discovery/execution.</td>
+      </tr>
+      <tr>
+        <td><code>backend/src/ai/ai.routes.js</code></td>
+        <td>HTTP routes mounted under <code>/api/ai/*</code> with Zod request validation and <code>optionalAuth</code>.</td>
+      </tr>
+      <tr>
+        <td><code>backend/src/ai/ARCHITECTURE.md</code></td>
+        <td>Comprehensive architectural specification, boundaries, sequence diagrams, and model mappings.</td>
+      </tr>
+      <tr>
+        <td><code>backend/src/ai/README.md</code></td>
+        <td>Updated roadmap, test instructions, CLI documentation, and endpoint catalog.</td>
+      </tr>
+      <tr>
+        <td><code>backend/tests/ai.contracts.test.js</code></td>
+        <td>Unit tests for Zod schema boundary validation and type rejection.</td>
+      </tr>
+      <tr>
+        <td><code>backend/tests/ai.mockCases.test.js</code></td>
+        <td>Dedicated Jest test suite testing all 5 canonical cases, constraints, and determinism.</td>
+      </tr>
+      <tr>
+        <td><code>backend/tests/ai.routes.test.js</code></td>
+        <td>Integration tests for <code>GET /api/ai/cases</code>, <code>POST /cases/:id/run</code>, and <code>POST /analyze-mock</code>.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="page-break"></div>
+
+  <h2>8. Automated Verification &amp; Test Execution Evidence</h2>
+  <p>The entire backend test suite was executed using Jest, confirming 100% test passage across all modules:</p>
+
+  <pre><code>> scopepilot-backend@1.0.0 test
+> jest --detectOpenHandles --runInBand
+
+PASS tests/project.test.js
+PASS tests/ai.routes.test.js
+PASS tests/validation.test.js
+PASS tests/notFound.test.js
+PASS tests/health.test.js
+PASS tests/ai.mockCases.test.js
+PASS tests/ai.contracts.test.js
+
+Test Suites: 7 passed, 7 total
+Tests:       48 passed, 48 total
+Snapshots:   0 total
+Time:        2.192 s
+Ran all test suites.</code></pre>
+
+  <h2>9. Git Branching &amp; Commit History on Branch <code>Vishal</code></h2>
+  <p>
+    All changes are organized on the dedicated feature branch <strong><code>Vishal</code></strong>, aligned cleanly on top of the latest team backend commit (<code>3b27aca</code>) with <strong>zero merge conflicts</strong>:
+  </p>
+
+  <pre><code>$ git log -n 5 --oneline
+2e6ea18 feat(ai): add optionalAuth middleware to AI mock routes
+97f411b feat(ai): Review 2 - rule-based mock engine, 5 canonical test cases, CLI runner, and API routes
+3b27aca summary (origin/main, origin/Vishal)
+a9f8a13 number
+512e760 feat(ai): Review 1 - requirements, inspection, AI architecture and Zod contracts</code></pre>
+
+  <h2>10. Mentor Evaluation Questions &amp; Answers (Reviews 1 &amp; 2)</h2>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 35%;">Mentor Question</th>
+        <th>Prepared Technical Response</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Why start with an input/output contract before the model?</strong></td>
+        <td>Defining Zod schemas first establishes an immutable boundary between frontend consumers and the backend engine. It allows teams to mock and build dashboards in parallel without waiting for LLM or RAG infrastructure.</td>
+      </tr>
+      <tr>
+        <td><strong>Why use a rule-based mock before an LLM?</strong></td>
+        <td>A rule-based mock helps the team confirm the contract, validate edge cases, and establish predictable baseline behavior without adding model latency, costs, or non-deterministic variance.</td>
+      </tr>
+      <tr>
+        <td><strong>Can the AI agent approve a change request autonomously?</strong></td>
+        <td>No. ScopePilot enforces strict human authority. The agent produces an evidence-based draft and risk classification; only the authenticated client and freelancer can make binding decisions via <code>POST /api/change-requests/:id/decision</code>.</td>
+      </tr>
+      <tr>
+        <td><strong>What is partial overlap?</strong></td>
+        <td>Part of the request is covered by existing deliverables (e.g. Catalog UI), while other parts introduce substantial new work (e.g. bulk CSV processing or background sync) that require extra pricing and scheduling.</td>
+      </tr>
+      <tr>
+        <td><strong>What happens when scope evidence is missing or ambiguous?</strong></td>
+        <td>The engine refuses to guess or hallucinate. It marks <code>reviewStatus</code> as <code>needs_clarification</code> / <code>uncertain</code>, lists <code>uncertainItems</code>, and generates targeted questions for the client.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>11. Next Steps: Roadmap to Review 3</h2>
+  <ol>
+    <li>Introduce text extraction and document chunking for approved proposal PDFs/TXTs under <code>backend/src/ai/rag/</code>.</li>
+    <li>Set up local Ollama embeddings wrapper (<code>nomic-embed-text</code>, 768 dimensions) under <code>backend/src/ai/embeddings/</code>.</li>
+    <li>Configure MongoDB Atlas Vector Search index with metadata filters (<code>workspaceId</code>, <code>projectId</code>, <code>status: 'ready'</code>).</li>
+    <li>Compare natural-language requests against approved-scope passages using vector similarity search, recording both successful semantic matches and retrieval failure cases.</li>
+  </ol>
+
+  <div class="footer-note">
+    ScopePilot Project &bull; Vishal (AI / RAG / Change-Analysis Agent) &bull; Consolidated Report for Reviews 1 &amp; 2
+  </div>
+
+</body>
+</html>
