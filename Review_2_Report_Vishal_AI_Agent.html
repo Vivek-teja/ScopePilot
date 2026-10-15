@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ScopePilot - Review 2 Technical Report | Vishal (AI Agent Developer)</title>
+<style>
+  @page {
+    size: A4;
+    margin: 14mm 13mm 14mm 13mm;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: #1e293b;
+    line-height: 1.4;
+    font-size: 9.5pt;
+    margin: 0;
+    padding: 0;
+  }
+
+  .header {
+    border-bottom: 2px solid #2563eb;
+    padding-bottom: 8px;
+    margin-bottom: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+
+  .header-left h1 {
+    margin: 0 0 2px 0;
+    font-size: 17pt;
+    color: #0f172a;
+    font-weight: 700;
+  }
+
+  .header-left .subtitle {
+    font-size: 10pt;
+    color: #2563eb;
+    font-weight: 600;
+  }
+
+  .meta-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 8px 10px;
+    margin-bottom: 12px;
+    font-size: 8.5pt;
+  }
+
+  .meta-item {
+    display: flex;
+  }
+
+  .meta-label {
+    font-weight: 600;
+    color: #475569;
+    width: 125px;
+    flex-shrink: 0;
+  }
+
+  .meta-value {
+    color: #0f172a;
+    font-weight: 500;
+  }
+
+  h2 {
+    font-size: 11.5pt;
+    color: #0f172a;
+    border-bottom: 1px solid #cbd5e1;
+    padding-bottom: 3px;
+    margin-top: 14px;
+    margin-bottom: 6px;
+    font-weight: 700;
+    page-break-after: avoid;
+  }
+
+  h3 {
+    font-size: 9.5pt;
+    color: #1e3a8a;
+    margin-top: 8px;
+    margin-bottom: 4px;
+    font-weight: 600;
+    page-break-after: avoid;
+  }
+
+  p {
+    margin: 0 0 5px 0;
+  }
+
+  ul, ol {
+    margin: 0 0 6px 0;
+    padding-left: 18px;
+  }
+
+  li {
+    margin-bottom: 2px;
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 7.5pt;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+
+  .badge-success {
+    background-color: #dcfce7;
+    color: #15803d;
+    border: 1px solid #86efac;
+  }
+
+  .badge-blue {
+    background-color: #dbeafe;
+    color: #1d4ed8;
+    border: 1px solid #93c5fd;
+  }
+
+  .callout {
+    border-left: 3px solid #2563eb;
+    background: #eff6ff;
+    padding: 7px 10px;
+    border-radius: 0 5px 5px 0;
+    margin: 8px 0;
+    font-size: 8.5pt;
+  }
+
+  .callout-warning {
+    border-left-color: #f59e0b;
+    background: #fffbeb;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 6px 0 10px 0;
+    font-size: 8.2pt;
+    page-break-inside: avoid;
+  }
+
+  th, td {
+    border: 1px solid #cbd5e1;
+    padding: 5px 7px;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  th {
+    background: #f1f5f9;
+    color: #334155;
+    font-weight: 600;
+  }
+
+  tr:nth-child(even) {
+    background: #f8fafc;
+  }
+
+  pre {
+    background: #0f172a;
+    color: #f8fafc;
+    padding: 7px 9px;
+    border-radius: 5px;
+    font-family: "Consolas", "Courier New", monospace;
+    font-size: 7.5pt;
+    line-height: 1.3;
+    white-space: pre-wrap;
+    word-break: break-word;
+    margin: 5px 0 8px 0;
+    page-break-inside: avoid;
+  }
+
+  code {
+    font-family: "Consolas", "Courier New", monospace;
+    font-size: 7.8pt;
+    background: #f1f5f9;
+    color: #0f172a;
+    padding: 1px 3px;
+    border-radius: 3px;
+    border: 1px solid #e2e8f0;
+  }
+
+  pre code {
+    background: transparent;
+    color: inherit;
+    padding: 0;
+    border: none;
+  }
+
+  .diagram {
+    background: #f8fafc;
+    border: 1px solid #cbd5e1;
+    border-radius: 5px;
+    padding: 8px;
+    font-family: "Consolas", "Courier New", monospace;
+    font-size: 7.5pt;
+    line-height: 1.25;
+    white-space: pre;
+    color: #0f172a;
+    margin: 6px 0;
+    page-break-inside: avoid;
+  }
+
+  .footer-note {
+    margin-top: 14px;
+    border-top: 1px solid #e2e8f0;
+    padding-top: 5px;
+    font-size: 7.5pt;
+    color: #64748b;
+    text-align: center;
+    page-break-inside: avoid;
+  }
+</style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="header-left">
+      <h1>ScopePilot</h1>
+      <div class="subtitle">Review 2 of 5 Technical Report: Rule-Based Mock &amp; Structured Output</div>
+    </div>
+    <div style="text-align: right;">
+      <span class="badge badge-success">Review 2 Passed</span><br>
+      <span style="font-size: 7.5pt; color: #64748b;">Date: Oct 15, 2026</span>
+    </div>
+  </div>
+
+  <div class="meta-grid">
+    <div class="meta-item">
+      <span class="meta-label">Student / Developer:</span>
+      <span class="meta-value">Vishal</span>
+    </div>
+    <div class="meta-item">
+      <span class="meta-label">Assigned Role:</span>
+      <span class="meta-value">AI / RAG / Change-Analysis Agent</span>
+    </div>
+    <div class="meta-item">
+      <span class="meta-label">Review Stage:</span>
+      <span class="meta-value">2 of 5 (Rule-Based Mock &amp; Structured Output)</span>
+    </div>
+    <div class="meta-item">
+      <span class="meta-label">Git Repository:</span>
+      <span class="meta-value">github.com/Vivek-teja/ScopePilot</span>
+    </div>
+    <div class="meta-item">
+      <span class="meta-label">Working Branch:</span>
+      <span class="meta-value"><code>main</code></span>
+    </div>
+    <div class="meta-item">
+      <span class="meta-label">Evaluation Status:</span>
+      <span class="meta-value"><span class="badge badge-blue">Mock Runnable &bull; 5 Cases Verified</span></span>
+    </div>
+  </div>
+
+  <h2>1. Executive Summary &amp; Objective</h2>
+  <p>
+    The primary goal of <strong>Review 2</strong> is to prove the end-to-end request/response contract with deterministic, reproducible behavior before introducing probabilistic LLMs or vector embeddings.
+  </p>
+  <div class="callout">
+    <strong>Review 2 Focus:</strong> Construct a rule-based mock engine that accepts approved proposal scope items and deliverables alongside incoming client change requests. Exercise the five required case categories: (1) clearly in scope, (2) clearly out of scope, (3) partial overlap, (4) ambiguous request, and (5) insufficient evidence.
+  </div>
+
+  <h2>2. The Five Canonical Case Scenarios</h2>
+  <p>
+    Five canonical fixtures were developed under <code>backend/src/ai/fixtures/changeAnalysisFixtures.js</code> representing distinct evaluation outcomes:
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 14%;">Case ID</th>
+        <th style="width: 20%;">Category</th>
+        <th style="width: 32%;">Incoming Client Request</th>
+        <th style="width: 18%;">Expected Status</th>
+        <th style="width: 16%;">Confidence</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Case 1</strong></td>
+        <td><strong>Clearly In Scope</strong></td>
+        <td>Checkout phone number validation &amp; E.164 formatting</td>
+        <td><code>in_scope</code></td>
+        <td><strong>95%</strong> (High)</td>
+      </tr>
+      <tr>
+        <td><strong>Case 2</strong></td>
+        <td><strong>Clearly Out of Scope</strong></td>
+        <td>Cryptocurrency Wallet Integration &amp; Web3 Token Settlement</td>
+        <td><code>out_of_scope</code></td>
+        <td><strong>92%</strong> (High)</td>
+      </tr>
+      <tr>
+        <td><strong>Case 3</strong></td>
+        <td><strong>Partial Overlap</strong></td>
+        <td>Catalog CSV Bulk Import and Automated Inventory Sync</td>
+        <td><code>partially_out_of_scope</code></td>
+        <td><strong>88%</strong> (High)</td>
+      </tr>
+      <tr>
+        <td><strong>Case 4</strong></td>
+        <td><strong>Ambiguous Request</strong></td>
+        <td>"Make store experience significantly faster and enhance look"</td>
+        <td><code>needs_clarification</code></td>
+        <td><strong>60%</strong> (Moderate)</td>
+      </tr>
+      <tr>
+        <td><strong>Case 5</strong></td>
+        <td><strong>Insufficient Evidence</strong></td>
+        <td>Sync orders to internal enterprise ERP via custom connector</td>
+        <td><code>uncertain</code></td>
+        <td><strong>45%</strong> (Low)</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>3. Architecture &amp; Deterministic Mock Engine</h2>
+  <p>
+    The mock service (<code>backend/src/ai/services/changeAnalysisMock.service.js</code>) applies strict contract validation and deterministic heuristics:
+  </p>
+
+  <div class="diagram">
+Client Request Payload  --->  Zod Input Schema Validation (ChangeAnalysisInputSchema)
+                                        |
+                                        v
++-------------------------------------------------------------------------------+
+| Deterministic Heuristic Reasoner (ChangeAnalysisMockService)                  |
+|  1. Insufficient Evidence Detection: checks for unreferenced external ERP/SAP |
+|  2. Ambiguity Detection: flags subjective adjectives (faster, enhance, etc.)  |
+|  3. Deliverable Overlap: matches against approved DEL-CAT-01, DEL-CHK-01      |
+|  4. Out-of-Scope Capability Detection: flags Web3, CSV ingest, background sync |
+|  5. Classification Matrix: in_scope / out_of_scope / partial / clarification  |
++-------------------------------------------------------------------------------+
+                                        |
+                                        v
+Zod Output Schema Validation  --->  Structured Consistent JSON (ChangeAnalysisOutputSchema)
+  </div>
+
+  <div class="callout callout-warning">
+    <strong>Honesty &amp; Safeguards:</strong> For Ambiguous (Case 4) and Insufficient Evidence (Case 5) requests, the engine deliberately avoids forcing artificial certainty. It generates targeted clarifying questions for the client and returns lowered confidence scores (45%–60%).
+  </div>
+
+  <h2>4. CLI Demonstration Output (Summary Table)</h2>
+  <p>
+    Executing <code>npm run mock:cases</code> runs all five cases consecutively and checks determinism:
+  </p>
+
+  <pre><code>┌─────────┬──────────┬─────────────────────────┬───────────────────────────────────────────┬──────────────────────────┬────────────┬─────────┬────────────┬───────────┬───────────────┐
+│ (index) │ caseId   │ category                │ requestTitle                              │ reviewStatus             │ confidence │ inScope │ outOfScope │ uncertain │ deterministic │
+├─────────┼──────────┼─────────────────────────┼───────────────────────────────────────────┼──────────────────────────┼────────────┼─────────┼────────────┼───────────┼───────────────┤
+│ 0       │ 'case-1' │ 'Clearly In Scope'      │ 'Checkout phone number validation...'     │ 'in_scope'               │ '95%'      │ 1       │ 0          │ 0         │ 'YES'         │
+│ 1       │ 'case-2' │ 'Clearly Out of Scope'  │ 'Cryptocurrency Wallet Integration & ...' │ 'out_of_scope'           │ '92%'      │ 0       │ 7          │ 0         │ 'YES'         │
+│ 2       │ 'case-3' │ 'Partial Overlap'       │ 'Product Catalog CSV Bulk Import and ...' │ 'partially_out_of_scope' │ '88%'      │ 1       │ 4          │ 0         │ 'YES'         │
+│ 3       │ 'case-4' │ 'Ambiguous Request'     │ 'Make store experience significantly ...' │ 'needs_clarification'    │ '60%'      │ 0       │ 0          │ 1         │ 'YES'         │
+│ 4       │ 'case-5' │ 'Insufficient Evidence' │ 'Sync orders to internal enterprise E...' │ 'uncertain'              │ '45%'      │ 0       │ 1          │ 6         │ 'YES'         │
+└─────────┴──────────┴─────────────────────────┴───────────────────────────────────────────┴──────────────────────────┴────────────┴─────────┴────────────┴───────────┴───────────────┘</code></pre>
+
+  <h2>5. Sample Structured JSON Outputs</h2>
+
+  <h3>A. Clearly In Scope (Case 1)</h3>
+  <pre><code>{
+  "summary": "The requested change is fully aligned with existing deliverables in the approved proposal baseline.",
+  "reviewStatus": "in_scope",
+  "confidenceScore": 0.95,
+  "inScopeItems": [{
+    "item": "Checkout Flow and Payment Processing",
+    "matchedDeliverableId": "del_chk_01",
+    "matchedScopeReference": "DEL-CHK-01",
+    "reason": "Request references functionality covered under approved deliverable \"Checkout Flow and Payment Processing\"."
+  }],
+  "outOfScopeItems": [],
+  "uncertainItems": [],
+  "affectedDeliverables": [{ "deliverableId": "del_chk_01", "scopeReference": "DEL-CHK-01" }],
+  "disclaimer": "AI analysis is an advisory draft only..."
+}</code></pre>
+
+  <h3>B. Partial Overlap (Case 3)</h3>
+  <pre><code>{
+  "summary": "The request touches approved deliverables (Product Catalog and Search UI) but introduces substantial new out-of-scope features.",
+  "reviewStatus": "partially_out_of_scope",
+  "confidenceScore": 0.88,
+  "inScopeItems": [{ "item": "Product Catalog and Search UI", "matchedScopeReference": "DEL-CAT-01" }],
+  "outOfScopeItems": [
+    { "item": "CSV Bulk Ingestion Engine", "reason": "Not included in approved proposal scope or deliverables." },
+    { "item": "Automated Supplier Inventory Sync", "reason": "Requires background cron job and external adapter." }
+  ],
+  "affectedDeliverables": [{ "deliverableId": "del_cat_01", "scopeReference": "DEL-CAT-01" }]
+}</code></pre>
+
+  <h3>C. Insufficient Evidence (Case 5 - Missing Documentation Flagged)</h3>
+  <pre><code>{
+  "summary": "Insufficient evidence in the approved proposal to determine feasibility or baseline alignment for requested external integrations.",
+  "reviewStatus": "uncertain",
+  "confidenceScore": 0.45,
+  "uncertainItems": [{
+    "item": "On-premise SAP ERP Integration",
+    "question": "Can the client provide technical specifications, API schemas, and network requirements for the sap integration?",
+    "missingEvidence": "The approved proposal scope contains zero architecture documentation or interface specifications for \"sap\"."
+  }]
+}</code></pre>
+
+  <h2>6. Implementation Deliverables &amp; Code Changes</h2>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 42%;">File Path</th>
+        <th>Description &amp; Role in Review 2</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>backend/src/ai/services/changeAnalysisMock.service.js</code></td>
+        <td>Deterministic rule-based mock engine supporting all 5 case categories with reproducible outputs.</td>
+      </tr>
+      <tr>
+        <td><code>backend/src/ai/fixtures/changeAnalysisFixtures.js</code></td>
+        <td>Five canonical test cases with complete proposal snapshots, deliverables, and explanations.</td>
+      </tr>
+      <tr>
+        <td><code>backend/src/ai/scripts/runMockCases.js</code></td>
+        <td>CLI runner executable via <code>npm run mock:cases</code> with summary table and determinism verification.</td>
+      </tr>
+      <tr>
+        <td><code>backend/src/ai/ai.controller.js</code></td>
+        <td>Express controller exposing dynamic mock analysis and test case discovery/execution.</td>
+      </tr>
+      <tr>
+        <td><code>backend/src/ai/ai.routes.js</code></td>
+        <td>HTTP routes mounted under <code>/api/ai/*</code> with Zod request validation.</td>
+      </tr>
+      <tr>
+        <td><code>backend/tests/ai.mockCases.test.js</code></td>
+        <td>Dedicated Jest test suite testing all 5 canonical cases, constraints, and determinism.</td>
+      </tr>
+      <tr>
+        <td><code>backend/tests/ai.routes.test.js</code></td>
+        <td>Integration tests for <code>GET /api/ai/cases</code>, <code>POST /cases/:id/run</code>, and <code>POST /analyze-mock</code>.</td>
+      </tr>
+      <tr>
+        <td><code>backend/src/ai/README.md</code></td>
+        <td>Updated testing instructions, CLI documentation, and endpoint catalog.</td>
+      </tr>
+      <tr>
+        <td><code>REVIEW_2_SUBMISSION.md</code></td>
+        <td>Complete mentor review evaluation document.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>7. Verification &amp; Test Execution Evidence</h2>
+  <p>Executed full test suite with 100% test passage (29/29 tests across 6 test suites):</p>
+  <pre><code>> scopepilot-backend@1.0.0 test
+> jest --detectOpenHandles --runInBand
+
+PASS tests/ai.routes.test.js
+PASS tests/validation.test.js
+PASS tests/ai.mockCases.test.js
+PASS tests/health.test.js
+PASS tests/notFound.test.js
+PASS tests/ai.contracts.test.js
+
+Test Suites: 6 passed, 6 total
+Tests:       29 passed, 29 total
+Snapshots:   0 total
+Time:        1.764 s
+Ran all test suites.</code></pre>
+
+  <h2>8. Questions Prepared for Mentor Evaluation</h2>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 36%;">Mentor Question</th>
+        <th>Prepared Technical Response</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Why not use an LLM immediately?</strong></td>
+        <td>A rule-based mock helps the team confirm the contract, validate edge cases, and establish predictable baseline behavior without adding model latency, costs, or non-deterministic variance.</td>
+      </tr>
+      <tr>
+        <td><strong>What is partial overlap?</strong></td>
+        <td>Part of the request is covered by existing deliverables (e.g. Catalog UI), while other parts introduce substantial new work (e.g. bulk CSV processing or background sync) that require extra pricing and scheduling.</td>
+      </tr>
+      <tr>
+        <td><strong>What does the mock prove?</strong></td>
+        <td>It proves the end-to-end data pipeline, Zod schema validation, case handling across 5 distinct outcomes, and client response structure before semantic AI is added.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>9. Next Steps for Review 3</h2>
+  <ol>
+    <li>Introduce text extraction and semantic chunking for approved proposal PDFs/TXTs in <code>backend/src/ai/rag/</code>.</li>
+    <li>Wrap local embedding models (<code>nomic-embed-text</code>, 768 dimensions) under <code>backend/src/ai/embeddings/</code>.</li>
+    <li>Compare natural-language requests against approved-scope passages using vector similarity search, recording both successful semantic matches and retrieval failure cases.</li>
+  </ol>
+
+  <div class="footer-note">
+    ScopePilot Project &bull; Vishal (AI / RAG / Change-Analysis Agent) &bull; Submitted for Review 2 of 5
+  </div>
+
+</body>
+</html>

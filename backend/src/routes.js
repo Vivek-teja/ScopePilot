@@ -6,6 +6,7 @@ const proposalRoutes = require('./modules/proposal/proposal.routes');
 const milestoneRoutes = require('./modules/milestone/milestone.routes');
 const deliverableRoutes = require('./modules/deliverable/deliverable.routes');
 const changeRequestRoutes = require('./modules/changeRequest/changeRequest.routes');
+const aiRoutes = require('./ai/ai.routes');
 
 const router = Router();
 
@@ -25,5 +26,6 @@ router.use('/proposals', proposalRoutes);
 router.use('/milestones', milestoneRoutes);
 router.use('/deliverables', deliverableRoutes);
 router.use('/change-requests', changeRequestRoutes);
+router.use('/ai', aiRoutes);
 
 module.exports = router;
