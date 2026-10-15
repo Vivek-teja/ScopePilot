@@ -12,4 +12,5 @@ yarn-error.log*
 coverage/
 dist/
 build/
+**/dist/
 push_vishal_branch.bat
