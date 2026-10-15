@@ -1,9 +1,13 @@
 const { Router } = require('express');
 const aiController = require('./ai.controller');
 const validate = require('../middleware/validate.middleware');
+const { optionalAuth } = require('../middleware/auth.middleware');
 const { ChangeAnalysisInputSchema } = require('../contracts/aiAnalysis.contract');
 
 const router = Router();
+
+// Apply authentication middleware (populates req.user if bearer token provided)
+router.use(optionalAuth);
 
 // Test cases discovery & execution endpoints
 router.get('/cases', aiController.getCases);
