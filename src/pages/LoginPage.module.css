@@ -1,0 +1,169 @@
+/* Login / Demo Entry page */
+
+.page {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-8) var(--space-5);
+  background: var(--bg);
+  position: relative;
+  overflow: hidden;
+}
+
+/* decorative orbs */
+.orb1, .orb2 {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.25;
+  pointer-events: none;
+}
+.orb1 {
+  width: 480px; height: 480px;
+  background: var(--accent);
+  top: -120px; left: -120px;
+}
+.orb2 {
+  width: 360px; height: 360px;
+  background: #06b6d4;
+  bottom: -80px; right: -80px;
+}
+
+.card {
+  position: relative;
+  z-index: 1;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-10) var(--space-10);
+  max-width: 480px;
+  width: 100%;
+  box-shadow: var(--shadow-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+@media (max-width: 540px) {
+  .card { padding: var(--space-8) var(--space-6); }
+}
+
+.logoRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+.logoIcon { font-size: 2rem; }
+.logoText  { font-size: 1.5rem; font-weight: 800; color: var(--text-heading); letter-spacing: -0.04em; }
+
+.headline {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  color: var(--text-heading);
+  margin: 0;
+}
+.sub { color: var(--text-secondary); font-size: 0.92rem; line-height: 1.55; }
+
+/* Demo banner */
+.demoBanner {
+  background: var(--accent-light);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.demoBanner p { font-size: 0.82rem; color: var(--accent-dark); }
+.demoBadge {
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  background: var(--accent);
+  color: var(--text-on-accent);
+  padding: 2px 8px;
+  border-radius: 999px;
+  align-self: flex-start;
+}
+
+/* Role picker */
+.roleGroup {
+  border: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.roleLegend {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: var(--space-2);
+  padding: 0;
+}
+.radioInput {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.roleCard {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  position: relative;
+}
+.roleCard:hover { border-color: var(--accent); background: var(--accent-light); }
+.roleCardSelected { border-color: var(--accent); background: var(--accent-light); }
+
+.roleAvatar {
+  font-size: 1.4rem;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--gray-bg);
+  font-style: normal;
+}
+.roleInfo { display: flex; flex-direction: column; flex: 1; }
+.roleName { font-weight: 600; font-size: 0.9rem; color: var(--text-heading); }
+.roleTag  { font-size: 0.75rem; color: var(--text-secondary); text-transform: capitalize; }
+.roleCheck {
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+/* Enter button */
+.enterBtn {
+  background: var(--accent);
+  color: var(--text-on-accent);
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 13px var(--space-6);
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+  width: 100%;
+}
+.enterBtn:hover:not(:disabled) { background: var(--accent-hover); transform: translateY(-1px); }
+.enterBtn:disabled { opacity: 0.65; cursor: not-allowed; }
+
+.disclaimer {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  line-height: 1.55;
+  text-align: center;
+}

@@ -1,0 +1,5 @@
+/* ScopePilot App-level layout */
+.app-shell {
+  display: flex;
+  min-height: 100dvh;
+}

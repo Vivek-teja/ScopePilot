@@ -1,0 +1,18 @@
+.container { display: flex; flex-direction: column; gap: var(--space-5); }
+
+.list { display: flex; flex-direction: column; gap: var(--space-3); }
+.crCard { display: flex; flex-direction: column; gap: var(--space-3); cursor: pointer; }
+.crHeader { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; }
+.crLeft { display: flex; flex-direction: column; gap: var(--space-1); }
+.crId { font-size: 0.72rem; color: var(--text-muted); font-family: var(--font-mono); }
+.crTitle { margin: 0; font-size: 0.95rem; }
+.crBadges { display: flex; gap: var(--space-2); flex-wrap: wrap; align-items: flex-start; }
+.crSummary { font-size: 0.85rem; color: var(--text-secondary); margin: 0; line-height: 1.5; }
+.crMeta { display: flex; gap: var(--space-4); font-size: 0.78rem; color: var(--text-muted); flex-wrap: wrap; }
+.crOpen { color: var(--accent); font-weight: 600; margin-left: auto; }
+
+/* Create form */
+.formCard { border-color: var(--accent); display: flex; flex-direction: column; gap: var(--space-4); }
+.formTitle { margin: 0; font-size: 1rem; }
+.form { display: flex; flex-direction: column; gap: var(--space-4); }
+.formActions { display: flex; gap: var(--space-3); align-items: center; }

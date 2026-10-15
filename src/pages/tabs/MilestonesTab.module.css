@@ -1,0 +1,58 @@
+.container { display: flex; flex-direction: column; gap: var(--space-5); }
+
+.msCard { display: flex; flex-direction: column; gap: var(--space-4); }
+
+.msHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+.msLeft { display: flex; align-items: flex-start; gap: var(--space-3); }
+.msNumber {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: var(--accent-light);
+  color: var(--accent);
+  font-size: 0.8rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.msTitle { margin: 0; font-size: 1rem; }
+.msDesc { font-size: 0.83rem; color: var(--text-secondary); margin: var(--space-1) 0 0; }
+
+.msRight { display: flex; flex-direction: column; align-items: flex-end; gap: var(--space-1); }
+.msDue  { font-size: 0.78rem; color: var(--text-muted); }
+.msCompleted { font-size: 0.78rem; color: var(--green); font-weight: 600; }
+
+/* Deliverables */
+.delivSection { display: flex; flex-direction: column; gap: var(--space-3); }
+.delivHeading { font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin: 0; }
+
+.delivGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--space-3);
+}
+
+.delivCard {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.delivTop { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-2); }
+.delivTitle { font-size: 0.87rem; font-weight: 600; color: var(--text-heading); line-height: 1.35; }
+.delivMeta { display: flex; align-items: center; gap: var(--space-3); font-size: 0.77rem; color: var(--text-muted); flex-wrap: wrap; }
+.evidenceLink { color: var(--accent); font-weight: 500; }
+.evidenceLink:hover { text-decoration: underline; }
+.noEvidence { color: var(--text-muted); font-style: italic; }
+.delivNotes { font-size: 0.78rem; color: var(--text-secondary); margin: 0; border-left: 3px solid var(--border); padding-left: var(--space-2); }

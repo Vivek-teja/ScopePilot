@@ -1,0 +1,129 @@
+.page { display: flex; flex-direction: column; gap: var(--space-6); }
+
+/* Header */
+.header { display: flex; flex-direction: column; gap: var(--space-3); }
+.headerTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+.crId { font-size: 0.75rem; color: var(--text-muted); font-family: var(--font-mono); margin: 0; }
+.crTitle { margin: var(--space-1) 0 0; font-size: 1.4rem; }
+.headerBadges { display: flex; gap: var(--space-2); flex-wrap: wrap; align-items: flex-start; padding-top: 4px; }
+.summary { color: var(--text-secondary); font-size: 0.92rem; margin: 0; }
+.metaRow { display: flex; gap: var(--space-5); font-size: 0.8rem; color: var(--text-muted); flex-wrap: wrap; }
+
+/* Body grid */
+.bodyGrid {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: var(--space-5);
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .bodyGrid { grid-template-columns: 1fr; }
+  .rightCol { order: -1; }
+}
+
+.leftCol, .rightCol { display: flex; flex-direction: column; gap: var(--space-5); }
+
+/* Scope comparison */
+.scopeCard { display: flex; flex-direction: column; gap: var(--space-4); }
+.scopeSubtitle { color: var(--text-secondary); font-size: 0.85rem; margin: 0; }
+.scopeColumns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-5);
+}
+@media (max-width: 640px) { .scopeColumns { grid-template-columns: 1fr; } }
+
+.scopeCol { display: flex; flex-direction: column; gap: var(--space-3); }
+.scopeColHeader { margin-bottom: var(--space-1); }
+.scopeColBadge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+.scopeColBadgeApproved {
+  background: var(--green-bg);
+  color: var(--green);
+  border: 1px solid var(--green);
+}
+.scopeColBadgeNew {
+  background: var(--yellow-bg);
+  color: var(--yellow);
+  border: 1px solid var(--yellow);
+}
+
+.scopeList { display: flex; flex-direction: column; gap: var(--space-2); padding: 0; }
+.scopeItem {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  font-size: 0.87rem;
+  color: var(--text);
+  line-height: 1.45;
+}
+.scopeCheck { color: var(--green); font-weight: 700; flex-shrink: 0; }
+.scopeLoading { color: var(--text-muted); font-style: italic; font-size: 0.85rem; }
+
+.newWork {
+  font-size: 0.9rem;
+  color: var(--text);
+  line-height: 1.6;
+  background: var(--yellow-bg);
+  border-left: 4px solid var(--yellow);
+  padding: var(--space-3) var(--space-4);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+/* Impact */
+.impactCard { display: flex; flex-direction: column; gap: var(--space-4); }
+.impactGrid { display: flex; gap: var(--space-6); flex-wrap: wrap; }
+.impactItem { display: flex; align-items: flex-start; gap: var(--space-3); }
+.impactIcon { font-size: 1.4rem; flex-shrink: 0; margin-top: 2px; }
+.impactLabel { font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.impactValue { font-size: 1.1rem; font-weight: 700; color: var(--text-heading); margin: var(--space-1) 0; }
+.impactNote  { font-size: 0.72rem; color: var(--text-muted); font-style: italic; }
+.unavailable { color: var(--text-secondary); font-size: 0.88rem; line-height: 1.55; }
+
+/* AI */
+.aiCard { display: flex; flex-direction: column; gap: var(--space-4); }
+.aiHeader { display: flex; align-items: center; gap: var(--space-3); }
+.aiIcon { font-size: 2rem; }
+.aiTitle { margin: 0; }
+.aiSubtitle { font-size: 0.82rem; color: var(--text-secondary); margin: 2px 0 0; }
+.aiNotConnected {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--gray-bg);
+  border-radius: var(--radius-sm);
+  border: 1px dashed var(--border);
+}
+.aiNotConnected p { font-size: 0.85rem; color: var(--text-secondary); margin: var(--space-1) 0 0; }
+.aiStatusDot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  flex-shrink: 0;
+  margin-top: 5px;
+}
+
+/* Human decision */
+.decisionCard { display: flex; flex-direction: column; gap: var(--space-4); }
+.decisionStatus { display: flex; flex-direction: column; gap: var(--space-3); }
+.decisionNote { padding: var(--space-3) var(--space-4); background: var(--bg); border-radius: var(--radius-sm); border-left: 4px solid var(--accent); }
+.decisionNoteLabel { font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; display: block; margin-bottom: var(--space-1); }
+.decisionNote p { font-size: 0.87rem; color: var(--text); margin: 0; }
+
+.decideForm { display: flex; flex-direction: column; gap: var(--space-3); }
+.decideActions { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+
+.detailsCard { display: flex; flex-direction: column; gap: var(--space-3); }

@@ -1,0 +1,47 @@
+.container { display: flex; flex-direction: column; gap: var(--space-6); }
+
+.approvedCard { display: flex; flex-direction: column; gap: var(--space-4); border-color: var(--green); }
+.proposalHeader { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-4); flex-wrap: wrap; }
+.proposalTitle { margin: 0; font-size: 1rem; }
+.proposalNotes { font-size: 0.83rem; color: var(--text-secondary); margin: var(--space-1) 0 0; }
+
+.proposalBody {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-6);
+}
+@media (max-width: 680px) { .proposalBody { grid-template-columns: 1fr; } }
+
+.kvSection, .delivSection { display: flex; flex-direction: column; gap: var(--space-3); }
+.subHeading { font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin: 0; }
+
+.delivList { display: flex; flex-direction: column; gap: var(--space-2); padding: 0; }
+.delivItem {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  font-size: 0.88rem;
+  color: var(--text);
+  line-height: 1.45;
+}
+.delivCheck { color: var(--green); font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+
+/* Revision dots */
+.revisionBar { display: flex; align-items: center; gap: var(--space-3); margin-top: var(--space-2); }
+.revisionLabel { font-size: 0.78rem; color: var(--text-muted); }
+.revisionDots { display: flex; gap: var(--space-1); }
+.revisionDot {
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  background: transparent;
+}
+.revisionDotUsed { background: var(--accent); border-color: var(--accent); }
+.revisionCount { font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); }
+
+/* Other versions */
+.otherList { display: flex; flex-direction: column; gap: var(--space-3); }
+.otherCard { display: flex; flex-direction: column; gap: var(--space-2); opacity: 0.8; }
+.otherHeader { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
+.otherTitle { font-weight: 600; font-size: 0.9rem; color: var(--text-heading); }
+.otherNotes { font-size: 0.82rem; color: var(--text-secondary); margin: 0; }

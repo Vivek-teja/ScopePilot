@@ -1,0 +1,291 @@
+/* ============================================================
+   ui.module.css – scoped styles for shared UI components
+   ============================================================ */
+
+/* ── Badge ──────────────────────────────────────────────────── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.badge-green  { background: var(--green-bg);  color: var(--green);  }
+.badge-yellow { background: var(--yellow-bg); color: var(--yellow); }
+.badge-red    { background: var(--red-bg);    color: var(--red);    }
+.badge-blue   { background: var(--blue-bg);   color: var(--blue);   }
+.badge-gray   { background: var(--gray-bg);   color: var(--gray);   }
+.badge-orange { background: var(--orange-bg); color: var(--orange); }
+
+/* ── Avatar ─────────────────────────────────────────────────── */
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--accent-light);
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 0.75rem;
+  flex-shrink: 0;
+}
+.avatar-sm { width: 28px; height: 28px; font-size: 0.65rem; }
+.avatar-md { width: 36px; height: 36px; }
+.avatar-lg { width: 48px; height: 48px; font-size: 1rem; }
+.avatar-xl { width: 64px; height: 64px; font-size: 1.25rem; }
+
+/* ── Progress ────────────────────────────────────────────────── */
+.progressWrap {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.progressBar {
+  flex: 1;
+  height: 8px;
+  background: var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.progressFill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+.progressLabel {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  min-width: 34px;
+  text-align: right;
+}
+
+/* ── Card ────────────────────────────────────────────────────── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-5) var(--space-6);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+.cardClickable {
+  cursor: pointer;
+  display: block;
+  color: inherit;
+}
+.cardClickable:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--accent);
+}
+
+/* ── Section Header ──────────────────────────────────────────── */
+.sectionHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-5);
+}
+.sectionTitle {
+  font-size: 1.1rem;
+  margin-bottom: var(--space-1);
+}
+.sectionSubtitle {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+.sectionAction { flex-shrink: 0; }
+
+/* ── Button ──────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  border: none;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  transition: background 0.15s, opacity 0.15s, box-shadow 0.15s;
+  white-space: nowrap;
+  text-decoration: none;
+}
+.btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.btn-primary {
+  background: var(--accent);
+  color: var(--text-on-accent);
+}
+.btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
+
+.btn-secondary {
+  background: transparent;
+  color: var(--accent);
+  border: 1.5px solid var(--accent);
+}
+.btn-secondary:hover:not(:disabled) { background: var(--accent-light); }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+}
+.btn-ghost:hover:not(:disabled) { background: var(--gray-bg); color: var(--text-heading); }
+
+.btn-danger {
+  background: var(--red);
+  color: #fff;
+}
+.btn-danger:hover:not(:disabled) { opacity: 0.85; }
+
+.btn-sm { padding: 5px 12px; font-size: 0.8rem; }
+.btn-md { padding: 9px 18px; font-size: 0.88rem; }
+.btn-lg { padding: 12px 24px; font-size: 1rem; }
+
+/* ── Spinner ─────────────────────────────────────────────────── */
+.spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── State containers ────────────────────────────────────────── */
+.stateContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-12) var(--space-6);
+  text-align: center;
+}
+.stateError { color: var(--red); }
+.emptyIcon { font-size: 2.5rem; line-height: 1; }
+.stateMessage { color: var(--text-secondary); font-size: 0.9rem; max-width: 36ch; }
+
+/* ── Notice ──────────────────────────────────────────────────── */
+.notice {
+  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-4);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  border-left: 4px solid;
+}
+.noticeInfo    { background: var(--blue-bg);   color: var(--blue);   border-color: var(--blue); }
+.noticeWarning { background: var(--yellow-bg); color: var(--yellow); border-color: var(--yellow); }
+.noticeDemo    { background: var(--accent-light); color: var(--accent-dark); border-color: var(--accent); }
+
+/* ── Breadcrumb ──────────────────────────────────────────────── */
+.breadcrumb { margin-bottom: var(--space-4); }
+.breadcrumbList {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+}
+.breadcrumbItem {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 0.82rem;
+}
+.breadcrumbLink {
+  color: var(--accent);
+  font-weight: 500;
+}
+.breadcrumbLink:hover { text-decoration: underline; }
+.breadcrumbSep { color: var(--text-muted); padding: 0 2px; }
+.breadcrumbCurrent { color: var(--text-secondary); font-weight: 500; }
+
+/* ── Tabs ────────────────────────────────────────────────────── */
+.tabs {
+  display: flex;
+  gap: 2px;
+  border-bottom: 2px solid var(--border);
+  margin-bottom: var(--space-6);
+  flex-wrap: wrap;
+}
+.tab {
+  padding: var(--space-2) var(--space-4);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.tab:hover { color: var(--text-heading); }
+.tabActive  { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+
+/* ── Form fields ─────────────────────────────────────────────── */
+.formField {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-heading);
+}
+.required { color: var(--red); }
+.hint { font-size: 0.78rem; color: var(--text-muted); }
+.input {
+  width: 100%;
+  padding: 9px 13px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text-heading);
+  transition: border-color 0.15s, box-shadow 0.15s;
+  font-size: 0.88rem;
+}
+.input:focus {
+  outline: none;
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12);
+}
+.inputError { border-color: var(--red); }
+.textarea { resize: vertical; min-height: 90px; }
+.select { appearance: auto; }
+.fieldError { font-size: 0.78rem; color: var(--red); font-weight: 500; }
+
+/* ── Divider ─────────────────────────────────────────────────── */
+.divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: var(--space-5) 0;
+}
+
+/* ── KV grid ─────────────────────────────────────────────────── */
+.kvGrid {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--space-2) var(--space-5);
+  align-items: baseline;
+}
+.kvRow { display: contents; }
+.kvLabel {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+.kvValue { font-size: 0.9rem; color: var(--text-heading); }
+.kvMono  { font-family: var(--font-mono); font-size: 0.82rem; }
+.kvEmpty { color: var(--text-muted); font-style: italic; }
