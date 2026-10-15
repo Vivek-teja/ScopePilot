@@ -7,6 +7,7 @@ const evidenceSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
+      alias: 'content',
     },
     fileUrls: [
       {
@@ -14,6 +15,11 @@ const evidenceSchema = new mongoose.Schema(
         trim: true,
       },
     ],
+    reference: {
+      type: String,
+      trim: true,
+      default: '',
+    },
     submittedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
@@ -57,6 +63,7 @@ const milestoneSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Project',
       required: [true, 'Project reference is required'],
+      alias: 'projectId',
       index: true,
     },
     title: {
@@ -85,6 +92,7 @@ const milestoneSchema = new mongoose.Schema(
     order: {
       type: Number,
       default: 1,
+      min: [1, 'Milestone order must be at least 1'],
     },
     deliverables: [
       {
@@ -101,6 +109,10 @@ const milestoneSchema = new mongoose.Schema(
 );
 
 milestoneSchema.index({ project: 1, order: 1 });
+milestoneSchema.index({ project: 1, status: 1 });
+
+milestoneSchema.set('toJSON', { virtuals: true });
+milestoneSchema.set('toObject', { virtuals: true });
 
 const Milestone = mongoose.model('Milestone', milestoneSchema);
 
