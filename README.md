@@ -9,141 +9,171 @@ This is the first planning output required by Section 24 of the master prompt (i
 
 ## A. High-level system architecture
 
-```
- Browser: React SPA (Member 10)
-   |  HTTPS - HttpOnly session cookie + CSRF header - CORS allowlist
+```text
+ Browser: React 19 SPA under client/ (Member 10)
+   |  HTTP/HTTPS - Authorization: Bearer <token> (Stateless JWT)
+   |  (Frontend currently operates on in-browser demoStore.js; live API wire-up scheduled for Review 3)
    v
- Express API under /api (skeleton: Member 1)
-   middleware order: requestId > cors > rateLimit > session (M2) > csrf (M2)
-                     > zod validate > authorize (M3) > controller
+ Express API under /api (backend/src/app.js)
+   middleware order: helmet > cors > morgan > express.json & express.urlencoded
+                     > routes (backend/src/routes.js) > notFoundHandler > errorHandler
    routes -> controllers -> services -> Mongoose models
    |
-   +-- Business modules
+   +-- Business modules (backend/src/modules/)
    |     auth (M2) | workspace + membership (M3) | project + proposal (M4)
    |     milestone + evidence + decisions (M5) | change request + schedule (M6)
    |
-   +-- AI modules
-   |     documents + chunks + embeddings (M7)
-   |     scope RAG + semantic comparison (M8)
-   |     LangChain agent + tools (M9)
+   +-- AI subsystem (backend/src/ai/)
+   |     Zod contracts (backend/src/contracts/aiAnalysis.contract.js)
+   |     Deterministic mock engine & fixtures (M7, M8, M9: 5 canonical cases)
+   |     Ollama embeddings + Atlas Vector Search (Review 3 planned)
+   |     LangChain agent + tools (Review 3 planned)
    |
-   +--> MongoDB Atlas: collections via Mongoose + vector index on chunks
-   +--> Ollama (server-side only, localhost): embedding model + chat model,
-        called through LangChain JS wrappers. Never reachable from the browser.
+   +--> MongoDB (Atlas / Local): collections via Mongoose models
+   +--> Ollama (server-side localhost, Review 3): embedding model + chat model
 ```
 
-Architecture rules every member follows:
+Architecture rules and authorization boundaries:
 
-- **Layering:** routes only parse and validate, controllers call services, services hold logic, models hold schema. Tools and AI code live in `/ai`, outside routes.
-- **One acting user:** identity comes only from the server session. `role`, `ownerId` and `organizationId` are never read from request bodies or model output.
-- **AI never decides:** prices, approvals, roles and dates are deterministic code plus human decisions. The AI explains, compares and drafts.
-- **Authorization before retrieval:** the vector query filter (workspaceId, projectId, status) is built server-side from the user's memberships.
-- **Shared contracts:** one Zod schema folder (`/contracts`) holds state enums, the error envelope and the AI response shape. Nobody redefines them.
+- **Layering:** routes only parse and validate, controllers call services, services hold logic, models hold schema. AI code and fixtures live under `backend/src/ai/`, outside standard routes.
+- **One acting user:** identity comes exclusively from the verified Bearer JWT token (`req.user`) populated by `requireAuth`. `role`, `ownerId`, and `workspaceId` are never trusted blindly from unauthenticated request bodies.
+- **AI never decides:** prices, approvals, roles and dates are deterministic code plus authenticated human decisions. The AI subsystem only analyzes, compares, and drafts advisory recommendations.
+- **Authorization boundaries (Architecture requirements vs. current implementation):**
+  - *Target Architecture Requirements:* The target design specifies that all resource access and future vector search queries be strictly scoped to verified workspace and project memberships. When live vector search is implemented in Review 3, tenant filter predicates (`workspaceId`, `projectId`, `status = ready`) must be constructed server-side prior to similarity retrieval.
+  - *Current Code Behavior:*
+    - **Projects:** Workspace membership is verified upon project creation and listing/retrieval in `project.service.js` (verified in `project.test.js`).
+    - **Milestones & Deliverables:** Queries require `projectId` or `milestoneId` scoping parameters (`listMilestonesQuerySchema`), and milestone decisions enforce client-restricted access via `checkDecisionAccess` (verified in `milestoneDeliverable.api.test.js`).
+    - **Change Requests (Unresolved Security Defect):** Change request retrieval (`GET /api/change-requests/:id`) and decision recording (`POST /api/change-requests/:id/decision`) do **not** currently verify project or workspace tenancy. Furthermore, `recordDecision` allows freelancers to self-approve their own change requests. This remains an active, unresolved security defect in code.
+    - **Vector Search:** Live vector search and vector filters are **not implemented** in the current code (planned for Review 3).
+- **Shared contracts:** the shared Zod schema folder (`backend/src/contracts/`) holds state enums, request/response validation schemas, and the AI response contract.
 
 ## B. 10-person responsibility matrix
 
-| # | Member | Owns (modules and APIs) | Database entities | Depends on | Independent demo target |
-|---|---|---|---|---|---|
-| 1 | Backend foundation and API architect | Express app, route index, error middleware, Zod-validated env config, response/error conventions, logger | none (shared helpers) | none | `GET /api/health`, a deliberate validation error and a 404 all returning the shared error format |
-| 2 | Authentication and security | `/api/auth/*` (8 routes), session, CSRF, CORS, login rate limit, `requireAuth` | User, Session, Token (verification and reset, hashed, single-use) | M1 | Register, read the dev inbox, verify, login, `/me`, logout in Postman; reset invalidates sessions |
-| 3 | Workspace, membership and authorization | `POST /api/workspaces/:id/invitations`, `authorize()` service, membership revocation | Workspace, Membership, Invitation, AuditLog | M1, M2 | Invite a client, accept, revoke; revoked user gets 403; role change appears in AuditLog |
-| 4 | Project and proposal management | `POST /api/projects`, `POST /api/proposals`, proposal versions, `POST /api/proposals/:id/decision` (with M5's decision service) | Project, Proposal, ProposalVersion | M3, M5 (decision service) | Create v1 and v2, client approves v1, any edit to v1 is rejected with 409 |
-| 5 | Milestones, evidence and decisions | milestone lifecycle, evidence and comments, `POST /api/milestones/:id/evidence`, `POST /api/milestones/:id/decision`, shared `decisionService`, timeline data | Milestone, Evidence, Decision | M3, M4 | Add evidence, client approves or rejects, timeline endpoint shows ordered history |
-| 6 | Change request and schedule impact engine | `POST /api/change-requests`, `POST /api/change-requests/:id/decision`, capacity, stale-estimate check, price entry | ChangeRequest, CapacityRecord | M3, M4, M5 | Draft, freelancer sets price, client accepts; changing capacity afterwards makes acceptance fail as stale |
-| 7 | Document ingestion and vector search | upload, PDF/TXT extraction, chunking, Ollama embeddings, Atlas index, status and retry, authorized retrieval function | Document (with versions), Chunk | M1, M3 | Upload TXT and PDF, watch extraction > embedding > ready; retry creates no duplicates; script query returns only permitted chunks |
-| 8 | Scope RAG and semantic comparison | `POST /api/scope-chat`, comparison service used by the agent and by draft changes | Conversation, Message | M4, M7 | Q&A with citation to a proposal version, plus a clear `not enough information` answer |
-| 9 | LangChain agent and AI tooling | `POST /api/change-agent`, three tools with Zod schemas, step/time/input limits, execution logging | ToolExecution (agent run record) | M6, M7, M8 | Run the dashboard request and receive a draft change request with logged tool calls; a forced tool error is reported honestly |
-| 10 | React frontend and integration | all screens, routing, auth UI, dashboards, citation display, loading/empty/error/retry states, end-to-end wiring | none | all APIs (uses mocks until ready) | Login, role dashboard, proposal versions and milestone board running on mocked API responses first |
+> **Clarification of Roles:** The original project plan partitioned responsibilities into 10 distinct technical areas (1 through 10), with AI split across three separate tracks (7: Ingestion & Vector Search, 8: Scope RAG, 9: AI Agent). In the actual team arrangement, **Vishal** owns the unified AI/RAG/Agent subsystem (`backend/src/ai/`, `backend/src/contracts/`), having delivered Review 1 & 2 (deterministic mock engine & contracts) and leading Review 3 (live RAG & agent). **Shivasainithin** leads Git Integration & Merging (linear history, branch reconciliation, FF merges, merge readiness audits), and **Bharat** leads QA & Testing (test execution, validation coverage, audit verification).
 
-Integration points to agree early: M2 exports `requireAuth`; M3 exports `authorize(user, action, resource)`; M5 exports `decisionService.record()`; M7 exports `retrieveChunks({ user, projectId, query })`; M6 exports `getScopeAndCapacity()` and `computeScheduleImpact()` as plain functions that M9 wraps as tools.
+| Area / # | Original Plan Area | Assigned Owner | Primary Directory / Module | Implementation & Audited Test Status |
+|---|---|---|---|---|
+| 1 | Backend foundation & API architecture | Vivek | `backend/src/server.js`, `app.js`, `routes.js`, error middleware | **Implemented & Verified:** `GET /api/health`, centralized error formatting, Zod env validation active. |
+| 2 | Authentication & security | Nikhil | `backend/src/modules/auth/`, security middleware | **Implemented (Untested):** Direct registration, login, Bearer JWT (`jsonwebtoken`), bcrypt hashing. *(0 dedicated automated tests).* |
+| 3 | Workspace, membership & multi-tenancy | Sushant | `backend/src/modules/workspace/` | **Implemented (Untested):** Workspace CRUD, multi-tenant boundaries, membership roles (`owner`, `admin`, `member`). *(0 dedicated automated tests).* |
+| 4 | Project & proposal management | Abhtej | `backend/src/modules/project/`, `proposal/` | **Partially Implemented:** Project CRUD verified (19 tests); Proposal v1 baseline creation and approval locking active. Superseding v2+ revisions missing; proposal logic has *(0 dedicated tests)*. |
+| 5 | Milestones & deliverables | Mounish | `backend/src/modules/milestone/`, `deliverable/` | **Implemented & Verified:** 97 tests across API (57) and model (40) suites; client-only decisions, mandatory project scoping. Milestone decisions do not cascade to child deliverables. |
+| 6 | Change requests | Mokshagna | `backend/src/modules/changeRequest/` | **Partial Prototype Stub (Insecure & Untested):** Schema and endpoints exist. Unresolved security defect: freelancers can self-approve in `recordDecision`; lacks tenancy checks; missing listing route; *(0 dedicated tests)*. |
+| 7 | Document ingestion & vector search | Vishal *(unified AI track)* | `backend/src/ai/`, Atlas Vector Search | **Review 3 Planned:** Ollama local embeddings (`nomic-embed-text`) and MongoDB Atlas Vector Search. |
+| 8 | Scope RAG & semantic comparison | Vishal *(unified AI track)* | `backend/src/ai/`, RAG services | **Review 3 Planned:** Grounded scope Q&A against approved proposals. |
+| 9 | LangChain agent & AI tooling | Vishal *(unified AI track)* | `backend/src/ai/`, `contracts/` | **Review 1 & 2 Verified:** 5 canonical deterministic cases, Zod contracts, CLI runner (`npm run mock:cases`), 26 automated tests. Review 3 live agent planned. |
+| 10 | React frontend SPA | Taran | `client/` (React 19 SPA) | **Implemented as Standalone Prototype:** Clean Vite build, AppShell, role switcher, views operating on `demoStore.js` (`localStorage`). Live API wiring planned for Review 3. |
+| - | Git Integration & Merging | Shivasainithin | Repository Git lifecycle, branch audits | **Active:** Enforcing linear history, fast-forward merges, pre-merge quality gates, branch readiness audits. |
+| - | QA & Testing | Bharat | `backend/tests/`, test verification | **Active:** 145/145 passing Jest tests, 5/5 AI mock cases verified, coverage gap tracking. |
+
+Integration points: M2 exports `requireAuth`, `requireRole`; M3 defines workspace boundaries; M5 enforces client-only `checkDecisionAccess` on milestones; Vishal's AI track exports Zod contracts (`aiAnalysis.contract.js`) and the deterministic mock engine.
 
 ## C. Database entity-relationship design
 
-```
+```text
 User 1---* Membership *---1 Workspace
-User 1---* Session
-User 1---* Token (verification / reset)
+User 1---* Session (Planned / Legacy)
 Workspace 1---* Invitation
-Workspace 1---* AuditLog (role and membership changes)
 Workspace 1---* Project
-Project  *---* User  (via ProjectMember: freelancerId, clientId)
+Project  *---* User  (freelancer, client)
 
 Project 1---* Proposal 1---* ProposalVersion   (status: draft..approved, approved = frozen)
-Project 1---* Milestone 1---* Evidence
-Project 1---* CapacityRecord                    (freelancer availability per period)
+Project 1---* Milestone 1---* Deliverable
 Project 1---* ChangeRequest
-   ChangeRequest *---1 ProposalVersion          (baseVersionId: the approved scope compared against)
-   ChangeRequest *---* Milestone                (affectedMilestoneIds)
-Decision (polymorphic): subjectType + subjectId -> ProposalVersion | Milestone | ChangeRequest
-   fields: actorId, outcome, comment, snapshotHash, createdAt  (append-only)
+   ChangeRequest *---1 Project
+   ChangeRequest *---* Milestone                (affectedMilestones)
+   ChangeRequest *---* Deliverable              (relatedDeliverables)
 
-Project 1---* Document 1---* DocumentVersion    (approved ProposalVersion text is ingested as a Document)
-DocumentVersion 1---* Chunk                      (text, page, section, embedding, embeddingModel,
-                                                  embeddingModelVersion, workspaceId, projectId, status)
-Project 1---* Conversation 1---* Message         (message stores cited chunkIds and proposalVersionId)
-Project 1---* ToolExecution                      (agentRunId, toolName, validatedInput, status, durationMs, error)
+Review 3 Planned Entities:
+Project 1---* Document 1---* DocumentVersion
+DocumentVersion 1---* Chunk                      (text, page, section, embedding, workspaceId, projectId)
+Project 1---* Conversation 1---* Message         (grounded Q&A citations)
+Project 1---* ToolExecution                      (agent run record)
 ```
 
-Key design notes:
+## D. API ownership catalog
 
-- **Immutability:** an approved `ProposalVersion` stores a content hash; the model layer refuses updates to it, and every change creates a new version.
-- **Stale estimates:** a `ChangeRequest` stores `baseVersionId`, a `capacityVersion` and an `estimateVersion`. Acceptance re-checks all three against current data and rejects if any moved.
-- **Duplicate application:** `Decision` has a unique index on (subjectType, subjectId, decisionKind) so a change can only be accepted once; the decision endpoint also takes an idempotency key.
-- **Chunk safety:** each chunk copies `workspaceId` and `projectId` so the vector filter needs no join, and `status` flips to `invalid` when a source is removed or access changes.
-- **No padding:** every collection above has a clear job; there is no collection created just to look bigger.
+### Active Mounted Endpoints in Code (`backend/src/routes.js`)
 
-## D. API ownership table
+Every active protected route enforces `requireAuth` (stateless Bearer JWT) and Zod schema validation.
 
-Roles: **F** = Freelancer, **C** = Client, **A** = Workspace Administrator, **PM** = any member of that project. Every protected route runs `requireAuth` (M2), CSRF check on mutations (M2), Zod validation (route owner) and `authorize()` (M3).
-
-| Method | Route | Purpose | Allowed role | Owner | Dependencies |
+| Method | Route | Purpose | Allowed Role / Access | Owner | Audited Code & Test Status |
 |---|---|---|---|---|---|
-| GET | `/api/profiles/:slug` | Published freelancer portfolio | Public | M4 | M1 |
-| GET | `/api/services` | Published service descriptions, no client documents | Public | M4 | M1 |
-| POST | `/api/auth/register` | Sign up, least-privileged role only | Public | M2 | M1 |
-| POST | `/api/auth/verify-email` | Consume single-use token | Public | M2 | register |
-| POST | `/api/auth/login` | Create rotated session, set cookie | Public (rate limited) | M2 | verify-email |
-| POST | `/api/auth/forgot-password` | Issue reset token by email | Public | M2 | dev inbox |
-| POST | `/api/auth/reset-password` | Consume token, revoke all sessions | Public | M2 | forgot-password |
-| GET | `/api/auth/me` | Current user and memberships | Any signed-in user | M2 | session |
-| POST | `/api/auth/logout` | Revoke current session | Any signed-in user | M2 | session |
-| POST | `/api/auth/change-password` | Change password, rotate session | Any signed-in user | M2 | session |
-| POST | `/api/workspaces/:id/invitations` | Invite a member with an expiring link | A | M3 | M2 |
-| POST | `/api/projects` | Create project | F | M4 | M3 |
-| POST | `/api/proposals` | Create proposal or new version | F | M4 | projects |
-| POST | `/api/proposals/:id/decision` | Approve or reject a specific version | C | M4 + M5 decision service | proposals |
-| POST | `/api/milestones/:id/evidence` | Add evidence or comment | F (comments: PM) | M5 | approved proposal |
-| POST | `/api/milestones/:id/decision` | Approve or reject deliverable | C | M5 | evidence |
-| POST | `/api/change-requests` | Create draft change, set effort and price | F (C may submit a request that becomes a draft) | M6 | proposals, capacity |
-| POST | `/api/change-requests/:id/decision` | Accept or reject, with stale and duplicate checks | C | M6 + M5 decision service | change-requests |
-| POST | `/api/scope-chat` | Grounded Q&A on approved scope | PM | M8 | M7, M4 |
-| POST | `/api/change-agent` | Draft a change request via the bounded agent | PM (F finalizes) | M9 | M6, M7, M8 |
+| GET | `/api/health` | Health check endpoint | Public | Vivek (M1) | **Mounted & Verified:** 1 test in `health.test.js` |
+| POST | `/api/auth/register` | Register user, returns `{ user, token }` | Public | Nikhil (M2) | **Mounted:** Instant direct registration; *(0 dedicated tests)* |
+| POST | `/api/auth/login` | Authenticate credentials, returns `{ user, token }` | Public | Nikhil (M2) | **Mounted:** Validates bcrypt hash; *(0 dedicated tests)* |
+| GET | `/api/auth/me` | Fetch authenticated user profile | Authenticated | Nikhil (M2) | **Mounted:** Reads `req.user`; *(0 dedicated tests)* |
+| POST | `/api/workspaces` | Create new workspace | Authenticated | Sushant (M3) | **Mounted:** Creates workspace; *(0 dedicated tests)* |
+| GET | `/api/workspaces/:id` | Fetch workspace details | Workspace Member | Sushant (M3) | **Mounted:** Reads workspace by ID; *(0 dedicated tests)* |
+| POST | `/api/workspaces/:id/invitations` | Invite member to workspace | Owner / Admin | Sushant (M3) | **Mounted:** Creates invitation; *(0 dedicated tests)* |
+| GET | `/api/workspaces/:id/members` | List members of workspace | Workspace Member | Sushant (M3) | **Mounted:** Reads workspace members; *(0 dedicated tests)* |
+| POST | `/api/projects` | Create project in workspace | Freelancer | Abhtej (M4) | **Mounted & Verified:** Enforces workspace membership; 19 tests in `project.test.js` |
+| GET | `/api/projects` | List projects (scoped to workspace) | Workspace Member | Abhtej (M4) | **Mounted & Verified:** Scoped by workspaceId query; 19 tests in `project.test.js` |
+| GET | `/api/projects/:id` | Fetch project details | Project Member | Abhtej (M4) | **Mounted & Verified:** Scoped to freelancer/client; 19 tests in `project.test.js` |
+| POST | `/api/proposals` | Create proposal baseline (v1) | Freelancer | Abhtej (M4) | **Mounted:** v1 baseline creation & budget sums; *(0 dedicated tests)* |
+| GET | `/api/proposals/:id` | Fetch proposal details | Project Member | Abhtej (M4) | **Mounted:** Reads proposal by ID; *(0 dedicated tests)* |
+| POST | `/api/proposals/:id/decision` | Record client decision on proposal | Client | Abhtej (M4) | **Mounted:** Approval locks active version; *(0 dedicated tests)* |
+| POST | `/api/milestones` | Create milestone | Freelancer | Mounish (M5) | **Mounted & Verified:** 57 API tests, 40 model tests |
+| GET | `/api/milestones` | List milestones (requires `?projectId=...`) | Project Member | M5 | **Mounted & Verified:** Scoped by mandatory `projectId`; 57 API tests |
+| GET | `/api/milestones/:id` | Fetch milestone details | Project Member | Mounish (M5) | **Mounted & Verified:** 57 API tests |
+| PATCH | `/api/milestones/:id` | Update milestone | Freelancer | Mounish (M5) | **Mounted & Verified:** 57 API tests |
+| POST | `/api/milestones/:id/evidence` | Attach progress evidence | Freelancer | Mounish (M5) | **Mounted & Verified:** 57 API tests |
+| POST | `/api/milestones/:id/decision` | Record client decision on milestone | Client | Mounish (M5) | **Mounted & Verified:** Client-only `checkDecisionAccess`; non-cascading; 57 API tests |
+| POST | `/api/deliverables` | Create deliverable | Freelancer | Mounish (M5) | **Mounted & Verified:** 57 API tests, 40 model tests |
+| GET | `/api/deliverables` | List deliverables (requires `?projectId=...` or `?milestoneId=...`) | Project Member | M5 | **Mounted & Verified:** Scoped queries; 57 API tests |
+| GET | `/api/deliverables/:id` | Fetch deliverable details | Project Member | Mounish (M5) | **Mounted & Verified:** 57 API tests |
+| PATCH | `/api/deliverables/:id` | Update deliverable | Freelancer | Mounish (M5) | **Mounted & Verified:** 57 API tests |
+| POST | `/api/deliverables/:id/evidence` | Attach progress evidence | Freelancer | Mounish (M5) | **Mounted & Verified:** 57 API tests |
+| POST | `/api/change-requests` | Create draft change request | Freelancer / Client | Mokshagna (M6) | **Mounted (Partial Prototype):** Intake functional; *(0 dedicated tests)* |
+| GET | `/api/change-requests/:id` | Fetch change request details | Authenticated | Mokshagna (M6) | **Mounted (Partial Prototype):** Insecure: lacks project tenancy checks; *(0 dedicated tests)* |
+| POST | `/api/change-requests/:id/decision` | Record decision on change request | Authenticated | Mokshagna (M6) | **Mounted (Partial Prototype):** Insecure: allows freelancer self-approval; lacks calculations; *(0 dedicated tests)* |
+| GET | `/api/ai/cases` | List all 5 canonical deterministic AI test cases | Public | Vishal (AI track) | **Mounted & Verified:** 9 tests in `ai.routes.test.js` |
+| GET | `/api/ai/cases/run-all` | Run all 5 canonical cases sequentially | Public | Vishal (AI track) | **Mounted & Verified:** 9 tests in `ai.routes.test.js` |
+| GET | `/api/ai/cases/:caseId` | Retrieve single canonical AI test case payload | Public | Vishal (AI track) | **Mounted & Verified:** 9 tests in `ai.routes.test.js` |
+| GET | `/api/ai/cases/:caseId/run` | Execute deterministic evaluation (GET) | Public | Vishal (AI track) | **Mounted & Verified:** 9 tests in `ai.routes.test.js` |
+| POST | `/api/ai/cases/:caseId/run` | Execute deterministic evaluation (POST) | Public | Vishal (AI track) | **Mounted & Verified:** 9 tests in `ai.routes.test.js` |
+| POST | `/api/ai/analyze-mock` | Run mock analysis on custom payload | Public | Vishal (AI track) | **Mounted & Verified:** Enforces Zod contract; 9 tests in `ai.routes.test.js` |
 
-Supporting endpoints, added only when the workflow needs them: invitation accept (M3), list/detail GETs for projects, proposals, milestones and changes (owners above), document upload and status (M7), conversation history (M8), approval timeline GET (M5).
+### Planned Endpoints (Review 3 Roadmap — Not Present in Current Code)
+
+The following endpoints are specified for future reviews and are **not mounted** in `backend/src/routes.js`:
+
+| Method | Route | Purpose | Target Review | Assigned Owner | Status |
+|---|---|---|---|---|---|
+| GET | `/api/change-requests` | List change requests scoped to `?projectId=...` | Review 3 | Mokshagna (M6) | **Planned** (missing query endpoint) |
+| POST | `/api/proposals/:id/versions` | Create superseding Proposal version (v2+) | Review 3 | Abhtej (M4) | **Planned** (revision lifecycle) |
+| POST | `/api/scope-chat` | Grounded scope Q&A against approved proposal chunks | Review 3 | Vishal (AI track) | **Planned** (requires live RAG pipeline) |
+| POST | `/api/ai/analyze` | Live LLM analysis with LangChain agent and tools | Review 3 | Vishal (AI track) | **Planned** (requires live Ollama/LLM) |
 
 ## E. Authentication and authorization flow
 
-```
-REGISTER   client -> POST /auth/register (email, password)
-           server: Zod validate > hash password > create User(role = least privileged,
-           emailVerified = false) > create hashed single-use token (expires) > send to dev inbox
-VERIFY     POST /auth/verify-email (token) > token valid, unexpired, unused > mark verified > burn token
-LOGIN      POST /auth/login > rate limit check > verify hash > require verified email
-           > create NEW Session doc in MongoDB (expiresAt) > rotate: any old sid is discarded
-           > Set-Cookie sid (HttpOnly, Secure on HTTPS, SameSite=Lax or Strict) + return CSRF token
-EACH CALL  cookie sid > load Session > not expired, not revoked > req.user from DB
-           mutation? header X-CSRF-Token must match the session's token
-AUTHORIZE  1 who: req.user (never the body)
-           2 role: from Membership for this workspace/project
-           3 resource: project belongs to user's workspace and user is a member
-           4 action: allowed for that role? (admin cannot sign, approve or accept)
-           5 otherwise deny (default deny) and log denials
-LOGOUT     POST /auth/logout > mark Session revoked > clear cookie
-RESET      POST /auth/forgot-password > reset token (hashed, expiring, single-use, never logged)
-           POST /auth/reset-password > valid token > new hash > burn token > revoke ALL sessions
+```text
+REGISTER   client -> POST /api/auth/register (name, email, password, role)
+           server: Zod validate > bcrypt hash password > create User >
+           sign JWT (jsonwebtoken with 7d expiry) > return { success: true, token, user }
+
+LOGIN      client -> POST /api/auth/login (email, password)
+           server: Zod validate > load User from MongoDB > verify bcrypt hash >
+           sign JWT > return { success: true, token, user }
+
+EACH CALL  client attaches HTTP header:
+           Authorization: Bearer <token>
+           server: requireAuth middleware extracts token > verifies signature & expiry >
+           attaches decoded payload to req.user
+
+AUTHORIZATION REALITY IN CODE:
+  1 Identity: req.user (populated exclusively from verified Bearer JWT, never request body)
+  2 Role Guards: requireRole(['client']) or requireRole(['freelancer'])
+  3 Milestone Decision Access: checkDecisionAccess verifies client assignment on project
+  4 Project Scoping: project CRUD checks user's workspace membership
+  5 DEFECT (Change Requests): Change request endpoints DO NOT verify project tenancy, and
+     recordDecision allows freelancers to approve their own change requests (UNRESOLVED)
+  6 PLANNED (Vector Scoping): Server-side vector query filtering is planned for Review 3
+     and does not exist in current code
 ```
 
-CSRF note for beginners: the cookie is sent automatically by the browser, so a malicious site could trigger a request. The extra header, which only our own React app can read and attach, defeats that. CORS allowlist lists the exact frontend origin only.
+> [!NOTE]
+> **Stateless Bearer JWT vs Cookies/CSRF:** ScopePilot uses stateless Bearer JWTs transmitted in the `Authorization` header. Because standard browser requests do not attach custom Bearer headers automatically, CSRF attacks are mitigated without needing CSRF tokens or cookies. Registration is direct and immediate without email verification tokens or dev inboxes.
 
 ## F. Proposal, milestone and change-request state flows
 
@@ -306,38 +336,154 @@ The critical path is M1 > M2 > M3 > M4/M5 > M6. M7 can start in parallel once M1
 
 ## L. Git, branch and module strategy
 
-- **One repo, two apps, clear folders:** `/server/src/modules/<module>/` (routes, controller, service, model, tests per module), `/server/src/contracts/` (shared Zod schemas and enums), `/server/src/ai/` (tools, agent, prompts), `/client/src/features/<feature>/`. Each member mostly edits files inside their own module folder, which is what prevents overwrites.
-- **Branches:** `main` is always demoable and protected; `develop` is the integration branch; each member works on `feature/m<number>-<short-name>` branched from `develop`.
-- **Pull requests:** small PRs (a day or two of work), at least one reviewer who is not the author, tests passing before merge. Member 1 owns merges of shared files; changes to `/contracts` need agreement from every consumer, posted in the team channel first.
-- **Shared-file rules:** `app.js` route registration and `/contracts` are the only hot files. Register routes with one line per module and keep the file sorted so merges stay trivial.
-- **Rebase daily:** `git pull --rebase origin develop` each morning to catch conflicts while they are small.
-- **Never commit secrets:** `.env` is ignored; `.env.example` lists every variable without values.
-- **Releases:** merge `develop` to `main` at the end of each phase; tag it (for example `phase-2`) so there is always a safe fallback for the demo.
+- **One repo, two apps, clear folders:**
+  - `backend/src/modules/<module>/` (routes, controller, service, model per module)
+  - `backend/src/contracts/` (shared Zod schemas, state enums, and response shapes)
+  - `backend/src/ai/` (AI analysis contracts, mock engine, and test fixtures)
+  - `backend/tests/` (Jest automated test suites across 9 test files)
+  - `client/src/components/`, `client/src/pages/`, `client/src/mocks/`, `client/src/context/` (React SPA components, page views, context, and in-browser mock store)
+  - `docs/` and `docs/reports/` (system architecture, PRD, memory, tasks, and historical merge audit reports)
+- **Branches:** `main` is protected, linear, and always deployable; features branch from and rebase onto `origin/main` for fast-forward merges (`git merge --ff-only`).
+- **Quality gates:** Before merging to `main`, every branch must pass:
+  1. `npm test` in `backend/` (145/145 passing tests).
+  2. `npm run mock:cases` in `backend/` (5/5 canonical AI scenarios passing).
+  3. `npm run build` in `client/` (clean Vite build, zero errors).
+- **Never commit secrets:** `.env` is ignored; required variables are documented below.
 
-## M. First working backend demo
+## M. Backend foundation & authentication verification
 
-**Smallest real slice (target: end of week 1 to 2):** *Register, verify, log in and call one protected API, with data persisted in Atlas.*
+**Smallest real slice:** *Register directly, authenticate, receive stateless Bearer JWT, and call protected endpoints.*
 
-1. M1: Express server, MongoDB Atlas connection, `/api/health`, error format.
-2. M2: register, verify-email (token in the dev inbox), login with the HttpOnly session cookie, `/api/auth/me`, logout.
-3. M3: Workspace and Membership models; a protected `GET /api/workspaces/mine` that returns only the caller's workspaces.
-4. M4: `POST /api/projects` (freelancer only), which proves a real create-and-persist workflow behind `requireAuth` and `authorize()`.
+1. **Service health:** `GET /api/health` returns `200 OK` with status indicator.
+2. **Stateless authentication:**
+   - `POST /api/auth/register` creates user with bcrypt-hashed password and issues Bearer JWT.
+   - `POST /api/auth/login` validates credentials and returns Bearer JWT.
+   - `GET /api/auth/me` with `Authorization: Bearer <token>` verifies token and returns user profile.
+3. **Workspace isolation:** `GET /api/workspaces/:id` returns workspace data only for authorized members.
+4. **Project management:** `POST /api/projects` creates project scoped to the user's workspace, verified behind `requireAuth`.
 
-Postman proof, run in order and saved as the first collection: register > read dev inbox > verify > login > `/me` > create project as freelancer (201) > same call as client (403) > another workspace's project (404/403) > logout > `/me` (401). Refresh Atlas and show the documents. This slice touches Express, MongoDB, authentication, authorization and one core workflow without any AI.
+## N. Individual responsibilities & team roster
 
-## N. Individual first tasks
+| # / Role | Member | Module / Role | Primary Ownership | Audited Implementation & Test Status |
+|---|---|---|---|---|
+| 1 | Vivek | Backend foundation & architecture | `server.js`, `app.js`, `routes.js`, error middleware | **Integrated & Verified:** `GET /api/health`, error envelope, Zod env validation |
+| 2 | Nikhil | Authentication & security | `modules/auth/`, Bearer JWT, `requireAuth`, `requireRole` | **Implemented (Untested):** Direct registration, login, Bearer JWT; *(0 dedicated tests)* |
+| 3 | Sushant | Workspace & membership | `modules/workspace/`, tenancy boundaries, invitations | **Implemented (Untested):** Workspace CRUD, multi-tenant boundaries; *(0 dedicated tests)* |
+| 4 | Abhtej | Project & proposal management | `modules/project/`, `proposal/`, v1 baseline freeze | **Partially Implemented:** Project CRUD verified (19 tests); Proposal v1 implemented *(0 tests)*; v2+ missing |
+| 5 | Mounish | Milestones & deliverables | `modules/milestone/`, `deliverable/`, client decisions | **Implemented & Verified:** 97 tests across API (57) and model (40) suites; non-cascading |
+| 6 | Mokshagna | Change requests | `modules/changeRequest/`, intake & decision flow | **Partial Prototype Stub (Insecure & Untested):** Unresolved freelancer self-approval bug, missing tenancy checks; *(0 tests)* |
+| 7–9 | Vishal | AI subsystem (Contracts, Mock Engine, RAG, Agent) | `ai/`, `contracts/`, 5 canonical cases, CLI runner | **Review 1 & 2 Verified:** 26 automated tests, 5 mock cases passed. Review 3 live RAG & agent planned |
+| 10 | Taran | React frontend SPA | `client/`, AppShell, role switcher, views, mock store | **Implemented as Standalone Prototype:** Clean Vite build; in-browser mock store (`demoStore.js`) |
+| Cross-Cutting | Shivasainithin | Git Integration & Merging | Repository Git lifecycle, branch reconciliation, audits | **Active:** Enforcing linear history, fast-forward merges, pre-merge quality gates |
+| Cross-Cutting | Bharat | QA & Testing | `backend/tests/`, test execution & verification | **Active:** 145/145 passing Jest tests, 5/5 AI mock cases verified, coverage gap tracking |
 
-| # | Build first | Needs from others | Can demo alone | Owns first | Understand before coding |
-|---|---|---|---|---|---|
-| 1 | Server skeleton, env validation, health route, error and response helpers, folder template for everyone | nothing | Health and error responses in Postman | `app.js`, `config`, `middleware/error` | Express middleware order, async error handling, Zod basics |
-| 2 | User model, register and verify with a dev inbox (console or small mail catcher) | M1 skeleton | Register and verify, token expires and cannot be reused | User, Token | Password hashing, token hashing and expiry, cookies, sessions vs JWT |
-| 3 | Workspace, Membership, Invitation models and the `authorize()` function with a table of role/action rules | M2 `req.user` (use a stub until ready) | Unit tests: client cannot approve as admin, outsider denied | Workspace, Membership, AuditLog | Default deny, role vs resource checks, why UI hiding is not security |
-| 4 | Project and Proposal/ProposalVersion models, create v1 and v2, frozen-after-approval guard | M3 `authorize()` (stub), M5 `decisionService` interface | v2 created, approved v1 cannot be edited | Project, Proposal, ProposalVersion | Mongoose schemas and hooks, versioning, content hashing |
-| 5 | Milestone and Evidence models, evidence POST, `decisionService.record()` first so M4 and M6 can use it | M4 approved version id | Evidence added, decision appended, timeline GET | Milestone, Evidence, Decision | Append-only logs, polymorphic references, unique indexes |
-| 6 | ChangeRequest model and a pure `computeScheduleImpact()` with unit tests before any route | M4 versions, sample capacity fixtures | Test suite for schedule maths and stale detection | ChangeRequest, CapacityRecord | Pure functions, optimistic concurrency, idempotency keys |
-| 7 | Ollama running locally, embed one sentence, record the vector length, create the Atlas index; then TXT upload to chunks | M1; Atlas cluster | Script that ingests a TXT and returns filtered neighbours | Document, Chunk | Embeddings, chunking, vector index definition, metadata filters |
-| 8 | Retrieval wrapper around M7's function, answer prompt with the strict evidence rule, missing-information response | M7 chunks; M4 approved version | CLI or Postman Q&A against fixture proposal text | Conversation, Message | RAG basics, citations, similarity thresholds, grounding |
-| 9 | Wrap M6 and M8 functions as plain functions first, then define the three Zod tool schemas and the tool-run logger; connect LangChain last | M6, M8 functions (fixtures until ready) | Tool calls run one by one from a script with logged results | ToolExecution | LangChain tool calling, Zod schemas, step limits, why tools hold the logic |
-| 10 | Vite or CRA project, router, API client with CSRF header, login screen, mocked dashboards from `/contracts` | M2 endpoints; sample JSON from every owner | Clickable role dashboards on mocked data | none (client folders) | Cookies with fetch (`credentials: include`), server-authoritative state, loading/error/empty patterns |
+---
 
-**Week-1 team checklist:** agree and commit `/contracts` (state enums, error envelope, AI response shape), choose the embedding and chat models, seed account names for freelancer, client and admin, and write the fixture proposal (with the analytics-dashboard scenario) that every AI member will test against.
+## O. Environment variables & configuration
+
+Backend configuration is validated at startup using Zod in `backend/src/config/env.js`:
+
+| Variable | Type | Default | Description |
+|---|---|---|---|
+| `PORT` | Number | `5000` | Port on which the Express API server listens. |
+| `NODE_ENV` | Enum | `'development'` | Environment mode (`development`, `production`, `test`). |
+| `API_PREFIX` | String | `'/api'` | Global URL prefix for mounted API endpoints. |
+| `MONGODB_URI` | String | `'mongodb://localhost:27017/scopepilot_dev'` | MongoDB connection string. |
+| `JWT_SECRET` | String | Development fallback | Secret key for signing JWTs (must be at least 16 characters). |
+| `JWT_EXPIRES_IN` | String | `'7d'` | Expiration duration for signed JWT tokens (e.g. `'7d'`, `'24h'`). |
+| `CORS_ORIGIN` | String | `'*'` | Allowed CORS origin(s). |
+
+---
+
+## P. Local development & startup commands
+
+### Backend (`backend/`)
+
+```bash
+cd backend
+
+# Install dependencies
+npm install
+
+# Start development server with hot reload (Port 5000)
+npm run dev
+
+# Start production server
+npm start
+
+# Run all 9 Jest test suites (145 tests)
+npm test
+
+# Run the 5 canonical deterministic AI review cases
+npm run mock:cases
+
+# Populate database with seed data
+npm run seed
+```
+
+### Frontend (`client/`)
+
+```bash
+cd client
+
+# Install dependencies
+npm install
+
+# Start Vite development server (http://localhost:5173)
+npm run dev
+
+# Compile production bundle
+npm run build
+
+# Run Oxlint code inspection
+npm run lint
+```
+
+---
+
+## Q. Database seeding & default credentials
+
+A seed script is provided at `backend/src/scripts/seed.js`. To seed a local MongoDB instance, run:
+
+```bash
+cd backend
+npm run seed
+```
+
+The script resets database collections and provisions:
+- **Default User Accounts** (all passwords: `password123`):
+  - **Freelancer:** `freelancer@scopepilot.dev`
+  - **Client:** `client@scopepilot.dev`
+  - **Admin:** `admin@scopepilot.dev`
+- **Workspace:** `Acme Digital Labs` (owned by Freelancer, Client and Admin joined as members).
+- **Project:** `E-Commerce Platform Redesign`.
+- **Proposal:** Approved Proposal v1 ($12,000 budget, frozen baseline).
+- **Milestones & Deliverables:**
+  - Milestone 1: `Core Platform Architecture` ($4,000, `IN_PROGRESS`)
+  - Deliverable 1: `Database Schema & Auth APIs` (`PENDING`)
+
+---
+
+## R. Verified test baseline & known coverage gaps
+
+### Verified Test Baseline (145/145 Passing)
+
+All 145 automated tests pass across 9 test suites in `backend/`:
+- `tests/milestoneDeliverable.api.test.js`: **57 tests** (milestone/deliverable CRUD, client decision authorization, project query scoping)
+- `tests/milestoneDeliverable.model.test.js`: **40 tests** (Mongoose schemas, aliases, schema integrity, and Zod validator schemas)
+- `tests/project.test.js`: **19 tests** (workspace boundaries, project CRUD, role permissions)
+- `tests/ai.contracts.test.js`: **10 tests** (Zod input/output schemas, mock analysis contracts)
+- `tests/ai.routes.test.js`: **9 tests** (REST endpoints under `/api/ai/*`, custom mock analysis, 400/404 handling)
+- `tests/ai.mockCases.test.js`: **7 tests** (5 canonical deterministic cases, idempotency, safety disclaimer)
+- `tests/validation.test.js`: **1 test** (standardized 400 error response envelope)
+- `tests/health.test.js`: **1 test** (`GET /api/health` 200 OK)
+- `tests/notFound.test.js`: **1 test** (catch-all 404 handler)
+
+### Test Coverage Blind Spots & Gaps
+
+While core Milestones, Deliverables, Projects, and AI mock contracts are thoroughly tested, the following modules have **no dedicated automated test suites**:
+- **Auth Module (`backend/src/modules/auth/`):** 0 tests for registration, login, JWT issuance/verification, password hashing, and role middleware.
+- **Workspace Module (`backend/src/modules/workspace/`):** 0 tests for workspace CRUD, membership roles, and invitation handling.
+- **Proposal Module (`backend/src/modules/proposal/`):** 0 tests for proposal creation, budget calculations, and approval locking.
+- **Change Request Module (`backend/src/modules/changeRequest/`):** 0 tests for change request intake, status transitions, and decision recording.
+- **Frontend SPA (`client/`):** 0 unit or integration tests for React components, hooks, or page routing.
