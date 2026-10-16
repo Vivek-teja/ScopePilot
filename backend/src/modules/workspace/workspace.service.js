@@ -37,9 +37,14 @@ class WorkspaceService {
     }
 
     // Foundation check: ensure requesting user has access
+    const ownerId = workspace.owner?._id || workspace.owner;
     const isMember =
-      workspace.owner._id.toString() === userId.toString() ||
-      workspace.members.some((m) => m.user && m.user._id.toString() === userId.toString());
+      (ownerId && ownerId.toString() === userId.toString()) ||
+      (workspace.members &&
+        workspace.members.some((m) => {
+          const memberUserId = m.user?._id || m.user;
+          return memberUserId && memberUserId.toString() === userId.toString();
+        }));
 
     if (!isMember) {
       throw ApiError.forbidden('You do not have access to this workspace');
@@ -57,6 +62,37 @@ class WorkspaceService {
     const workspace = await Workspace.findById(workspaceId);
     if (!workspace) {
       throw ApiError.notFound('Workspace not found');
+    }
+
+    // Verify requesting user is member and has administrative privileges (owner or admin)
+    const ownerId = workspace.owner?._id || workspace.owner;
+    const isOwner = ownerId && ownerId.toString() === invitedByUserId.toString();
+    const isMember =
+      isOwner ||
+      (workspace.members &&
+        workspace.members.some((m) => {
+          const memberUserId = m.user?._id || m.user;
+          return memberUserId && memberUserId.toString() === invitedByUserId.toString();
+        }));
+
+    if (!isMember) {
+      throw ApiError.forbidden('You do not have access to this workspace');
+    }
+
+    const isWorkspaceAdmin =
+      isOwner ||
+      (workspace.members &&
+        workspace.members.some((m) => {
+          const memberUserId = m.user?._id || m.user;
+          return (
+            memberUserId &&
+            memberUserId.toString() === invitedByUserId.toString() &&
+            (m.role === WORKSPACE_ROLES.OWNER || m.role === WORKSPACE_ROLES.ADMIN)
+          );
+        }));
+
+    if (!isWorkspaceAdmin) {
+      throw ApiError.forbidden('You do not have permission to invite members to this workspace');
     }
 
     // Check if invitation already exists
