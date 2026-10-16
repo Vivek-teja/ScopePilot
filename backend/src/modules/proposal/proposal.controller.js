@@ -17,8 +17,30 @@ const recordDecision = asyncHandler(async (req, res) => {
   return ApiResponse.success(res, 'Proposal decision recorded successfully', result);
 });
 
+const createProposalVersion = asyncHandler(async (req, res) => {
+  const result = await proposalService.createProposalVersion(
+    req.params.id,
+    req.user._id,
+    req.body,
+    req.user
+  );
+  return ApiResponse.created(res, 'Proposal version created successfully', result);
+});
+
+const getProposalVersionByNumber = asyncHandler(async (req, res) => {
+  const result = await proposalService.getProposalVersionByNumber(
+    req.params.id,
+    parseInt(req.params.versionNumber, 10),
+    req.user._id,
+    req.user
+  );
+  return ApiResponse.success(res, 'Proposal version retrieved successfully', result);
+});
+
 module.exports = {
   createProposal,
   getProposalById,
   recordDecision,
+  createProposalVersion,
+  getProposalVersionByNumber,
 };

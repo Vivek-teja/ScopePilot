@@ -4,6 +4,8 @@ const {
   createProposalSchema,
   proposalIdParamSchema,
   proposalDecisionSchema,
+  createProposalVersionSchema,
+  proposalVersionParamSchema,
 } = require('./proposal.validation');
 const validate = require('../../middleware/validate.middleware');
 const { requireAuth } = require('../../middleware/auth.middleware');
@@ -18,6 +20,16 @@ router.post(
   '/:id/decision',
   validate({ params: proposalIdParamSchema, body: proposalDecisionSchema }),
   proposalController.recordDecision
+);
+router.post(
+  '/:id/versions',
+  validate({ params: proposalIdParamSchema, body: createProposalVersionSchema }),
+  proposalController.createProposalVersion
+);
+router.get(
+  '/:id/versions/:versionNumber',
+  validate({ params: proposalVersionParamSchema }),
+  proposalController.getProposalVersionByNumber
 );
 
 module.exports = router;

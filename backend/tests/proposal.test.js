@@ -117,6 +117,7 @@ describe('Proposal Security, Tenancy & Decisions Suite', () => {
 
   let mockProposalDoc;
   let mockVersionDoc;
+  let mockVersion2Doc;
 
   beforeEach(() => {
     jest.restoreAllMocks();
@@ -139,6 +140,37 @@ describe('Proposal Security, Tenancy & Decisions Suite', () => {
       totalBudget: 2000,
       currency: 'USD',
       status: PROPOSAL_STATUS.PENDING_APPROVAL,
+      decidedBy: null,
+      decidedAt: null,
+      decisionComment: '',
+      save: jest.fn().mockResolvedValue(true),
+    };
+
+    mockVersion2Doc = {
+      _id: new mongoose.Types.ObjectId(),
+      proposal: new mongoose.Types.ObjectId(mockProposalId),
+      project: new mongoose.Types.ObjectId(mockProjectId),
+      versionNumber: 2,
+      title: 'Scope Revision v2',
+      scopeSummary: 'Expanded deliverables and revised milestones',
+      scopeItems: [
+        {
+          title: 'Authentication Module',
+          description: 'OAuth & JWT',
+          estimatedHours: 20,
+          price: 2000,
+        },
+        {
+          title: 'Reporting Dashboard',
+          description: 'Analytics and chart export',
+          estimatedHours: 15,
+          price: 1500,
+        },
+      ],
+      totalBudget: 3500,
+      currency: 'USD',
+      status: PROPOSAL_STATUS.PENDING_APPROVAL,
+      createdBy: new mongoose.Types.ObjectId(mockFreelancerId),
       decidedBy: null,
       decidedAt: null,
       decisionComment: '',
@@ -238,6 +270,49 @@ describe('Proposal Security, Tenancy & Decisions Suite', () => {
     jest.spyOn(ProposalVersion, 'find').mockImplementation(() =>
       makePopulateQuery([mockVersionDoc])
     );
+
+    // Mock ProposalVersion.findOne
+    jest.spyOn(ProposalVersion, 'findOne').mockImplementation((query) => {
+      if (query && query._id && query._id.$ne) {
+        return makePopulateQuery(null);
+      }
+      return makePopulateQuery(mockVersionDoc);
+    });
+
+    // Mock ProposalVersion.updateMany
+    jest.spyOn(ProposalVersion, 'updateMany').mockResolvedValue({ acknowledged: true, modifiedCount: 1 });
+
+    // Mock ProposalVersion.findOneAndUpdate
+    jest.spyOn(ProposalVersion, 'findOneAndUpdate').mockImplementation((query, update) => {
+      const targetDoc =
+        query && query._id && mockVersion2Doc && query._id.toString() === mockVersion2Doc._id.toString()
+          ? mockVersion2Doc
+          : mockVersionDoc;
+      if (query && query.status && query.status !== targetDoc.status) {
+        return Promise.resolve(null);
+      }
+      if (update && update.$set) {
+        Object.assign(targetDoc, update.$set);
+      }
+      if (typeof targetDoc.save === 'function') {
+        targetDoc.save();
+      }
+      return Promise.resolve(targetDoc);
+    });
+
+    // Mock Proposal.findOneAndUpdate
+    jest.spyOn(Proposal, 'findOneAndUpdate').mockImplementation((query, update) => {
+      if (query && query.status && query.status.$ne && mockProposalDoc.status === query.status.$ne) {
+        return Promise.resolve(null);
+      }
+      if (update && update.$set) {
+        Object.assign(mockProposalDoc, update.$set);
+      }
+      return Promise.resolve(mockProposalDoc);
+    });
+
+    // Mock ProposalVersion.deleteOne
+    jest.spyOn(ProposalVersion, 'deleteOne').mockResolvedValue({ acknowledged: true, deletedCount: 1 });
   });
 
   afterAll(() => {
@@ -935,6 +1010,595 @@ describe('Proposal Security, Tenancy & Decisions Suite', () => {
       expect(
         await proposalService.checkDecisionAccess(null, mockClientId)
       ).toBe(false);
+    });
+  });
+
+  // =========================================================================
+  // 6. PROPOSAL VERSIONING (v2+) SUITE (Task 4.2)
+  // =========================================================================
+  describe('Proposal Versioning (v2+) Lifecycle & Hardening (Task 4.2)', () => {
+    beforeEach(() => {
+      mockVersion2Doc = {
+        _id: new mongoose.Types.ObjectId(),
+        proposal: new mongoose.Types.ObjectId(mockProposalId),
+        project: new mongoose.Types.ObjectId(mockProjectId),
+        versionNumber: 2,
+        title: 'Scope Revision v2',
+        scopeSummary: 'Expanded deliverables and revised milestones',
+        scopeItems: [
+          {
+            title: 'Authentication Module',
+            description: 'OAuth & JWT',
+            estimatedHours: 20,
+            price: 2000,
+          },
+          {
+            title: 'Reporting Dashboard',
+            description: 'Analytics and chart export',
+            estimatedHours: 25,
+            price: 3000,
+          },
+        ],
+        totalBudget: 5000,
+        currency: 'USD',
+        status: PROPOSAL_STATUS.PENDING_APPROVAL,
+        createdBy: new mongoose.Types.ObjectId(mockFreelancerId),
+        decidedBy: null,
+        decidedAt: null,
+        decisionComment: '',
+        save: jest.fn().mockResolvedValue(true),
+      };
+    });
+
+    it('POST /api/proposals/:id/versions should return 401 when token is missing', async () => {
+      const res = await request(app)
+        .post(`/api/proposals/${mockProposalId}/versions`)
+        .send({
+          title: 'Scope Revision v2',
+          scopeSummary: 'Detailed revision summary',
+          totalBudget: 4000,
+        });
+
+      expect(res.statusCode).toBe(401);
+      expect(res.body.success).toBe(false);
+    });
+
+    it('POST /api/proposals/:id/versions should return 400 when totalBudget is negative', async () => {
+      const res = await request(app)
+        .post(`/api/proposals/${mockProposalId}/versions`)
+        .set('Authorization', `Bearer ${freelancerToken}`)
+        .send({
+          title: 'Scope Revision v2',
+          scopeSummary: 'Detailed revision summary',
+          totalBudget: -100,
+        });
+
+      expect(res.statusCode).toBe(400);
+      expect(res.body.success).toBe(false);
+      expect(res.body.errors.some((e) => /non-negative/i.test(e.message))).toBe(true);
+    });
+
+    it('POST /api/proposals/:id/versions should return 404 when proposal does not exist', async () => {
+      const nonExistentId = new mongoose.Types.ObjectId().toString();
+      const res = await request(app)
+        .post(`/api/proposals/${nonExistentId}/versions`)
+        .set('Authorization', `Bearer ${freelancerToken}`)
+        .send({
+          title: 'Scope Revision v2',
+          scopeSummary: 'Detailed revision summary',
+          totalBudget: 4000,
+        });
+
+      expect(res.statusCode).toBe(404);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toMatch(/proposal not found/i);
+    });
+
+    it('POST /api/proposals/:id/versions should return 409 when current version is still pending approval (Rule 1)', async () => {
+      // v1 is still in PENDING_APPROVAL
+      mockVersionDoc.status = PROPOSAL_STATUS.PENDING_APPROVAL;
+
+      const res = await request(app)
+        .post(`/api/proposals/${mockProposalId}/versions`)
+        .set('Authorization', `Bearer ${freelancerToken}`)
+        .send({
+          title: 'Scope Revision v2 Premature',
+          scopeSummary: 'Attempting to create v2 while v1 is pending',
+          totalBudget: 4500,
+        });
+
+      expect(res.statusCode).toBe(409);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toMatch(/pending approval/i);
+    });
+
+    it('POST /api/proposals/:id/versions should allow assigned freelancer to create v2 when v1 was approved (Rule 2 & 3)', async () => {
+      // v1 was approved
+      mockVersionDoc.status = PROPOSAL_STATUS.APPROVED;
+      mockProposalDoc.status = PROPOSAL_STATUS.APPROVED;
+      mockProposalDoc.currentVersionNumber = 1;
+
+      // Ensure ProposalVersion.findOne sort returns v1
+      jest.spyOn(ProposalVersion, 'findOne').mockImplementation((query) => {
+        if (query && query._id && query._id.$ne) return makePopulateQuery(null);
+        return makePopulateQuery(mockVersionDoc);
+      });
+
+      jest.spyOn(ProposalVersion, 'create').mockImplementation((data) =>
+        Promise.resolve({
+          _id: mockVersion2Doc._id,
+          ...data,
+          save: jest.fn().mockResolvedValue(true),
+        })
+      );
+
+      const res = await request(app)
+        .post(`/api/proposals/${mockProposalId}/versions`)
+        .set('Authorization', `Bearer ${freelancerToken}`)
+        .send({
+          title: 'Scope Revision v2 (Contract Addendum)',
+          scopeSummary: 'Adding analytics dashboard and push notifications',
+          totalBudget: 6000,
+          currency: 'USD',
+          scopeItems: [
+            {
+              title: 'Analytics Dashboard',
+              description: 'Real-time metrics',
+              estimatedHours: 25,
+              price: 3000,
+            },
+          ],
+        });
+
+      expect(res.statusCode).toBe(201);
+      expect(res.body.success).toBe(true);
+      expect(res.body.message).toBe('Proposal version created successfully');
+      expect(res.body.data.version.versionNumber).toBe(2);
+      expect(mockProposalDoc.currentVersionNumber).toBe(2);
+      expect(mockProposalDoc.activeVersion.toString()).toBe(mockVersion2Doc._id.toString());
+      expect(mockProposalDoc.status).toBe(PROPOSAL_STATUS.PENDING_APPROVAL);
+
+      // Rule 3: Verify approved v1 snapshot remains immutable
+      expect(mockVersionDoc.status).toBe(PROPOSAL_STATUS.APPROVED);
+      expect(mockVersionDoc.totalBudget).toBe(2000);
+    });
+
+    it('POST /api/proposals/:id/versions should allow sequential creation of v3 after v2', async () => {
+      mockVersionDoc.status = PROPOSAL_STATUS.APPROVED;
+      mockProposalDoc.status = PROPOSAL_STATUS.APPROVED;
+      mockProposalDoc.currentVersionNumber = 2;
+
+      // Mock finding latest version with versionNumber: 2
+      jest.spyOn(ProposalVersion, 'findOne').mockImplementation((query) => {
+        if (query && query._id && query._id.$ne) return makePopulateQuery(null);
+        return makePopulateQuery({ ...mockVersionDoc, versionNumber: 2 });
+      });
+
+      jest.spyOn(ProposalVersion, 'create').mockImplementation((data) =>
+        Promise.resolve({
+          _id: new mongoose.Types.ObjectId(),
+          ...data,
+          save: jest.fn().mockResolvedValue(true),
+        })
+      );
+
+      const res = await request(app)
+        .post(`/api/proposals/${mockProposalId}/versions`)
+        .set('Authorization', `Bearer ${freelancerToken}`)
+        .send({
+          title: 'Scope Revision v3',
+          scopeSummary: 'Further scope refinements',
+          totalBudget: 7500,
+        });
+
+      expect(res.statusCode).toBe(201);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.version.versionNumber).toBe(3);
+      expect(mockProposalDoc.currentVersionNumber).toBe(3);
+    });
+
+    it('POST /api/proposals/:id/versions should allow creating a revision after v1 was rejected (Rule 2)', async () => {
+      mockVersionDoc.status = PROPOSAL_STATUS.REJECTED;
+      mockProposalDoc.status = PROPOSAL_STATUS.REJECTED;
+
+      jest.spyOn(ProposalVersion, 'create').mockImplementation((data) =>
+        Promise.resolve({
+          _id: mockVersion2Doc._id,
+          ...data,
+          save: jest.fn().mockResolvedValue(true),
+        })
+      );
+
+      const res = await request(app)
+        .post(`/api/proposals/${mockProposalId}/versions`)
+        .set('Authorization', `Bearer ${freelancerToken}`)
+        .send({
+          title: 'Revised Proposal v2 (Addressing Client Feedback)',
+          scopeSummary: 'Adjusted deliverables and lowered total cost',
+          totalBudget: 1500,
+        });
+
+      expect(res.statusCode).toBe(201);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.version.versionNumber).toBe(2);
+      expect(mockProposalDoc.status).toBe(PROPOSAL_STATUS.PENDING_APPROVAL);
+    });
+
+    it('POST /api/proposals/:id/versions should allow workspace owner to create revision', async () => {
+      mockVersionDoc.status = PROPOSAL_STATUS.APPROVED;
+      mockProposalDoc.status = PROPOSAL_STATUS.APPROVED;
+
+      const res = await request(app)
+        .post(`/api/proposals/${mockProposalId}/versions`)
+        .set('Authorization', `Bearer ${workspaceOwnerToken}`)
+        .send({
+          title: 'Owner Formulated Revision v2',
+          scopeSummary: 'Revision drafted by workspace owner',
+          totalBudget: 5000,
+        });
+
+      expect(res.statusCode).toBe(201);
+      expect(res.body.success).toBe(true);
+    });
+
+    it('POST /api/proposals/:id/versions should allow workspace admin to create revision', async () => {
+      mockVersionDoc.status = PROPOSAL_STATUS.APPROVED;
+      mockProposalDoc.status = PROPOSAL_STATUS.APPROVED;
+
+      const res = await request(app)
+        .post(`/api/proposals/${mockProposalId}/versions`)
+        .set('Authorization', `Bearer ${workspaceAdminToken}`)
+        .send({
+          title: 'Admin Formulated Revision v2',
+          scopeSummary: 'Revision drafted by workspace admin',
+          totalBudget: 5200,
+        });
+
+      expect(res.statusCode).toBe(201);
+      expect(res.body.success).toBe(true);
+    });
+
+    it('POST /api/proposals/:id/versions should allow system admin to create revision', async () => {
+      mockVersionDoc.status = PROPOSAL_STATUS.APPROVED;
+      mockProposalDoc.status = PROPOSAL_STATUS.APPROVED;
+
+      const res = await request(app)
+        .post(`/api/proposals/${mockProposalId}/versions`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          title: 'System Admin Revision v2',
+          scopeSummary: 'Revision drafted by system admin',
+          totalBudget: 5500,
+        });
+
+      expect(res.statusCode).toBe(201);
+      expect(res.body.success).toBe(true);
+    });
+
+    it('POST /api/proposals/:id/versions should forbid client from creating a revision', async () => {
+      mockVersionDoc.status = PROPOSAL_STATUS.APPROVED;
+
+      const res = await request(app)
+        .post(`/api/proposals/${mockProposalId}/versions`)
+        .set('Authorization', `Bearer ${clientToken}`)
+        .send({
+          title: 'Client Injected Revision v2',
+          scopeSummary: 'Clients must not create proposal revisions',
+          totalBudget: 1000,
+        });
+
+      expect(res.statusCode).toBe(403);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toMatch(/not authorized to create a proposal version/i);
+    });
+
+    it('POST /api/proposals/:id/versions should forbid outsider from creating a revision', async () => {
+      mockVersionDoc.status = PROPOSAL_STATUS.APPROVED;
+
+      const res = await request(app)
+        .post(`/api/proposals/${mockProposalId}/versions`)
+        .set('Authorization', `Bearer ${unrelatedUserToken}`)
+        .send({
+          title: 'Attacker Revision v2',
+          scopeSummary: 'Malicious actor attempting revision injection',
+          totalBudget: 9999,
+        });
+
+      expect(res.statusCode).toBe(403);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toMatch(/not authorized to create a proposal version/i);
+    });
+
+    it('POST /api/proposals/:id/versions should handle duplicate key error (code 11000) on concurrent creation', async () => {
+      mockVersionDoc.status = PROPOSAL_STATUS.APPROVED;
+
+      // Simulate MongoDB unique index duplicate key error on { proposal: 1, versionNumber: 1 }
+      const duplicateKeyError = new Error('E11000 duplicate key error collection');
+      duplicateKeyError.code = 11000;
+      jest.spyOn(ProposalVersion, 'create').mockRejectedValue(duplicateKeyError);
+
+      const res = await request(app)
+        .post(`/api/proposals/${mockProposalId}/versions`)
+        .set('Authorization', `Bearer ${freelancerToken}`)
+        .send({
+          title: 'Concurrent Revision',
+          scopeSummary: 'Colliding version creation test',
+          totalBudget: 4000,
+        });
+
+      expect(res.statusCode).toBe(409);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toMatch(/duplicate proposal version detected/i);
+    });
+
+    it('should supersede v1 and update project baseline when client approves v2 (Rule 5)', async () => {
+      // Setup: proposal activeVersion points to v2
+      mockProposalDoc.activeVersion = mockVersion2Doc._id;
+      mockProposalDoc.currentVersionNumber = 2;
+      mockProposalDoc.status = PROPOSAL_STATUS.PENDING_APPROVAL;
+
+      jest.spyOn(ProposalVersion, 'findById').mockResolvedValue(mockVersion2Doc);
+
+      const res = await request(app)
+        .post(`/api/proposals/${mockProposalId}/decision`)
+        .set('Authorization', `Bearer ${clientToken}`)
+        .send({
+          decision: PROPOSAL_DECISION.APPROVE,
+          comment: 'Revision v2 approved. Supersedes baseline v1.',
+        });
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(mockVersion2Doc.status).toBe(PROPOSAL_STATUS.APPROVED);
+      expect(mockVersion2Doc.decidedBy.toString()).toBe(mockClientId);
+      expect(mockProposalDoc.status).toBe(PROPOSAL_STATUS.APPROVED);
+
+      // Rule 5: Check that previous versions are superseded
+      expect(ProposalVersion.updateMany).toHaveBeenCalledWith(
+        {
+          proposal: mockProposalDoc._id,
+          _id: { $ne: mockVersion2Doc._id },
+          status: PROPOSAL_STATUS.APPROVED,
+        },
+        { status: PROPOSAL_STATUS.SUPERSEDED }
+      );
+
+      // Rule 5: Project baseline points to v2
+      expect(Project.findByIdAndUpdate).toHaveBeenCalledWith(
+        mockProposalDoc.project._id,
+        { currentApprovedProposal: mockVersion2Doc._id }
+      );
+    });
+
+    it('should preserve v1 as approved and keep project baseline unchanged when client rejects v2 (Rule 4)', async () => {
+      // Setup: proposal activeVersion points to v2
+      mockProposalDoc.activeVersion = mockVersion2Doc._id;
+      mockProposalDoc.currentVersionNumber = 2;
+      mockProposalDoc.status = PROPOSAL_STATUS.PENDING_APPROVAL;
+
+      jest.spyOn(ProposalVersion, 'findById').mockResolvedValue(mockVersion2Doc);
+
+      // Mock finding previously approved v1
+      const approvedV1Doc = { ...mockVersionDoc, status: PROPOSAL_STATUS.APPROVED };
+      jest.spyOn(ProposalVersion, 'findOne').mockImplementation((query) => {
+        if (query && query.status === PROPOSAL_STATUS.APPROVED) {
+          return makePopulateQuery(approvedV1Doc);
+        }
+        return makePopulateQuery(null);
+      });
+
+      const res = await request(app)
+        .post(`/api/proposals/${mockProposalId}/decision`)
+        .set('Authorization', `Bearer ${clientToken}`)
+        .send({
+          decision: PROPOSAL_DECISION.REJECT,
+          comment: 'Revision v2 budget unacceptable. Reverting to v1 baseline.',
+        });
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(mockVersion2Doc.status).toBe(PROPOSAL_STATUS.REJECTED);
+
+      // Rule 4: Parent proposal status remains approved because v1 was approved
+      expect(mockProposalDoc.status).toBe(PROPOSAL_STATUS.APPROVED);
+
+      // Project baseline is NOT updated (keeps pointing to v1)
+      expect(Project.findByIdAndUpdate).not.toHaveBeenCalled();
+    });
+
+    it('should strictly forbid creator of v2 from self-approving v2 (Rule 6)', async () => {
+      mockProposalDoc.activeVersion = mockVersion2Doc._id;
+      mockVersion2Doc.createdBy = new mongoose.Types.ObjectId(mockFreelancerId);
+
+      jest.spyOn(ProposalVersion, 'findById').mockResolvedValue(mockVersion2Doc);
+
+      const res = await request(app)
+        .post(`/api/proposals/${mockProposalId}/decision`)
+        .set('Authorization', `Bearer ${freelancerToken}`)
+        .send({ decision: PROPOSAL_DECISION.APPROVE });
+
+      expect(res.statusCode).toBe(403);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toMatch(/not authorized to record a decision/i);
+    });
+
+    it('GET /api/proposals/:id/versions/:versionNumber should retrieve specific version snapshot', async () => {
+      jest.spyOn(ProposalVersion, 'findOne').mockImplementation((query) => {
+        if (query && query.versionNumber === 1) return makePopulateQuery(mockVersionDoc);
+        return makePopulateQuery(null);
+      });
+
+      const res = await request(app)
+        .get(`/api/proposals/${mockProposalId}/versions/1`)
+        .set('Authorization', `Bearer ${clientToken}`);
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.version.versionNumber).toBe(1);
+    });
+
+    it('GET /api/proposals/:id/versions/:versionNumber should return 404 when versionNumber does not exist', async () => {
+      jest.spyOn(ProposalVersion, 'findOne').mockImplementation(() => makePopulateQuery(null));
+
+      const res = await request(app)
+        .get(`/api/proposals/${mockProposalId}/versions/99`)
+        .set('Authorization', `Bearer ${clientToken}`);
+
+      expect(res.statusCode).toBe(404);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toMatch(/version 99 not found/i);
+    });
+
+    it('GET /api/proposals/:id/versions/:versionNumber should return 403 when outsider requests version snapshot', async () => {
+      const res = await request(app)
+        .get(`/api/proposals/${mockProposalId}/versions/1`)
+        .set('Authorization', `Bearer ${unrelatedUserToken}`);
+
+      expect(res.statusCode).toBe(403);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toMatch(/do not have access to this project/i);
+    });
+
+    it('should forbid recording a decision on a rejected proposal version (returns 409 Conflict)', async () => {
+      mockVersionDoc.status = PROPOSAL_STATUS.REJECTED;
+
+      const res = await request(app)
+        .post(`/api/proposals/${mockProposalId}/decision`)
+        .set('Authorization', `Bearer ${clientToken}`)
+        .send({
+          decision: PROPOSAL_DECISION.APPROVE,
+          comment: 'Attempting to approve an already rejected version',
+        });
+
+      expect(res.statusCode).toBe(409);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toMatch(/already been rejected/i);
+    });
+
+    it('should forbid recording a decision on a superseded proposal version (returns 409 Conflict)', async () => {
+      mockVersionDoc.status = PROPOSAL_STATUS.SUPERSEDED;
+
+      const res = await request(app)
+        .post(`/api/proposals/${mockProposalId}/decision`)
+        .set('Authorization', `Bearer ${clientToken}`)
+        .send({
+          decision: PROPOSAL_DECISION.APPROVE,
+        });
+
+      expect(res.statusCode).toBe(409);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toMatch(/already approved and locked/i);
+    });
+
+    it('should prevent concurrent conflicting decisions from corrupting baseline via conditional atomic update', async () => {
+      // Simulate concurrent race: ProposalVersion.findOneAndUpdate returns null for losing request
+      // because the winning request already transitioned status away from pending_approval
+      jest.spyOn(ProposalVersion, 'findOneAndUpdate').mockResolvedValue(null);
+
+      const res = await request(app)
+        .post(`/api/proposals/${mockProposalId}/decision`)
+        .set('Authorization', `Bearer ${clientToken}`)
+        .send({
+          decision: PROPOSAL_DECISION.REJECT,
+          comment: 'Losing concurrent decision',
+        });
+
+      expect(res.statusCode).toBe(409);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toMatch(/already been decided or is no longer pending approval/i);
+      // Losing request must not update Project baseline
+      expect(Project.findByIdAndUpdate).not.toHaveBeenCalled();
+    });
+
+    it('should prevent concurrent revision request from claiming proposal if proposal is already pending approval', async () => {
+      mockVersionDoc.status = PROPOSAL_STATUS.APPROVED;
+
+      // Simulate concurrent race: Proposal.findOneAndUpdate returns null because another concurrent request
+      // already claimed the revision and updated Proposal status to pending_approval
+      jest.spyOn(Proposal, 'findOneAndUpdate').mockResolvedValue(null);
+
+      const res = await request(app)
+        .post(`/api/proposals/${mockProposalId}/versions`)
+        .set('Authorization', `Bearer ${freelancerToken}`)
+        .send({
+          title: 'Colliding Revision v3',
+          scopeSummary: 'Attempting to create revision while parent proposal was concurrently claimed',
+          totalBudget: 4500,
+        });
+
+      expect(res.statusCode).toBe(409);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toMatch(/cannot create a new proposal version while the current version is pending approval/i);
+      // Cleaned up the orphan version that failed to claim the parent pointer
+      expect(ProposalVersion.deleteOne).toHaveBeenCalled();
+    });
+
+    it('should delete unlinked pending version if Proposal update fails during version creation', async () => {
+      mockVersionDoc.status = PROPOSAL_STATUS.APPROVED;
+
+      // Simulate database error during Proposal.findOneAndUpdate
+      jest.spyOn(Proposal, 'findOneAndUpdate').mockRejectedValue(new Error('Database connection dropped'));
+
+      const res = await request(app)
+        .post(`/api/proposals/${mockProposalId}/versions`)
+        .set('Authorization', `Bearer ${freelancerToken}`)
+        .send({
+          title: 'Failed Revision',
+          scopeSummary: 'Database failure during parent update',
+          totalBudget: 5000,
+        });
+
+      expect(res.statusCode).toBe(500);
+      expect(ProposalVersion.deleteOne).toHaveBeenCalled();
+    });
+
+    it('should not supersede earlier approved baseline if Project baseline update fails during approval', async () => {
+      mockProposalDoc.activeVersion = mockVersion2Doc._id;
+      mockProposalDoc.currentVersionNumber = 2;
+      mockProposalDoc.status = PROPOSAL_STATUS.PENDING_APPROVAL;
+
+      jest.spyOn(ProposalVersion, 'findById').mockResolvedValue(mockVersion2Doc);
+
+      // Simulate failure on Project.findByIdAndUpdate
+      jest.spyOn(Project, 'findByIdAndUpdate').mockRejectedValue(new Error('Project write failure'));
+
+      const res = await request(app)
+        .post(`/api/proposals/${mockProposalId}/decision`)
+        .set('Authorization', `Bearer ${clientToken}`)
+        .send({
+          decision: PROPOSAL_DECISION.APPROVE,
+          comment: 'Approving v2',
+        });
+
+      expect(res.statusCode).toBe(500);
+      // Critical invariant: updateMany was NOT called, preserving earlier approved baseline from being superseded
+      expect(ProposalVersion.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('GET /api/proposals/:id/versions/:versionNumber should fail closed (404) when project is missing', async () => {
+      const orphanedProposalDoc = { ...mockProposalDoc, project: null };
+      jest.spyOn(Proposal, 'findById').mockImplementation(() => makePopulateQuery(orphanedProposalDoc));
+
+      const res = await request(app)
+        .get(`/api/proposals/${mockProposalId}/versions/1`)
+        .set('Authorization', `Bearer ${clientToken}`);
+
+      expect(res.statusCode).toBe(404);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toMatch(/associated project not found/i);
+    });
+
+    it('GET /api/proposals/:id should fail closed (404) when project is missing', async () => {
+      const orphanedProposalDoc = { ...mockProposalDoc, project: null };
+      jest.spyOn(Proposal, 'findById').mockImplementation(() => makePopulateQuery(orphanedProposalDoc));
+
+      const res = await request(app)
+        .get(`/api/proposals/${mockProposalId}`)
+        .set('Authorization', `Bearer ${clientToken}`);
+
+      expect(res.statusCode).toBe(404);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toMatch(/associated project not found/i);
     });
   });
 });
