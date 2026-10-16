@@ -14,6 +14,10 @@ const decisionSchema = new mongoose.Schema(
     decidedAt: {
       type: Date,
     },
+    decidedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    },
   },
   { _id: false }
 );
