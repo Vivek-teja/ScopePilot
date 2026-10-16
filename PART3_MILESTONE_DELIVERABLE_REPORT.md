@@ -17,10 +17,11 @@ With the completion of **Part 3**, the Milestone & Deliverable Management module
 
 ### Key Milestones Achieved in Part 3:
 1. **Multi-Tenant Authorization (`checkProjectAccess`):** Unrelated users are prevented from reading or mutating milestones and deliverables across projects (`403 Forbidden`).
-2. **Review Action Guard:** Milestone approval/rejection endpoints are restricted to assigned project clients, assigned freelancers, and system administrators.
-3. **Cross-Parent Referential Integrity:** Deliverables strictly verify that the referenced milestone actually belongs to the specified project.
-4. **Comprehensive Test Suite:** 115 passing tests across 7 test suites covering all 13 required scenarios with zero open handles or mock compromises.
-5. **Teammate Handoff Package:** Detailed contracts and test scripts prepared for Taran (Frontend), Bharat (QA), Mokshagna (Change Requests), Abhtej (Project/Proposal), and Vivek (Team Lead).
+2. **Review Action Guard (`checkDecisionAccess`):** Milestone approval/rejection is strictly restricted to assigned project clients, workspace owners/admins, and system administrators. Freelancers are explicitly forbidden from approving or rejecting their own milestones (`403 Forbidden`).
+3. **Query Scoping & Access Verification:** `GET /api/milestones` and `GET /api/deliverables` strictly require project or milestone references and enforce project access checks, preventing unscoped cross-tenant leakage.
+4. **Cross-Parent Referential Integrity:** Deliverables strictly verify that the referenced milestone actually belongs to the specified project.
+5. **Comprehensive Test Suite:** 129 passing tests across 7 test suites covering all required scenarios and regression tests with zero open handles.
+6. **Teammate Handoff Package:** Detailed contracts and test scripts prepared for Taran (Frontend), Bharat (QA), Mokshagna (Change Requests), Abhtej (Project/Proposal), and Vivek (Team Lead).
 
 ---
 
@@ -122,8 +123,8 @@ All 13 required verification scenarios were authored and executed in automated i
 > scopepilot-backend@1.0.0 test
 > jest --detectOpenHandles --runInBand
 
-PASS tests/milestoneDeliverable.api.test.js (45 tests)
-PASS tests/milestoneDeliverable.model.test.js (38 tests)
+PASS tests/milestoneDeliverable.api.test.js (57 tests)
+PASS tests/milestoneDeliverable.model.test.js (40 tests)
 PASS tests/project.test.js (15 tests)
 PASS tests/validation.test.js (6 tests)
 PASS tests/notFound.test.js (2 tests)
@@ -131,9 +132,9 @@ PASS tests/health.test.js (1 test)
 PASS tests/ai.contracts.test.js (8 tests)
 
 Test Suites: 7 passed, 7 total
-Tests:       115 passed, 115 total
+Tests:       129 passed, 129 total
 Snapshots:   0 total
-Time:        3.815 s
+Time:        5.453 s
 Ran all test suites.
 ```
 

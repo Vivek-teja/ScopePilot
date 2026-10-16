@@ -45,6 +45,59 @@ const checkProjectAccess = async (project, userId, user = null) => {
   return false;
 };
 
+/**
+ * Helper to verify whether a user is an authorized reviewer for milestone decisions.
+ * Only the assigned project client, workspace owner/admin, or system admin can record decisions.
+ * Freelancers are explicitly forbidden from approving/rejecting their own milestones.
+ */
+const checkDecisionAccess = async (project, userId, user = null) => {
+  if (!project || !userId) return false;
+
+  // System admin can always review
+  if (user && user.role === 'admin') return true;
+
+  const freelancerId = project.freelancer?._id || project.freelancer;
+  const clientId = project.client?._id || project.client;
+
+  // Freelancer assigned to this project cannot approve/reject their own milestones
+  if (freelancerId && freelancerId.toString() === userId.toString()) {
+    return false;
+  }
+
+  // Any user with role 'freelancer' cannot record a review decision
+  if (user && user.role === 'freelancer') {
+    return false;
+  }
+
+  // The designated project client is authorized
+  if (clientId && clientId.toString() === userId.toString()) {
+    return true;
+  }
+
+  // Check workspace owner or workspace admin
+  if (project.workspace) {
+    const workspaceId = project.workspace._id || project.workspace;
+    const workspace = await Workspace.findById(workspaceId);
+    if (workspace) {
+      const isOwner =
+        workspace.owner &&
+        (workspace.owner._id || workspace.owner).toString() === userId.toString();
+      const isWorkspaceAdmin =
+        workspace.members &&
+        workspace.members.some(
+          (m) =>
+            (m.user?._id || m.user).toString() === userId.toString() &&
+            (m.role === 'owner' || m.role === 'admin')
+        );
+      if (isOwner || isWorkspaceAdmin) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+};
+
 class MilestoneService {
   /**
    * Create a new milestone for a project
@@ -163,7 +216,7 @@ class MilestoneService {
   }
 
   /**
-   * Record client decision on milestone completion
+   * Record decision on milestone completion (restricted to client, workspace owner/admin, or admin)
    */
   async recordDecision(milestoneId, userId, { decision, comment }, user = null) {
     const milestone = await Milestone.findById(milestoneId);
@@ -171,14 +224,23 @@ class MilestoneService {
       throw ApiError.notFound('Milestone not found');
     }
 
+    let project = null;
     if (milestone.project) {
-      const project = await Project.findById(milestone.project);
-      if (project) {
-        const hasAccess = await checkProjectAccess(project, userId, user);
-        if (!hasAccess) {
-          throw ApiError.forbidden('You are not authorized to record a decision on this milestone');
-        }
+      if (milestone.project.freelancer || milestone.project.client) {
+        project = milestone.project;
+      } else {
+        const projectId = milestone.project._id || milestone.project;
+        project = await Project.findById(projectId);
       }
+    }
+
+    if (!project) {
+      throw ApiError.notFound('Project not found');
+    }
+
+    const canReview = await checkDecisionAccess(project, userId, user);
+    if (!canReview) {
+      throw ApiError.forbidden('You are not authorized to record a decision on this milestone');
     }
 
     const isApproved = decision === MILESTONE_DECISION.APPROVE;
@@ -199,24 +261,25 @@ class MilestoneService {
   }
 
   /**
-   * List milestones for a project
+   * List milestones for a project (strictly scoped to project with access verification)
    */
   async listMilestones(userId, query = {}, user = null) {
     const projectId = query.projectId || query.project;
-    if (projectId) {
-      const project = await Project.findById(projectId);
-      if (project) {
-        const hasAccess = await checkProjectAccess(project, userId, user);
-        if (!hasAccess) {
-          throw ApiError.forbidden('You do not have access to this project');
-        }
-      }
+    if (!projectId) {
+      throw ApiError.badRequest('Project reference is required');
     }
 
-    const filter = {};
-    if (projectId) {
-      filter.project = projectId;
+    const project = await Project.findById(projectId);
+    if (!project) {
+      throw ApiError.notFound('Project not found');
     }
+
+    const hasAccess = await checkProjectAccess(project, userId, user);
+    if (!hasAccess) {
+      throw ApiError.forbidden('You do not have access to this project');
+    }
+
+    const filter = { project: projectId };
     if (query.status) {
       filter.status = query.status;
     }

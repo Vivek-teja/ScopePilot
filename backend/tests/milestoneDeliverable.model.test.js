@@ -7,11 +7,13 @@ const {
   createMilestoneSchema,
   updateMilestoneSchema,
   milestoneIdParamSchema,
+  listMilestonesQuerySchema,
 } = require('../src/modules/milestone/milestone.validation');
 const {
   createDeliverableSchema,
   updateDeliverableSchema,
   deliverableIdParamSchema,
+  listDeliverablesQuerySchema,
 } = require('../src/modules/deliverable/deliverable.validation');
 
 describe('Part 1: Milestone & Deliverable Models and Validations', () => {
@@ -460,6 +462,26 @@ describe('Part 1: Milestone & Deliverable Models and Validations', () => {
     it('deliverableIdParamSchema should validate route params correctly', () => {
       expect(deliverableIdParamSchema.safeParse({ id: validDeliverableId }).success).toBe(true);
       expect(deliverableIdParamSchema.safeParse({ id: 'invalid-id' }).success).toBe(false);
+    });
+
+    it('listMilestonesQuerySchema should require projectId or project and validate status enum', () => {
+      expect(listMilestonesQuerySchema.safeParse({ projectId: validProjectId }).success).toBe(true);
+      expect(listMilestonesQuerySchema.safeParse({ project: validProjectId, status: 'pending' }).success).toBe(true);
+      expect(listMilestonesQuerySchema.safeParse({}).success).toBe(false);
+      expect(listMilestonesQuerySchema.safeParse({ status: 'pending' }).success).toBe(false);
+      expect(listMilestonesQuerySchema.safeParse({ projectId: 'bad-id' }).success).toBe(false);
+      expect(listMilestonesQuerySchema.safeParse({ projectId: validProjectId, status: 'unknown' }).success).toBe(false);
+    });
+
+    it('listDeliverablesQuerySchema should require projectId or milestoneId and validate status enum', () => {
+      expect(listDeliverablesQuerySchema.safeParse({ projectId: validProjectId }).success).toBe(true);
+      expect(listDeliverablesQuerySchema.safeParse({ milestoneId: validMilestoneId }).success).toBe(true);
+      expect(listDeliverablesQuerySchema.safeParse({ project: validProjectId, milestone: validMilestoneId }).success).toBe(true);
+      expect(listDeliverablesQuerySchema.safeParse({}).success).toBe(false);
+      expect(listDeliverablesQuerySchema.safeParse({ status: 'completed' }).success).toBe(false);
+      expect(listDeliverablesQuerySchema.safeParse({ projectId: 'bad-id' }).success).toBe(false);
+      expect(listDeliverablesQuerySchema.safeParse({ milestoneId: 'bad-id' }).success).toBe(false);
+      expect(listDeliverablesQuerySchema.safeParse({ projectId: validProjectId, status: 'unknown' }).success).toBe(false);
     });
   });
 });

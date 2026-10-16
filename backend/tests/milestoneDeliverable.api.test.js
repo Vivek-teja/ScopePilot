@@ -17,10 +17,12 @@ describe('Part 2: Milestone & Deliverable APIs, Services & Controllers', () => {
   const mockOtherProjectId = new mongoose.Types.ObjectId().toString();
   const mockMilestoneId = new mongoose.Types.ObjectId().toString();
   const mockDeliverableId = new mongoose.Types.ObjectId().toString();
+  const mockAdminId = new mongoose.Types.ObjectId().toString();
 
   const freelancerToken = generateToken({ id: mockFreelancerId });
   const clientToken = generateToken({ id: mockClientId });
   const unrelatedUserToken = generateToken({ id: mockUnrelatedUserId });
+  const adminToken = generateToken({ id: mockAdminId });
 
   const mockFreelancerUser = {
     _id: new mongoose.Types.ObjectId(mockFreelancerId),
@@ -41,6 +43,13 @@ describe('Part 2: Milestone & Deliverable APIs, Services & Controllers', () => {
     name: 'Eve Intruder',
     email: 'eve@test.com',
     role: 'client',
+  };
+
+  const mockAdminUser = {
+    _id: new mongoose.Types.ObjectId(mockAdminId),
+    name: 'System Admin',
+    email: 'admin@test.com',
+    role: 'admin',
   };
 
   const mockProjectDoc = {
@@ -68,6 +77,7 @@ describe('Part 2: Milestone & Deliverable APIs, Services & Controllers', () => {
       if (idStr === mockFreelancerId) userObj = mockFreelancerUser;
       else if (idStr === mockClientId) userObj = mockClientUser;
       else if (idStr === mockUnrelatedUserId) userObj = mockUnrelatedUser;
+      else if (idStr === mockAdminId) userObj = mockAdminUser;
 
       return {
         select: jest.fn().mockResolvedValue(userObj),
@@ -327,7 +337,38 @@ describe('Part 2: Milestone & Deliverable APIs, Services & Controllers', () => {
   // 4. LIST MILESTONES (GET /api/milestones)
   // =========================================================================
   describe('GET /api/milestones', () => {
-    it('should return 200 OK and list of milestones for a project', async () => {
+    it('should return 400 Bad Request when projectId query parameter is omitted', async () => {
+      const res = await request(app)
+        .get('/api/milestones')
+        .set('Authorization', `Bearer ${freelancerToken}`);
+
+      expect(res.statusCode).toBe(400);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toMatch(/Validation failed/i);
+    });
+
+    it('should return 404 Not Found when query projectId does not exist', async () => {
+      const nonExistentProjectId = new mongoose.Types.ObjectId().toString();
+      const res = await request(app)
+        .get(`/api/milestones?projectId=${nonExistentProjectId}`)
+        .set('Authorization', `Bearer ${freelancerToken}`);
+
+      expect(res.statusCode).toBe(404);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toMatch(/Project not found/i);
+    });
+
+    it('should return 403 Forbidden when user does not have access to the queried project', async () => {
+      const res = await request(app)
+        .get(`/api/milestones?projectId=${mockProjectId}`)
+        .set('Authorization', `Bearer ${unrelatedUserToken}`);
+
+      expect(res.statusCode).toBe(403);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toMatch(/You do not have access to this project/i);
+    });
+
+    it('should return 200 OK and list of milestones for an authorized project', async () => {
       const mockList = [
         { _id: new mongoose.Types.ObjectId(), title: 'Milestone 1', order: 1 },
         { _id: new mongoose.Types.ObjectId(), title: 'Milestone 2', order: 2 },
@@ -347,6 +388,27 @@ describe('Part 2: Milestone & Deliverable APIs, Services & Controllers', () => {
       expect(res.body.success).toBe(true);
       expect(Array.isArray(res.body.data)).toBe(true);
       expect(res.body.data.length).toBe(2);
+    });
+
+    it('should support filtering by status within the authorized project', async () => {
+      const mockList = [
+        { _id: new mongoose.Types.ObjectId(), title: 'Milestone 1', status: 'pending', order: 1 },
+      ];
+
+      const chain = {
+        populate: jest.fn().mockReturnThis(),
+        sort: jest.fn().mockResolvedValue(mockList),
+      };
+      jest.spyOn(Milestone, 'find').mockReturnValue(chain);
+
+      const res = await request(app)
+        .get(`/api/milestones?projectId=${mockProjectId}&status=pending`)
+        .set('Authorization', `Bearer ${clientToken}`);
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(Array.isArray(res.body.data)).toBe(true);
+      expect(res.body.data.length).toBe(1);
     });
   });
 
@@ -533,6 +595,74 @@ describe('Part 2: Milestone & Deliverable APIs, Services & Controllers', () => {
   // 7. LIST DELIVERABLES (GET /api/deliverables)
   // =========================================================================
   describe('GET /api/deliverables', () => {
+    it('should return 400 Bad Request when both projectId and milestoneId are omitted', async () => {
+      const res = await request(app)
+        .get('/api/deliverables')
+        .set('Authorization', `Bearer ${freelancerToken}`);
+
+      expect(res.statusCode).toBe(400);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toMatch(/Validation failed/i);
+    });
+
+    it('should return 404 Not Found when query projectId does not exist', async () => {
+      const nonExistentProjectId = new mongoose.Types.ObjectId().toString();
+      const res = await request(app)
+        .get(`/api/deliverables?projectId=${nonExistentProjectId}`)
+        .set('Authorization', `Bearer ${freelancerToken}`);
+
+      expect(res.statusCode).toBe(404);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toMatch(/Project not found/i);
+    });
+
+    it('should return 403 Forbidden when user does not have access to queried project', async () => {
+      const res = await request(app)
+        .get(`/api/deliverables?projectId=${mockProjectId}`)
+        .set('Authorization', `Bearer ${unrelatedUserToken}`);
+
+      expect(res.statusCode).toBe(403);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toMatch(/You do not have access to this project/i);
+    });
+
+    it('should return 400 Bad Request when milestone does not belong to specified project', async () => {
+      jest.spyOn(Milestone, 'findById').mockResolvedValue({
+        _id: new mongoose.Types.ObjectId(mockMilestoneId),
+        project: new mongoose.Types.ObjectId(mockOtherProjectId),
+      });
+
+      const res = await request(app)
+        .get(`/api/deliverables?projectId=${mockProjectId}&milestoneId=${mockMilestoneId}`)
+        .set('Authorization', `Bearer ${freelancerToken}`);
+
+      expect(res.statusCode).toBe(400);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toMatch(/Milestone does not belong to the specified project/i);
+    });
+
+    it('should return 200 OK and list deliverables filtered by projectId', async () => {
+      const mockList = [
+        { _id: new mongoose.Types.ObjectId(), title: 'Deliverable A' },
+        { _id: new mongoose.Types.ObjectId(), title: 'Deliverable B' },
+      ];
+
+      const chain = {
+        populate: jest.fn().mockReturnThis(),
+        sort: jest.fn().mockResolvedValue(mockList),
+      };
+      jest.spyOn(Deliverable, 'find').mockReturnValue(chain);
+
+      const res = await request(app)
+        .get(`/api/deliverables?projectId=${mockProjectId}`)
+        .set('Authorization', `Bearer ${freelancerToken}`);
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(Array.isArray(res.body.data)).toBe(true);
+      expect(res.body.data.length).toBe(2);
+    });
+
     it('should return 200 OK and list deliverables filtered by milestone', async () => {
       jest.spyOn(Milestone, 'findById').mockResolvedValue({
         _id: new mongoose.Types.ObjectId(mockMilestoneId),
@@ -713,6 +843,77 @@ describe('Part 2: Milestone & Deliverable APIs, Services & Controllers', () => {
       expect(res.body.success).toBe(true);
       expect(mockMilestone.status).toBe(MILESTONE_STATUS.REJECTED);
       expect(mockMilestone.decisions[0].decision).toBe('reject');
+    });
+
+    it('Freelancer should receive 403 Forbidden when attempting to approve their own milestone', async () => {
+      const mockMilestone = {
+        _id: new mongoose.Types.ObjectId(mockMilestoneId),
+        project: new mongoose.Types.ObjectId(mockProjectId),
+        status: MILESTONE_STATUS.SUBMITTED,
+        decisions: [],
+      };
+
+      jest.spyOn(Milestone, 'findById').mockResolvedValue(mockMilestone);
+
+      const res = await request(app)
+        .post(`/api/milestones/${mockMilestoneId}/decision`)
+        .set('Authorization', `Bearer ${freelancerToken}`)
+        .send({
+          decision: MILESTONE_DECISION.APPROVE,
+          comment: 'Self approval by freelancer',
+        });
+
+      expect(res.statusCode).toBe(403);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toMatch(/not authorized to record a decision/i);
+    });
+
+    it('Freelancer should receive 403 Forbidden when attempting to reject their own milestone', async () => {
+      const mockMilestone = {
+        _id: new mongoose.Types.ObjectId(mockMilestoneId),
+        project: new mongoose.Types.ObjectId(mockProjectId),
+        status: MILESTONE_STATUS.SUBMITTED,
+        decisions: [],
+      };
+
+      jest.spyOn(Milestone, 'findById').mockResolvedValue(mockMilestone);
+
+      const res = await request(app)
+        .post(`/api/milestones/${mockMilestoneId}/decision`)
+        .set('Authorization', `Bearer ${freelancerToken}`)
+        .send({
+          decision: MILESTONE_DECISION.REJECT,
+          comment: 'Self rejection by freelancer',
+        });
+
+      expect(res.statusCode).toBe(403);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toMatch(/not authorized to record a decision/i);
+    });
+
+    it('System Admin should successfully approve milestone even if not client', async () => {
+      const mockMilestone = {
+        _id: new mongoose.Types.ObjectId(mockMilestoneId),
+        project: new mongoose.Types.ObjectId(mockProjectId),
+        status: MILESTONE_STATUS.SUBMITTED,
+        decisions: [],
+        save: jest.fn().mockResolvedValue(true),
+      };
+
+      jest.spyOn(Milestone, 'findById').mockResolvedValue(mockMilestone);
+
+      const res = await request(app)
+        .post(`/api/milestones/${mockMilestoneId}/decision`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          decision: MILESTONE_DECISION.APPROVE,
+          comment: 'Executive administrator override approval',
+        });
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(mockMilestone.status).toBe(MILESTONE_STATUS.APPROVED);
+      expect(mockMilestone.decisions[0].decidedBy.toString()).toBe(mockAdminId);
     });
 
     it('Unrelated user should receive 403 Forbidden when attempting to record decision', async () => {

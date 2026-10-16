@@ -181,35 +181,59 @@ class DeliverableService {
   }
 
   /**
-   * Get all deliverables with optional filters
+   * Get all deliverables scoped to a project or milestone with access verification
    */
   async listDeliverables(userId, query = {}, user = null) {
-    const filter = {};
-    const milestoneId = query.milestoneId || query.milestone;
     const projectId = query.projectId || query.project;
+    const milestoneId = query.milestoneId || query.milestone;
+
+    if (!projectId && !milestoneId) {
+      throw ApiError.badRequest('Project reference is required');
+    }
+
+    const filter = {};
 
     if (projectId) {
       const project = await Project.findById(projectId);
-      if (project) {
-        const hasAccess = await checkProjectAccess(project, userId, user);
-        if (!hasAccess) {
-          throw ApiError.forbidden('You do not have access to this project');
-        }
+      if (!project) {
+        throw ApiError.notFound('Project not found');
       }
+
+      const hasAccess = await checkProjectAccess(project, userId, user);
+      if (!hasAccess) {
+        throw ApiError.forbidden('You do not have access to this project');
+      }
+
       filter.project = projectId;
     }
 
     if (milestoneId) {
       const milestone = await Milestone.findById(milestoneId);
-      if (milestone && milestone.project) {
-        const project = await Project.findById(milestone.project);
-        if (project) {
-          const hasAccess = await checkProjectAccess(project, userId, user);
-          if (!hasAccess) {
-            throw ApiError.forbidden('You do not have access to this project');
-          }
-        }
+      if (!milestone) {
+        throw ApiError.notFound('Milestone not found');
       }
+
+      const mProjectId = milestone.project
+        ? (milestone.project._id || milestone.project).toString()
+        : milestone.projectId?.toString();
+
+      if (projectId && mProjectId && mProjectId !== projectId.toString()) {
+        throw ApiError.badRequest('Milestone does not belong to the specified project');
+      }
+
+      // If projectId was not explicitly provided in query, verify access via the milestone's project
+      if (!projectId && mProjectId) {
+        const project = await Project.findById(mProjectId);
+        if (!project) {
+          throw ApiError.notFound('Project not found');
+        }
+        const hasAccess = await checkProjectAccess(project, userId, user);
+        if (!hasAccess) {
+          throw ApiError.forbidden('You do not have access to this project');
+        }
+        filter.project = mProjectId;
+      }
+
       filter.milestone = milestoneId;
     }
 
