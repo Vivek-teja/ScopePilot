@@ -14,14 +14,20 @@ const scopeItemSchema = z.object({
   price: z.number().nonnegative().optional().default(0),
 });
 
-const createProposalSchema = z.object({
-  project: z.string().regex(objectIdRegex, 'Invalid project ID format'),
-  title: z.string().min(2, 'Proposal title must be at least 2 characters'),
-  scopeSummary: z.string().min(5, 'Scope summary must be at least 5 characters'),
-  scopeItems: z.array(scopeItemSchema).optional().default([]),
-  totalBudget: z.number().nonnegative('Total budget must be a non-negative number'),
-  currency: z.string().optional().default('USD'),
-});
+const createProposalSchema = z
+  .object({
+    project: z.string().regex(objectIdRegex, 'Invalid project ID format').optional(),
+    projectId: z.string().regex(objectIdRegex, 'Invalid project ID format').optional(),
+    title: z.string().min(2, 'Proposal title must be at least 2 characters'),
+    scopeSummary: z.string().min(5, 'Scope summary must be at least 5 characters'),
+    scopeItems: z.array(scopeItemSchema).optional().default([]),
+    totalBudget: z.number().nonnegative('Total budget must be a non-negative number'),
+    currency: z.string().optional().default('USD'),
+  })
+  .refine((data) => data.project || data.projectId, {
+    message: 'Project ID is required (either project or projectId)',
+    path: ['project'],
+  });
 
 const proposalDecisionSchema = z.object({
   decision: z.enum([PROPOSAL_DECISION.APPROVE, PROPOSAL_DECISION.REJECT]),
