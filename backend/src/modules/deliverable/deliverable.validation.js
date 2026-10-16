@@ -66,13 +66,18 @@ const addEvidenceSchema = z
     path: ['comment'],
   });
 
-const listDeliverablesQuerySchema = z.object({
-  milestone: z.string().regex(objectIdRegex, 'Invalid milestone ID format').optional(),
-  milestoneId: z.string().regex(objectIdRegex, 'Invalid milestone ID format').optional(),
-  project: z.string().regex(objectIdRegex, 'Invalid project ID format').optional(),
-  projectId: z.string().regex(objectIdRegex, 'Invalid project ID format').optional(),
-  status: z.enum(ALLOWED_DELIVERABLE_STATUSES).optional(),
-});
+const listDeliverablesQuerySchema = z
+  .object({
+    milestone: z.string().regex(objectIdRegex, 'Invalid milestone ID format').optional(),
+    milestoneId: z.string().regex(objectIdRegex, 'Invalid milestone ID format').optional(),
+    project: z.string().regex(objectIdRegex, 'Invalid project ID format').optional(),
+    projectId: z.string().regex(objectIdRegex, 'Invalid project ID format').optional(),
+    status: z.enum(ALLOWED_DELIVERABLE_STATUSES).optional(),
+  })
+  .refine((data) => data.project || data.projectId || data.milestone || data.milestoneId, {
+    message: 'Project or milestone reference is required to scope deliverables (provide projectId or milestoneId)',
+    path: ['projectId'],
+  });
 
 module.exports = {
   objectIdRegex,
