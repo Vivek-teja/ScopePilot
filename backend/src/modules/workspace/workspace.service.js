@@ -95,6 +95,12 @@ class WorkspaceService {
       throw ApiError.forbidden('You do not have permission to invite members to this workspace');
     }
 
+    // Workspace admins can invite regular members, but cannot invite users with the client role.
+    // Only workspace owners can invite users with the client role.
+    if (!isOwner && role === WORKSPACE_ROLES.CLIENT) {
+      throw ApiError.forbidden('Workspace admins cannot invite users with the client role. Only workspace owners can invite clients.');
+    }
+
     // Check if invitation already exists
     const existingInvite = workspace.invitations.find(
       (inv) => inv.email.toLowerCase() === email.toLowerCase() && inv.status === 'pending'

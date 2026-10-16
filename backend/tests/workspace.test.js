@@ -434,7 +434,32 @@ describe('Workspace Module & Multi-Tenancy (Task 2)', () => {
       expect(mockWorkspace.save).toHaveBeenCalled();
     });
 
-    it('Workspace admin should successfully invite a new member with custom role', async () => {
+    it('Workspace owner should successfully invite a user with "client" role', async () => {
+      const mockWorkspace = {
+        ...mockWorkspaceDoc,
+        invitations: [],
+        save: jest.fn().mockResolvedValue(true),
+      };
+
+      jest.spyOn(Workspace, 'findById').mockResolvedValue(mockWorkspace);
+
+      const res = await request(app)
+        .post(`/api/workspaces/${mockWorkspaceId}/invitations`)
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({
+          email: 'clientpartner@scopepilot.dev',
+          role: WORKSPACE_ROLES.CLIENT,
+        });
+
+      expect(res.statusCode).toBe(201);
+      expect(res.body.success).toBe(true);
+      expect(mockWorkspace.invitations.length).toBe(1);
+      expect(mockWorkspace.invitations[0].role).toBe(WORKSPACE_ROLES.CLIENT);
+      expect(mockWorkspace.invitations[0].invitedBy.toString()).toBe(mockOwnerId);
+      expect(mockWorkspace.save).toHaveBeenCalled();
+    });
+
+    it('Workspace admin should successfully invite a regular member', async () => {
       const mockWorkspace = {
         ...mockWorkspaceDoc,
         invitations: [],
@@ -447,14 +472,41 @@ describe('Workspace Module & Multi-Tenancy (Task 2)', () => {
         .post(`/api/workspaces/${mockWorkspaceId}/invitations`)
         .set('Authorization', `Bearer ${adminMemberToken}`)
         .send({
-          email: 'clientpartner@scopepilot.dev',
-          role: WORKSPACE_ROLES.CLIENT,
+          email: 'teammate@scopepilot.dev',
+          role: WORKSPACE_ROLES.MEMBER,
         });
 
       expect(res.statusCode).toBe(201);
       expect(res.body.success).toBe(true);
-      expect(mockWorkspace.invitations[0].role).toBe(WORKSPACE_ROLES.CLIENT);
+      expect(mockWorkspace.invitations.length).toBe(1);
+      expect(mockWorkspace.invitations[0].email).toBe('teammate@scopepilot.dev');
+      expect(mockWorkspace.invitations[0].role).toBe(WORKSPACE_ROLES.MEMBER);
       expect(mockWorkspace.invitations[0].invitedBy.toString()).toBe(mockAdminMemberId);
+      expect(mockWorkspace.save).toHaveBeenCalled();
+    });
+
+    it('Workspace admin attempting to invite a user with "client" role should be rejected with 403 Forbidden', async () => {
+      const mockWorkspace = {
+        ...mockWorkspaceDoc,
+        invitations: [],
+        save: jest.fn().mockResolvedValue(true),
+      };
+
+      jest.spyOn(Workspace, 'findById').mockResolvedValue(mockWorkspace);
+
+      const res = await request(app)
+        .post(`/api/workspaces/${mockWorkspaceId}/invitations`)
+        .set('Authorization', `Bearer ${adminMemberToken}`)
+        .send({
+          email: 'forbiddenclient@scopepilot.dev',
+          role: WORKSPACE_ROLES.CLIENT,
+        });
+
+      expect(res.statusCode).toBe(403);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toMatch(/cannot invite users with the client role/i);
+      expect(mockWorkspace.invitations.length).toBe(0);
+      expect(mockWorkspace.save).not.toHaveBeenCalled();
     });
 
     it('Outsider user should receive 403 Forbidden when attempting to invite into foreign workspace', async () => {
