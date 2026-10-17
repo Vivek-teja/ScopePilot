@@ -7,6 +7,12 @@ const Workspace = require('../src/modules/workspace/workspace.model');
 const Project = require('../src/modules/project/project.model');
 const { PROJECT_STATUS } = require('../src/modules/project/project.constants');
 
+const makePopulateQuery = (doc) => {
+  const query = Promise.resolve(doc);
+  query.populate = jest.fn().mockImplementation(() => query);
+  return query;
+};
+
 describe('Project Module (Abhtej) - Comprehensive Unit & Integration Tests', () => {
   const mockFreelancerId = new mongoose.Types.ObjectId().toString();
   const mockClientId = new mongoose.Types.ObjectId().toString();
@@ -344,10 +350,7 @@ describe('Project Module (Abhtej) - Comprehensive Unit & Integration Tests', () 
   // =========================================================================
   describe('Project Retrieval (GET /api/projects/:id)', () => {
     it('should return 404 Not Found when project does not exist', async () => {
-      jest.spyOn(Project, 'findById').mockReturnValue({
-        populate: jest.fn().mockReturnThis(),
-        then: jest.fn((callback) => callback(null)),
-      });
+      jest.spyOn(Project, 'findById').mockReturnValue(makePopulateQuery(null));
 
       const nonExistentId = new mongoose.Types.ObjectId().toString();
       const res = await request(app)
@@ -360,10 +363,7 @@ describe('Project Module (Abhtej) - Comprehensive Unit & Integration Tests', () 
     });
 
     it('should allow the assigned freelancer to retrieve project details', async () => {
-      jest.spyOn(Project, 'findById').mockReturnValue({
-        populate: jest.fn().mockReturnThis(),
-        then: jest.fn((callback) => callback(mockProjectDoc)),
-      });
+      jest.spyOn(Project, 'findById').mockReturnValue(makePopulateQuery(mockProjectDoc));
 
       const res = await request(app)
         .get(`/api/projects/${mockProjectId}`)
@@ -377,10 +377,7 @@ describe('Project Module (Abhtej) - Comprehensive Unit & Integration Tests', () 
     });
 
     it('should allow the assigned client to retrieve project details', async () => {
-      jest.spyOn(Project, 'findById').mockReturnValue({
-        populate: jest.fn().mockReturnThis(),
-        then: jest.fn((callback) => callback(mockProjectDoc)),
-      });
+      jest.spyOn(Project, 'findById').mockReturnValue(makePopulateQuery(mockProjectDoc));
 
       const res = await request(app)
         .get(`/api/projects/${mockProjectId}`)
@@ -392,10 +389,7 @@ describe('Project Module (Abhtej) - Comprehensive Unit & Integration Tests', () 
     });
 
     it('should return 403 Forbidden when an unrelated user tries to retrieve a project from another workspace', async () => {
-      jest.spyOn(Project, 'findById').mockReturnValue({
-        populate: jest.fn().mockReturnThis(),
-        then: jest.fn((callback) => callback(mockProjectDoc)),
-      });
+      jest.spyOn(Project, 'findById').mockReturnValue(makePopulateQuery(mockProjectDoc));
       jest.spyOn(Workspace, 'findById').mockResolvedValue(mockWorkspace);
 
       const res = await request(app)

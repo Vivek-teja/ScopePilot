@@ -13,12 +13,9 @@ const {
 } = require('../src/modules/proposal/proposal.constants');
 
 const makePopulateQuery = (doc) => {
-  const query = {
-    populate: jest.fn().mockImplementation(() => query),
-    sort: jest.fn().mockImplementation(() => query),
-    then: (resolve, reject) => Promise.resolve(doc).then(resolve, reject),
-    catch: (reject) => Promise.resolve(doc).catch(reject),
-  };
+  const query = Promise.resolve(doc);
+  query.populate = jest.fn().mockImplementation(() => query);
+  query.sort = jest.fn().mockImplementation(() => query);
   return query;
 };
 

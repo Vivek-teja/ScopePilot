@@ -2,10 +2,6 @@ const request = require('supertest');
 const app = require('../src/app');
 const {
   case1_clearlyInScope,
-  case2_clearlyOutOfScope,
-  case3_partialOverlap,
-  case4_ambiguousRequest,
-  case5_insufficientEvidence,
 } = require('../src/ai/fixtures/changeAnalysisFixtures');
 
 describe('AI Mock Endpoints (/api/ai/*)', () => {

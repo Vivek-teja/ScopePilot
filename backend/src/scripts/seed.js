@@ -1,4 +1,3 @@
-const mongoose = require('mongoose');
 const { connectDB, disconnectDB } = require('../config/db');
 const User = require('../modules/auth/auth.model');
 const Workspace = require('../modules/workspace/workspace.model');

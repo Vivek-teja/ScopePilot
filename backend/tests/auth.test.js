@@ -98,17 +98,9 @@ describe('Authentication & Authorization Module (Task 2)', () => {
       else if (idStr === mockAdminId) userObj = mockAdminUser;
       else if (idStr === mockClientId) userObj = mockClientUser;
 
-      return {
-        select: jest.fn().mockImplementation((fields) => {
-          if (fields === '-passwordHash') {
-            return Promise.resolve(userObj);
-          }
-          return Promise.resolve(userObj);
-        }),
-        then(resolve, reject) {
-          return Promise.resolve(userObj).then(resolve, reject);
-        },
-      };
+      const query = Promise.resolve(userObj);
+      query.select = jest.fn().mockImplementation(() => query);
+      return query;
     });
   });
 

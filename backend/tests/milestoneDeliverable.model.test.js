@@ -1,8 +1,8 @@
 const mongoose = require('mongoose');
 const Milestone = require('../src/modules/milestone/milestone.model');
 const Deliverable = require('../src/modules/deliverable/deliverable.model');
-const { MILESTONE_STATUS, ALLOWED_MILESTONE_STATUSES } = require('../src/modules/milestone/milestone.constants');
-const { DELIVERABLE_STATUS, ALLOWED_DELIVERABLE_STATUSES } = require('../src/modules/deliverable/deliverable.constants');
+const { MILESTONE_STATUS } = require('../src/modules/milestone/milestone.constants');
+const { DELIVERABLE_STATUS } = require('../src/modules/deliverable/deliverable.constants');
 const {
   createMilestoneSchema,
   updateMilestoneSchema,
@@ -353,6 +353,55 @@ describe('Part 1: Milestone & Deliverable Models and Validations', () => {
     });
   });
 
+  describe('Zod Validation - updateMilestoneSchema', () => {
+    it('should accept an empty object for partial updates', () => {
+      const result = updateMilestoneSchema.safeParse({});
+      expect(result.success).toBe(true);
+    });
+
+    it('should accept valid partial milestone updates', () => {
+      const result = updateMilestoneSchema.safeParse({
+        title: 'Updated Milestone Title',
+        description: 'Updated description',
+        status: MILESTONE_STATUS.IN_PROGRESS,
+        dueDate: '2026-12-15',
+        order: 2,
+      });
+      expect(result.success).toBe(true);
+      expect(result.data.title).toBe('Updated Milestone Title');
+      expect(result.data.status).toBe(MILESTONE_STATUS.IN_PROGRESS);
+    });
+
+    it('should accept null to clear dueDate', () => {
+      const result = updateMilestoneSchema.safeParse({ dueDate: null });
+      expect(result.success).toBe(true);
+      expect(result.data.dueDate).toBeNull();
+    });
+
+    it('should reject title shorter than 2 characters', () => {
+      const result = updateMilestoneSchema.safeParse({ title: 'A' });
+      expect(result.success).toBe(false);
+      expect(result.error.errors.some((e) => /at least 2 characters/i.test(e.message))).toBe(true);
+    });
+
+    it('should reject invalid status', () => {
+      const result = updateMilestoneSchema.safeParse({ status: 'invalid_status' });
+      expect(result.success).toBe(false);
+      expect(result.error.errors.some((e) => /Status must be one of/i.test(e.message))).toBe(true);
+    });
+
+    it('should reject invalid dueDate format', () => {
+      const result = updateMilestoneSchema.safeParse({ dueDate: 'not-a-date' });
+      expect(result.success).toBe(false);
+    });
+
+    it('should reject non-positive or non-integer order', () => {
+      expect(updateMilestoneSchema.safeParse({ order: 0 }).success).toBe(false);
+      expect(updateMilestoneSchema.safeParse({ order: -3 }).success).toBe(false);
+      expect(updateMilestoneSchema.safeParse({ order: 1.5 }).success).toBe(false);
+    });
+  });
+
   // =========================================================================
   // 5. ZOD VALIDATION: DELIVERABLES
   // =========================================================================
@@ -482,6 +531,44 @@ describe('Part 1: Milestone & Deliverable Models and Validations', () => {
       expect(listDeliverablesQuerySchema.safeParse({ projectId: 'bad-id' }).success).toBe(false);
       expect(listDeliverablesQuerySchema.safeParse({ milestoneId: 'bad-id' }).success).toBe(false);
       expect(listDeliverablesQuerySchema.safeParse({ projectId: validProjectId, status: 'unknown' }).success).toBe(false);
+    });
+  });
+
+  describe('Zod Validation - updateDeliverableSchema', () => {
+    it('should accept an empty object for partial updates', () => {
+      const result = updateDeliverableSchema.safeParse({});
+      expect(result.success).toBe(true);
+    });
+
+    it('should accept valid partial deliverable updates', () => {
+      const result = updateDeliverableSchema.safeParse({
+        title: 'Updated Deliverable Title',
+        description: 'Updated deliverable description',
+        scopeReference: 'Section 4.1',
+        status: DELIVERABLE_STATUS.COMPLETED,
+        acceptanceCriteria: ['Passes integration tests', 'Reviewed by tech lead'],
+      });
+      expect(result.success).toBe(true);
+      expect(result.data.title).toBe('Updated Deliverable Title');
+      expect(result.data.status).toBe(DELIVERABLE_STATUS.COMPLETED);
+      expect(result.data.acceptanceCriteria.length).toBe(2);
+    });
+
+    it('should reject title shorter than 2 characters', () => {
+      const result = updateDeliverableSchema.safeParse({ title: 'X' });
+      expect(result.success).toBe(false);
+      expect(result.error.errors.some((e) => /at least 2 characters/i.test(e.message))).toBe(true);
+    });
+
+    it('should reject invalid deliverable status', () => {
+      const result = updateDeliverableSchema.safeParse({ status: 'invalid_status' });
+      expect(result.success).toBe(false);
+      expect(result.error.errors.some((e) => /Status must be one of/i.test(e.message))).toBe(true);
+    });
+
+    it('should reject non-string items in acceptanceCriteria', () => {
+      const result = updateDeliverableSchema.safeParse({ acceptanceCriteria: [123] });
+      expect(result.success).toBe(false);
     });
   });
 });

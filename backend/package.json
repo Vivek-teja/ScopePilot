@@ -7,6 +7,7 @@
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
     "test": "jest --detectOpenHandles --runInBand",
+    "lint": "oxlint",
     "seed": "node src/scripts/seed.js",
     "mock:cases": "node src/ai/scripts/runMockCases.js"
   },
@@ -34,6 +35,7 @@
   },
   "devDependencies": {
     "jest": "^29.7.0",
+    "oxlint": "^1.88.0",
     "supertest": "^7.0.0"
   },
   "engines": {

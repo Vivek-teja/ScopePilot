@@ -7,11 +7,8 @@ const Workspace = require('../src/modules/workspace/workspace.model');
 const { WORKSPACE_ROLES } = require('../src/constants/roles');
 
 const makePopulateQuery = (doc) => {
-  const query = {
-    populate: jest.fn().mockImplementation(() => query),
-    then: (resolve, reject) => Promise.resolve(doc).then(resolve, reject),
-    catch: (reject) => Promise.resolve(doc).catch(reject),
-  };
+  const query = Promise.resolve(doc);
+  query.populate = jest.fn().mockImplementation(() => query);
   return query;
 };
 
