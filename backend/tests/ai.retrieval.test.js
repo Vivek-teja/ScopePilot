@@ -1,13 +1,12 @@
 const request = require('supertest');
 const app = require('../src/app');
-const { defaultEmbeddingService, EmbeddingService } = require('../src/ai/embeddings/embedding.service');
+const { defaultEmbeddingService } = require('../src/ai/embeddings/embedding.service');
 const { defaultCorpusService, CorpusService } = require('../src/ai/rag/corpus.service');
-const { defaultRetrievalService, RetrievalService } = require('../src/ai/rag/retrieval.service');
+const { defaultRetrievalService } = require('../src/ai/rag/retrieval.service');
 const { RETRIEVAL_EXPERIMENT_CASES } = require('../src/ai/fixtures/retrievalExperimentFixtures');
 const {
   RELEVANCE_CATEGORY,
   RETRIEVAL_STATUS,
-  RetrievalQueryInputSchema,
   RetrievalResultSchema,
 } = require('../src/contracts/retrieval.contract');
 
@@ -161,8 +160,8 @@ describe('AI Review 3: Embeddings & Semantic Retrieval Experiment', () => {
       const resA = defaultRetrievalService.retrieve({ query, topK: 3, minThreshold: 0.35 });
       const resB = defaultRetrievalService.retrieve({ query, topK: 3, minThreshold: 0.35 });
 
-      const { analyzedAt: tA, ...payloadA } = resA;
-      const { analyzedAt: tB, ...payloadB } = resB;
+      const { analyzedAt: _tA, ...payloadA } = resA;
+      const { analyzedAt: _tB, ...payloadB } = resB;
 
       expect(payloadA).toEqual(payloadB);
     });

@@ -1,6 +1,5 @@
 const { defaultRetrievalService } = require('../rag/retrieval.service');
 const { RETRIEVAL_EXPERIMENT_CASES } = require('../fixtures/retrievalExperimentFixtures');
-const { RETRIEVAL_STATUS } = require('../../contracts/retrieval.contract');
 
 function runAllExperiments() {
   console.log('================================================================================');
@@ -26,8 +25,8 @@ function runAllExperiments() {
     const durationMs = Number((endTime - startTime) / 1000000n);
 
     // Verify bit-for-bit determinism (excluding volatile timestamp)
-    const { analyzedAt: t1, ...payload1 } = result1;
-    const { analyzedAt: t2, ...payload2 } = result2;
+    const { analyzedAt: _t1, ...payload1 } = result1;
+    const { analyzedAt: _t2, ...payload2 } = result2;
     const isDeterministic = JSON.stringify(payload1) === JSON.stringify(payload2);
 
     const topMatch = result1.topMatch;
