@@ -34,3 +34,22 @@ export async function runRetrievalExperiments() {
   return apiClient.get('/ai/rag/experiments/run');
 }
 
+// ── Review 4 & 5: Grounded Agent & Provider Endpoints ────────────────────────
+
+export async function runAgentAnalysis(payload) {
+  return apiClient.post('/ai/agent/analyze', payload);
+}
+
+export async function getAiProviders() {
+  return apiClient.get('/ai/agent/providers');
+}
+
+export async function selectAiProvider(provider) {
+  return apiClient.post('/ai/agent/providers/select', { provider });
+}
+
+export async function runAgentBenchmark() {
+  return apiClient.get('/ai/agent/benchmark');
+}
+
+

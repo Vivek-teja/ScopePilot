@@ -507,7 +507,24 @@ export async function getScopeCorpus() {
   return aiApi.getScopeCorpus();
 }
 
+export async function runAgentAnalysis(payload) {
+  return aiApi.runAgentAnalysis(payload);
+}
+
+export async function getAiProviders() {
+  return aiApi.getAiProviders();
+}
+
+export async function selectAiProvider(provider) {
+  return aiApi.selectAiProvider(provider);
+}
+
+export async function runAgentBenchmark() {
+  return aiApi.runAgentBenchmark();
+}
+
 export function resetDemoData() {
   demoStore.resetDemoData();
 }
+
 

@@ -6,6 +6,8 @@ const { ALL_CASES } = require('./fixtures/changeAnalysisFixtures');
 const { defaultRetrievalService } = require('./rag/retrieval.service');
 const { defaultCorpusService } = require('./rag/corpus.service');
 const { RETRIEVAL_EXPERIMENT_CASES } = require('./fixtures/retrievalExperimentFixtures');
+const { defaultGroundedAgentService } = require('./agent/groundedAgent.service');
+const { defaultProviderFactory } = require('./providers/providerFactory');
 
 class AIController {
   /**
@@ -185,6 +187,73 @@ class AIController {
     return ApiResponse.success(res, 'Review 3 retrieval benchmark executed', {
       allPassed,
       totalExperiments: benchmarkResults.length,
+      results: benchmarkResults,
+    });
+  });
+
+  // ── Review 4 & 5: Grounded Agent & Provider Endpoints ───────────────────────
+
+  /**
+   * Run full grounded agent scope change analysis
+   * POST /api/ai/agent/analyze
+   */
+  analyzeAgent = asyncHandler(async (req, res) => {
+    const analysis = await defaultGroundedAgentService.analyze(req.body);
+    return ApiResponse.success(res, 'Grounded AI scope change analysis generated successfully', analysis);
+  });
+
+  /**
+   * Get available AI providers and their status
+   * GET /api/ai/agent/providers
+   */
+  getProviders = asyncHandler(async (req, res) => {
+    const status = await defaultProviderFactory.getProvidersStatus();
+    return ApiResponse.success(res, 'AI model providers status retrieved', status);
+  });
+
+  /**
+   * Switch the active AI provider
+   * POST /api/ai/agent/providers/select
+   */
+  selectProvider = asyncHandler(async (req, res) => {
+    const { provider } = req.body;
+    if (!provider) {
+      throw ApiError.badRequest('Field "provider" is required');
+    }
+    const active = defaultProviderFactory.setActiveProvider(provider);
+    return ApiResponse.success(res, `Active AI provider switched to "${active}"`, {
+      activeProvider: active,
+    });
+  });
+
+  /**
+   * Run full benchmark of all 5 canonical cases through grounded agent
+   * GET /api/ai/agent/benchmark
+   */
+  runAgentBenchmark = asyncHandler(async (req, res) => {
+    const benchmarkResults = [];
+    for (const testCase of ALL_CASES) {
+      const output = await defaultGroundedAgentService.analyze(testCase.payload);
+      benchmarkResults.push({
+        caseId: testCase.id,
+        category: testCase.category,
+        requestTitle: testCase.payload.newClientRequest.title,
+        expectedStatus: testCase.expectedStatus,
+        actualStatus: output.reviewStatus,
+        passed: output.reviewStatus === testCase.expectedStatus,
+        confidenceScore: output.confidenceScore,
+        evidenceCount: output.retrievedEvidence.length,
+        topEvidence: output.retrievedEvidence[0] ? output.retrievedEvidence[0].sourceReference : null,
+        effortHours: output.effortCalculation.estimatedHours,
+        estimatedCost: output.effortCalculation.estimatedCost,
+        provider: output.modelMetadata.provider,
+      });
+    }
+
+    const allPassed = benchmarkResults.every((r) => r.passed);
+    return ApiResponse.success(res, 'Grounded AI agent benchmark executed', {
+      allPassed,
+      totalExecuted: benchmarkResults.length,
       results: benchmarkResults,
     });
   });

@@ -18,6 +18,11 @@ const envSchema = z.object({
     .default('default_development_jwt_secret_key_minimum_32_characters_long'),
   JWT_EXPIRES_IN: z.string().default('7d'),
   CORS_ORIGIN: z.string().default('*'),
+  AI_PROVIDER: z.string().default('local'),
+  OLLAMA_BASE_URL: z.string().default('http://localhost:11434'),
+  OLLAMA_MODEL: z.string().default('llama3.2'),
+  GEMINI_API_KEY: z.string().default(''),
+  GROQ_API_KEY: z.string().default(''),
 });
 
 const parseEnv = () => {

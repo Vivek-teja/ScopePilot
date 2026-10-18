@@ -4,6 +4,7 @@ const validate = require('../middleware/validate.middleware');
 const { optionalAuth } = require('../middleware/auth.middleware');
 const { ChangeAnalysisInputSchema } = require('../contracts/aiAnalysis.contract');
 const { RetrievalQueryInputSchema } = require('../contracts/retrieval.contract');
+const { GroundedAgentInputSchema } = require('../contracts/agentAnalysis.contract');
 
 const router = Router();
 
@@ -34,6 +35,17 @@ router.post(
   validate({ body: RetrievalQueryInputSchema }),
   aiController.retrieveScope
 );
+
+// ── Review 4 & 5: Grounded Agent & Provider Endpoints ─────────────────────────
+router.post(
+  '/agent/analyze',
+  validate({ body: GroundedAgentInputSchema }),
+  aiController.analyzeAgent
+);
+
+router.get('/agent/providers', aiController.getProviders);
+router.post('/agent/providers/select', aiController.selectProvider);
+router.get('/agent/benchmark', aiController.runAgentBenchmark);
 
 module.exports = router;
 
