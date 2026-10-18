@@ -50,3 +50,5 @@ export function getCurrentSession() {
 export function logout() {
   clearAuthSession();
 }
+
+export { getStoredToken, getStoredUser, clearAuthSession };

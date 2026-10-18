@@ -1,123 +1,180 @@
 /* ============================================================
-   ScopePilot – global design tokens & base styles
-   Builds on the existing Vite template palette (purple accent)
+   ScopePilot – Visual Design System Tokens & Base Styles
+   High-contrast pitch black, cyber-geometric void aesthetic
    ============================================================ */
 
-:root {
-  /* --- brand colors --- */
-  --accent: #7c3aed;          /* indigo-600 */
-  --accent-light: #ede9fe;    /* indigo-50  */
-  --accent-dark: #5b21b6;     /* indigo-800 */
-  --accent-hover: #6d28d9;
-
-  /* --- semantic surface --- */
-  --bg: #f9fafb;
-  --surface: #ffffff;
-  --surface-raised: #ffffff;
-  --border: #e5e7eb;
-  --border-focus: #7c3aed;
-
-  /* --- text --- */
-  --text: #374151;
-  --text-secondary: #6b7280;
-  --text-muted: #9ca3af;
-  --text-heading: #111827;
-  --text-on-accent: #ffffff;
-
-  /* --- status colors --- */
-  --green: #16a34a;
-  --green-bg: #dcfce7;
-  --yellow: #ca8a04;
-  --yellow-bg: #fef9c3;
-  --red: #dc2626;
-  --red-bg: #fee2e2;
-  --blue: #2563eb;
-  --blue-bg: #dbeafe;
-  --gray: #4b5563;
-  --gray-bg: #f3f4f6;
-  --orange: #ea580c;
-  --orange-bg: #ffedd5;
-
-  /* --- shadows --- */
-  --shadow-sm: 0 1px 2px rgba(0,0,0,.06);
-  --shadow:    0 2px 8px rgba(0,0,0,.08);
-  --shadow-md: 0 4px 16px rgba(0,0,0,.10);
-
-  /* --- radius --- */
-  --radius-sm: 6px;
-  --radius:    10px;
-  --radius-lg: 16px;
-
-  /* --- spacing scale (multiples of 4 px) --- */
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-5: 20px;
-  --space-6: 24px;
-  --space-8: 32px;
-  --space-10: 40px;
-  --space-12: 48px;
-
-  /* --- typography --- */
-  --font-sans: 'Inter', system-ui, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: ui-monospace, Consolas, 'Cascadia Mono', monospace;
-
-  font-family: var(--font-sans);
-  font-size: 15px;
-  line-height: 1.55;
-  color: var(--text);
-  background: var(--bg);
-  -webkit-font-smoothing: antialiased;
-  color-scheme: light;
+/* ── Virxen Font Faces ───────────────────────────────────────── */
+@font-face {
+  font-family: 'Virxen';
+  src: url('/fonts/virxen/Virxen.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
 }
 
-/* ---- Dark mode ---- */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --accent: #a78bfa;
-    --accent-light: #2d1f5e;
-    --accent-dark: #c4b5fd;
-    --accent-hover: #8b5cf6;
-    --bg: #0f1117;
-    --surface: #1a1d27;
-    --surface-raised: #22263a;
-    --border: #2d3148;
-    --border-focus: #a78bfa;
-    --text: #c9d1d9;
-    --text-secondary: #8b949e;
-    --text-muted: #6b7280;
-    --text-heading: #f0f6fc;
-    --text-on-accent: #0f1117;
-    --green: #4ade80; --green-bg: #052e16;
-    --yellow: #facc15; --yellow-bg: #422006;
-    --red: #f87171; --red-bg: #450a0a;
-    --blue: #60a5fa; --blue-bg: #1e3a5f;
-    --gray: #9ca3af; --gray-bg: #1f2937;
-    --orange: #fb923c; --orange-bg: #431407;
-    color-scheme: dark;
-  }
+@font-face {
+  font-family: 'VirxenOutline';
+  src: url('/fonts/virxen/VirxenOutline.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  /* --- Void & Obsidian Palette --- */
+  --bg-void: #000000;
+  --bg-obsidian: #08080c;
+  --bg-surface-dark: #0d0d12;
+  --bg-surface-grey: #1a1a24;
+  --bg-surface-lighter: #242432;
+
+  /* --- Solid Structural Outlines --- */
+  --border-white: #ffffff;
+  --border-muted: rgba(255, 255, 255, 0.35);
+  --border-dim: rgba(255, 255, 255, 0.16);
+
+  /* --- Electric Light/Pastel Purple Accents (No Dark Purples) --- */
+  --purple-vivid: #c084fc;       /* Vivid light pastel purple */
+  --purple-light: #d8b4fe;       /* Soft pastel lavender */
+  --purple-glow-color: #d8b4fe;
+  --purple-deep: #c084fc;        /* Replaced dark purple with light pastel */
+  --purple-glow: rgba(216, 180, 254, 0.55);
+  --purple-subtle-bg: rgba(216, 180, 254, 0.18);
+
+  /* --- Text Palette --- */
+  --text-white: #ffffff;
+  --text-muted: #a1a3b8;
+  --text-dim: #717388;
+  --text-purple-1: #f3e8ff;
+  --text-purple-2: #d8b4fe;
+  --text-purple-3: #c084fc;
+
+  /* --- Input Surfaces --- */
+  --input-bg-white: #ffffff;
+  --input-text-dark: #000000;
+
+  /* --- Legacy Variable Compatibility Mappings --- */
+  --bg: var(--bg-void);
+  --surface: var(--bg-surface-dark);
+  --surface-raised: var(--bg-surface-grey);
+  --border: var(--border-white);
+  --border-focus: var(--purple-vivid);
+  --accent: var(--purple-vivid);
+  --accent-light: var(--purple-subtle-bg);
+  --accent-dark: var(--purple-light);
+  --accent-hover: var(--purple-light);
+  --text: var(--text-white);
+  --text-secondary: var(--text-purple-1);
+  --text-heading: var(--text-white);
+  --text-on-accent: var(--text-white);
+
+  /* Status Colors */
+  --green: #4ade80;
+  --green-bg: rgba(74, 222, 128, 0.15);
+  --yellow: #facc15;
+  --yellow-bg: rgba(250, 204, 21, 0.15);
+  --red: #f87171;
+  --red-bg: rgba(248, 113, 113, 0.18);
+  --blue: #60a5fa;
+  --blue-bg: rgba(96, 165, 250, 0.15);
+  --gray: #9ca3af;
+  --gray-bg: rgba(156, 163, 175, 0.15);
+
+  /* Spacing Scale */
+  --space-1: 6px;
+  --space-2: 10px;
+  --space-3: 16px;
+  --space-4: 20px;
+  --space-5: 26px;
+  --space-6: 32px;
+  --space-8: 42px;
+  --space-10: 52px;
+  --space-12: 64px;
+
+  /* Fonts */
+  --font-display: 'Virxen', 'Inter', system-ui, sans-serif;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: ui-monospace, Consolas, 'Cascadia Mono', monospace;
+
+  /* Base font sizing: Clean, readable non-Virxen text */
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--text-white);
+  background: var(--bg-void);
+  -webkit-font-smoothing: antialiased;
+  color-scheme: dark;
 }
 
 /* ---- Reset ---- */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-body { min-height: 100dvh; }
-#root { min-height: 100dvh; display: flex; flex-direction: column; }
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  min-height: 100dvh;
+  background-color: var(--bg-void);
+  color: var(--text-white);
+  overflow-x: hidden;
+}
+
+#root {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-void);
+}
+
 img { display: block; max-width: 100%; }
 button { cursor: pointer; font: inherit; }
 a { color: inherit; text-decoration: none; }
 ul, ol { list-style: none; }
 input, textarea, select { font: inherit; }
 
-/* ---- Headings ---- */
-h1 { font-size: 1.75rem; font-weight: 700; line-height: 1.2; color: var(--text-heading); letter-spacing: -0.02em; }
-h2 { font-size: 1.25rem; font-weight: 600; line-height: 1.3; color: var(--text-heading); }
-h3 { font-size: 1.05rem; font-weight: 600; line-height: 1.35; color: var(--text-heading); }
-h4 { font-size: .9rem; font-weight: 600; color: var(--text-heading); }
-p  { color: var(--text); }
+/* ---- Typography (Virxen headings remain prominent & punchy) ---- */
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  letter-spacing: 0.05em;
+  color: var(--text-white);
+  font-weight: normal;
+}
 
-/* ---- Focus visible ---- */
+h1 {
+  font-size: 3.2rem;
+  line-height: 1.2;
+}
+
+h2 {
+  font-size: 2.3rem;
+  line-height: 1.3;
+}
+
+h3 {
+  font-size: 1.7rem;
+  line-height: 1.35;
+}
+
+h4 {
+  font-size: 1.3rem;
+  line-height: 1.4;
+}
+
+p {
+  color: var(--text-white);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+/* Fallback class for punctuation and numbers that Virxen does not render */
+.char-fallback {
+  font-family: var(--font-sans) !important;
+  font-weight: 600;
+}
+
+/* Focus Visibility */
 :focus-visible {
-  outline: 2px solid var(--border-focus);
-  outline-offset: 2px;
+  outline: 2px solid var(--purple-light);
+  outline-offset: 3px;
 }

@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { DemoProvider, useDemoSession } from './hooks/DemoContext.jsx';
+import { ProjectTabsProvider } from './hooks/ProjectTabsContext.jsx';
 import AppShell from './components/AppShell.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import WorkspacePage from './pages/WorkspacePage.jsx';
@@ -7,14 +8,28 @@ import ProjectsPage from './pages/ProjectsPage.jsx';
 import ProjectDetailPage from './pages/ProjectDetailPage.jsx';
 import ChangeRequestDetailPage from './pages/ChangeRequestDetailPage.jsx';
 import NotFoundPage from './pages/NotFoundPage.jsx';
+import { LoadingState, ErrorState } from './components/ui.jsx';
 import './App.css';
 
 /**
- * ProtectedRoute – redirects to demo login if no session exists.
- * In Part 2, this guard will check a real auth token instead.
+ * ProtectedRoute – guards authenticated routes.
+ * Displays LoadingState while verifying/restoring session, and ErrorState if API fails.
  */
 function ProtectedRoute({ children }) {
-  const { session } = useDemoSession();
+  const { session, loading, error, retryRestore } = useDemoSession();
+  if (loading) {
+    return <LoadingState message="Restoring session..." />;
+  }
+  if (error) {
+    return (
+      <div style={{ padding: '2rem', maxWidth: '600px', margin: '4rem auto' }}>
+        <ErrorState
+          message={error}
+          onRetry={retryRestore}
+        />
+      </div>
+    );
+  }
   if (!session) return <Navigate to="/" replace />;
   return <AppShell>{children}</AppShell>;
 }
@@ -53,7 +68,9 @@ export default function App() {
   return (
     <BrowserRouter>
       <DemoProvider>
-        <AppRoutes />
+        <ProjectTabsProvider>
+          <AppRoutes />
+        </ProjectTabsProvider>
       </DemoProvider>
     </BrowserRouter>
   );

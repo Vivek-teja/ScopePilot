@@ -1,36 +1,40 @@
-import { useState, useCallback } from 'react';
+import { useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAsync } from '../hooks/useAsync.js';
+import { useProjectTabs } from '../hooks/ProjectTabsContext.jsx';
+import { fetchProject } from '../services/scopePilotService.js';
 import {
-  fetchProject,
-} from '../services/scopePilotService.js';
-import {
-  Badge, Breadcrumb, Tabs, LoadingState, ErrorState, NotFoundState,
-  Card, KVRow, KVGrid,
-  Divider,
+  Badge, Breadcrumb, LoadingState, ErrorState, NotFoundState,
+  Card, KVRow, KVGrid, Divider,
 } from '../components/ui.jsx';
 import styles from './ProjectDetailPage.module.css';
 import ProposalTab from './tabs/ProposalTab.jsx';
 import MilestonesTab from './tabs/MilestonesTab.jsx';
 import ChangeRequestsTab from './tabs/ChangeRequestsTab.jsx';
 
-const TABS = [
-  { id: 'overview',   label: '📋 Overview' },
-  { id: 'scope',      label: '📄 Approved Scope' },
-  { id: 'milestones', label: '🏁 Milestones' },
-  { id: 'changes',    label: '🔄 Change Requests' },
-];
-
+/**
+ * ProjectDetailPage:
+ * Implements Reference Image 4 & design.txt:
+ * - Persistent semi-circle arch with outer 4-segment concentric arc: Overview, Approved Scope, Milestones, Change Requests.
+ * - In-page "Quick Navigation" box is completely removed (now driven by arch nav).
+ * - Project details card is an octagonal chamfered box with grey interior.
+ */
 export default function ProjectDetailPage() {
   const { projectId } = useParams();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('overview');
+  const { activeTab, setIsProjectDetail } = useProjectTabs();
+
+  // Enable the 4-segment concentric outer arc in TopArchNav
+  useEffect(() => {
+    setIsProjectDetail(true);
+    return () => setIsProjectDetail(false);
+  }, [setIsProjectDetail]);
 
   const fetchFn = useCallback(() => fetchProject(projectId), [projectId]);
   const { data: project, loading, error } = useAsync(fetchFn, [projectId]);
 
-  if (loading) return <LoadingState message="Loading project…" />;
-  if (error?.includes('not found') || (!loading && !project))
+  if (loading) return <LoadingState message="Loading project..." />;
+  if (error?.includes('not found'))
     return <NotFoundState message={`Project "${projectId}" was not found.`} />;
   if (error) return <ErrorState message={error} />;
 
@@ -44,35 +48,30 @@ export default function ProjectDetailPage() {
         ]}
       />
 
-      {/* Project header */}
-      <div className={styles.header}>
+      {/* Project Header Overview */}
+      <div className={styles.headerBlock}>
         <div className={styles.headerTop}>
-          <div className={styles.headerMeta}>
-            <h1 className={styles.projectTitle}>{project.name}</h1>
-            <div className={styles.badgeRow}>
-              <Badge status={project.status} />
-            </div>
-          </div>
+          <h1 className={styles.projectTitle}>{project.name}</h1>
+          <Badge status={project.status} />
         </div>
         <p className={styles.summary}>{project.summary}</p>
-        <div className={styles.dates}>
-          <span>📅 {project.startDate} → {project.estimatedEndDate}</span>
-          <span>📄 Proposal v{project.activeProposalVersion} approved</span>
+        <div className={styles.metaLine}>
+          <span>TIMELINE: {project.startDate} - {project.estimatedEndDate}</span>
+          <span>APPROVED: Proposal v{project.activeProposalVersion}</span>
           {project.tags.map((t) => (
-            <span key={t} className={styles.tag}>{t}</span>
+            <span key={t} className={styles.tagPill}>#{t}</span>
           ))}
         </div>
       </div>
 
-      {/* Tabs */}
-      <Tabs tabs={TABS} activeTab={activeTab} onChange={setActiveTab} />
-
-      {/* Tab panels */}
-      <div role="tabpanel">
-        {activeTab === 'overview'   && <OverviewTab project={project} onSelectTab={setActiveTab} />}
-        {activeTab === 'scope'      && <ProposalTab projectId={projectId} proposalId={project.approvedProposalId} />}
+      {/* Active Tab Content Panel */}
+      <div role="tabpanel" className={styles.tabContentPanel}>
+        {activeTab === 'overview' && <OverviewTab project={project} />}
+        {activeTab === 'scope' && (
+          <ProposalTab projectId={projectId} proposalId={project.approvedProposalId} />
+        )}
         {activeTab === 'milestones' && <MilestonesTab projectId={projectId} />}
-        {activeTab === 'changes'    && (
+        {activeTab === 'changes' && (
           <ChangeRequestsTab
             projectId={projectId}
             onOpenRequest={(crId) => navigate(`/projects/${projectId}/changes/${crId}`)}
@@ -83,45 +82,26 @@ export default function ProjectDetailPage() {
   );
 }
 
-// ── Overview tab ──────────────────────────────────────────────────────────────
-function OverviewTab({ project, onSelectTab }) {
+// ── Overview Tab (Project Details inside chamfered card with grey interior) ──
+function OverviewTab({ project }) {
   return (
-    <div className={styles.overviewGrid}>
-      <Card className={styles.overviewCard}>
-        <h3>Project Details</h3>
+    <div className={styles.overviewContainer}>
+      <Card className={styles.projectDetailsOctCard} surface="grey">
+        <div className={styles.cardTitleLine}>
+          <h2 className={styles.cardTitle}>Project Details</h2>
+          <span className={styles.cardIdBadge}>[ {project.id} ]</span>
+        </div>
         <Divider />
         <KVGrid>
-          <KVRow label="ID" value={project.id} mono />
-          <KVRow label="Status" value={<Badge status={project.status} />} />
-          <KVRow label="Start date" value={project.startDate} />
-          <KVRow label="Est. end date" value={project.estimatedEndDate} />
-          <KVRow label="Approved proposal" value={`v${project.activeProposalVersion}`} />
-          <KVRow label="Tags" value={project.tags.join(', ')} />
+          <KVRow label="STATUS" value={<Badge status={project.status} />} />
+          <KVRow label="START DATE" value={project.startDate} />
+          <KVRow label="EST. END DATE" value={project.estimatedEndDate} />
+          <KVRow label="PROPOSAL" value={`v${project.activeProposalVersion} (Approved)`} />
+          <KVRow label="CLIENT ID" value={project.clientId} mono />
+          <KVRow label="FREELANCER" value={project.freelancerId} mono />
+          <KVRow label="TAGS" value={project.tags.join(', ')} />
         </KVGrid>
       </Card>
-
-      <Card className={styles.overviewCard}>
-        <h3>Quick Navigation</h3>
-        <Divider />
-        <p className={styles.overviewHint}>Use the tabs above to navigate between sections.</p>
-        <div className={styles.quickLinks}>
-          <QuickLink icon="📄" label="View approved scope" desc="See agreed deliverables, price, and revisions" onClick={() => onSelectTab?.('scope')} />
-          <QuickLink icon="🏁" label="Milestones & deliverables" desc="Track progress and evidence links" onClick={() => onSelectTab?.('milestones')} />
-          <QuickLink icon="🔄" label="Change requests" desc="Review, create, and track scope changes" onClick={() => onSelectTab?.('changes')} />
-        </div>
-      </Card>
-    </div>
-  );
-}
-
-function QuickLink({ icon, label, desc, onClick }) {
-  return (
-    <div className={styles.quickLink} onClick={onClick} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(); } }}>
-      <span className={styles.quickLinkIcon}>{icon}</span>
-      <div>
-        <div className={styles.quickLinkLabel}>{label}</div>
-        <div className={styles.quickLinkDesc}>{desc}</div>
-      </div>
     </div>
   );
 }
