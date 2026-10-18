@@ -127,6 +127,19 @@ class WorkspaceService {
     const workspace = await this.getWorkspaceById(workspaceId, userId);
     return workspace.members;
   }
+
+  /**
+   * List all workspaces accessible by the user (owned or member)
+   */
+  async listWorkspaces(userId) {
+    const workspaces = await Workspace.find({
+      $or: [{ owner: userId }, { 'members.user': userId }],
+    })
+      .populate('owner', 'name email role')
+      .populate('members.user', 'name email role')
+      .sort({ updatedAt: -1 });
+    return workspaces;
+  }
 }
 
 module.exports = new WorkspaceService();

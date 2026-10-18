@@ -6,6 +6,7 @@ const {
   proposalDecisionSchema,
   createProposalVersionSchema,
   proposalVersionParamSchema,
+  listProposalsQuerySchema,
 } = require('./proposal.validation');
 const validate = require('../../middleware/validate.middleware');
 const { requireAuth } = require('../../middleware/auth.middleware');
@@ -15,6 +16,7 @@ const router = Router();
 router.use(requireAuth);
 
 router.post('/', validate({ body: createProposalSchema }), proposalController.createProposal);
+router.get('/', validate({ query: listProposalsQuerySchema }), proposalController.listProposals);
 router.get('/:id', validate({ params: proposalIdParamSchema }), proposalController.getProposalById);
 router.post(
   '/:id/decision',

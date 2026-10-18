@@ -491,6 +491,41 @@ class ProposalService {
       decidedVersion,
     };
   }
+
+  /**
+   * List proposals for a project with tenancy verification
+   */
+  async listProposals(userId, query = {}, user = null) {
+    const projectId = query.projectId || query.project;
+    const project = await Project.findById(projectId);
+    if (!project) {
+      throw ApiError.notFound('Project not found');
+    }
+
+    const hasAccess = await checkProjectAccess(project, userId, user);
+    if (!hasAccess) {
+      throw ApiError.forbidden('You do not have access to this project');
+    }
+
+    const proposals = await Proposal.find({ project: projectId })
+      .populate('activeVersion')
+      .populate('createdBy', 'name email role')
+      .sort({ createdAt: -1 });
+
+    const results = await Promise.all(
+      proposals.map(async (proposal) => {
+        const versions = await ProposalVersion.find({ proposal: proposal._id })
+          .sort({ versionNumber: -1 })
+          .populate('decidedBy', 'name email');
+        return {
+          ...proposal.toObject(),
+          versions,
+        };
+      })
+    );
+
+    return results;
+  }
 }
 
 const serviceInstance = new ProposalService();

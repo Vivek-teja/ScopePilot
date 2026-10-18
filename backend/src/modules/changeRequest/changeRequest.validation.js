@@ -40,8 +40,20 @@ const changeRequestDecisionSchema = z.object({
   comment: z.string().trim().optional().default(''),
 });
 
+const listChangeRequestsQuerySchema = z
+  .object({
+    project: z.string().regex(objectIdRegex, 'Invalid project ID format').optional(),
+    projectId: z.string().regex(objectIdRegex, 'Invalid project ID format').optional(),
+    status: z.enum(ALLOWED_CHANGE_REQUEST_STATUSES).optional(),
+  })
+  .refine((data) => data.project || data.projectId, {
+    message: 'Project reference is required to list change requests (provide projectId or project)',
+    path: ['projectId'],
+  });
+
 module.exports = {
   changeRequestIdParamSchema,
   createChangeRequestSchema,
   changeRequestDecisionSchema,
+  listChangeRequestsQuerySchema,
 };

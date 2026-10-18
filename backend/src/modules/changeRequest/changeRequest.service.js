@@ -261,6 +261,36 @@ class ChangeRequestService {
     await changeRequest.save();
     return changeRequest;
   }
+
+  /**
+   * List change requests for a project with tenancy verification
+   */
+  async listChangeRequests(userId, query = {}, user = null) {
+    const projectId = query.projectId || query.project;
+    const project = await Project.findById(projectId);
+    if (!project) {
+      throw ApiError.notFound('Project not found');
+    }
+
+    const hasAccess = await checkProjectAccess(project, userId, user);
+    if (!hasAccess) {
+      throw ApiError.forbidden('You do not have access to this project');
+    }
+
+    const filter = { project: projectId };
+    if (query.status) {
+      filter.status = query.status;
+    }
+
+    const changeRequests = await ChangeRequest.find(filter)
+      .populate('project', 'title status freelancer client')
+      .populate('requestedBy', 'name email role')
+      .populate('affectedMilestones', 'title status order dueDate')
+      .populate('relatedDeliverables', 'title status scopeReference')
+      .sort({ createdAt: -1 });
+
+    return changeRequests;
+  }
 }
 
 const serviceInstance = new ChangeRequestService();

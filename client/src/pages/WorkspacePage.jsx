@@ -7,7 +7,7 @@ import { Avatar, Badge, Card, LoadingState, ErrorState, Notice, SectionHeader, B
 import styles from './WorkspacePage.module.css';
 
 export default function WorkspacePage() {
-  const { session } = useDemoSession();
+  const { session, mode } = useDemoSession();
   const { data: workspace, loading: wsLoading, error: wsError, reload: wsReload } = useAsync(fetchWorkspace, []);
   const { data: members, loading: memLoading } = useAsync(fetchWorkspaceMembers, []);
 
@@ -16,8 +16,12 @@ export default function WorkspacePage() {
 
   return (
     <div className={styles.page}>
-      <Notice variant="demo">
-        <strong>Demo workspace</strong> — all data is local sample data. No backend is connected.
+      <Notice variant={mode === 'live' ? 'info' : 'demo'}>
+        {mode === 'live' ? (
+          <><strong>Connected to live backend</strong> — viewing authenticated workspace and members from the ScopePilot API.</>
+        ) : (
+          <><strong>Demo workspace</strong> — all data is local sample data. No backend is connected.</>
+        )}
       </Notice>
 
       {/* Workspace header */}
@@ -84,8 +88,9 @@ export default function WorkspacePage() {
             </div>
           </div>
           <Notice variant="info" style={{ marginTop: 12 }}>
-            In the live application, access and permissions will be enforced server-side.
-            Role behavior shown here is for demonstration only.
+            {mode === 'live'
+              ? 'Role-based access controls and project tenancy are enforced server-side by the backend API.'
+              : 'In the live application, access and permissions will be enforced server-side. Role behavior shown here is for demonstration only.'}
           </Notice>
         </Card>
       </section>

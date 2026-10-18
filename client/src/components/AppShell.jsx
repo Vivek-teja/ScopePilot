@@ -6,7 +6,7 @@ import { Avatar } from './ui.jsx';
 import styles from './AppShell.module.css';
 
 export default function AppShell({ children }) {
-  const { session, switchRole, logout } = useDemoSession();
+  const { session, mode, switchRole, logout } = useDemoSession();
   const navigate = useNavigate();
 
   function handleReset() {
@@ -21,6 +21,8 @@ export default function AppShell({ children }) {
     navigate('/');
   }
 
+  const isLive = mode === 'live';
+
   return (
     <div className={styles.shell}>
       {/* ── Top nav bar ── */}
@@ -30,8 +32,16 @@ export default function AppShell({ children }) {
             <span className={styles.wordmarkIcon}>🧭</span>
             <span>ScopePilot</span>
           </NavLink>
-          <span className={styles.demoPill} title="Running on local sample data — no backend connected">
-            DEMO
+          <span
+            className={styles.demoPill}
+            style={{
+              background: isLive ? 'rgba(34, 197, 94, 0.15)' : undefined,
+              borderColor: isLive ? 'rgba(34, 197, 94, 0.4)' : undefined,
+              color: isLive ? '#15803d' : undefined,
+            }}
+            title={isLive ? 'Connected to live Express backend API' : 'Running on local sample data'}
+          >
+            {isLive ? '🟢 LIVE API' : 'DEMO MODE'}
           </span>
         </div>
 
@@ -45,34 +55,41 @@ export default function AppShell({ children }) {
         </nav>
 
         <div className={styles.topbarRight}>
-          {/* Demo role switcher */}
-          <div className={styles.roleSwitch} title="Demo control: switch perspective">
-            <span className={styles.roleSwitchLabel}>View as</span>
-            <select
-              className={styles.roleSelect}
-              value={session?.id ?? ''}
-              onChange={(e) => switchRole(e.target.value)}
-              aria-label="Switch demo role"
-            >
-              {DEMO_USERS.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.name} ({u.role})
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* Demo role switcher - shown only in demo mode */}
+          {!isLive && (
+            <div className={styles.roleSwitch} title="Demo control: switch perspective">
+              <span className={styles.roleSwitchLabel}>View as</span>
+              <select
+                className={styles.roleSelect}
+                value={session?.id ?? ''}
+                onChange={(e) => switchRole(e.target.value)}
+                aria-label="Switch demo role"
+              >
+                {DEMO_USERS.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.name} ({u.role})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
-          {/* Reset */}
-          <button className={styles.resetBtn} onClick={handleReset} title="Reset demo data">
-            ↺ Reset
-          </button>
+          {/* Reset only for demo */}
+          {!isLive && (
+            <button className={styles.resetBtn} onClick={handleReset} title="Reset demo data">
+              ↺ Reset
+            </button>
+          )}
 
           {/* User chip */}
           {session && (
             <div className={styles.userChip}>
               <Avatar initials={session.avatar} size="sm" />
-              <span className={styles.userName}>{session.name}</span>
-              <button className={styles.logoutBtn} onClick={handleLogout} aria-label="Log out">
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span className={styles.userName}>{session.name}</span>
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>{session.role}</span>
+              </div>
+              <button className={styles.logoutBtn} onClick={handleLogout} aria-label="Log out" title="Log out">
                 ↗
               </button>
             </div>
@@ -85,7 +102,12 @@ export default function AppShell({ children }) {
 
       {/* ── Footer ── */}
       <footer className={styles.footer}>
-        <span>ScopePilot — Part 1 Demo &nbsp;·&nbsp; Local sample data only, no backend connected</span>
+        <span>
+          ScopePilot &nbsp;·&nbsp;{' '}
+          {isLive
+            ? `Connected to Express API at ${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'}`
+            : 'Local sample data only (Demo Mode)'}
+        </span>
       </footer>
     </div>
   );

@@ -30,7 +30,7 @@ export default function ProjectDetailPage() {
   const { data: project, loading, error } = useAsync(fetchFn, [projectId]);
 
   if (loading) return <LoadingState message="Loading project…" />;
-  if (error?.includes('not found') || error?.includes('not found'))
+  if (error?.includes('not found') || (!loading && !project))
     return <NotFoundState message={`Project "${projectId}" was not found.`} />;
   if (error) return <ErrorState message={error} />;
 

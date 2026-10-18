@@ -93,6 +93,7 @@ function ChangeRequestRow({ cr, onOpen }) {
 const PRIORITIES = ['low', 'medium', 'high'];
 
 function CreateChangeRequestForm({ projectId, requestedBy, onCreated, onCancel }) {
+  const { mode } = useDemoSession();
   const [values, setValues] = useState({
     title: '',
     summary: '',
@@ -144,8 +145,10 @@ function CreateChangeRequestForm({ projectId, requestedBy, onCreated, onCancel }
   return (
     <Card className={styles.formCard}>
       <h3 className={styles.formTitle}>New Change Request</h3>
-      <Notice variant="demo">
-        This will be saved locally in your browser for this demo session. No backend is contacted.
+      <Notice variant={mode === 'live' ? 'info' : 'demo'}>
+        {mode === 'live'
+          ? 'This request will be sent to the live ScopePilot backend API and saved in MongoDB.'
+          : 'This will be saved locally in your browser for this demo session.'}
       </Notice>
 
       <form onSubmit={handleSubmit} noValidate className={styles.form}>

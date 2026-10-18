@@ -45,3 +45,44 @@
 .otherHeader { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
 .otherTitle { font-weight: 600; font-size: 0.9rem; color: var(--text-heading); }
 .otherNotes { font-size: 0.82rem; color: var(--text-secondary); margin: 0; }
+
+/* Pending review card */
+.pendingCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  border-color: var(--yellow, #f59e0b);
+  background: var(--surface);
+}
+.pendingDecisionSection {
+  margin-top: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--surface-secondary, #1a1d24);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+}
+.decisionLabel {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--text-heading);
+}
+.commentInput {
+  width: 100%;
+  padding: 8px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.88rem;
+  resize: vertical;
+}
+.decisionButtonGroup {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+}
+

@@ -37,10 +37,16 @@ const getProposalVersionByNumber = asyncHandler(async (req, res) => {
   return ApiResponse.success(res, 'Proposal version retrieved successfully', result);
 });
 
+const listProposals = asyncHandler(async (req, res) => {
+  const result = await proposalService.listProposals(req.user._id, req.query, req.user);
+  return ApiResponse.success(res, 'Proposals retrieved successfully', result);
+});
+
 module.exports = {
   createProposal,
   getProposalById,
   recordDecision,
   createProposalVersion,
   getProposalVersionByNumber,
+  listProposals,
 };

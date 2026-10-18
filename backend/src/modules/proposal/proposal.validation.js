@@ -47,10 +47,21 @@ const proposalVersionParamSchema = z.object({
   versionNumber: z.coerce.number().int().positive('Version number must be a positive integer'),
 });
 
+const listProposalsQuerySchema = z
+  .object({
+    project: z.string().regex(objectIdRegex, 'Invalid project ID format').optional(),
+    projectId: z.string().regex(objectIdRegex, 'Invalid project ID format').optional(),
+  })
+  .refine((data) => data.project || data.projectId, {
+    message: 'Project reference is required to list proposals (provide projectId or project)',
+    path: ['projectId'],
+  });
+
 module.exports = {
   proposalIdParamSchema,
   createProposalSchema,
   proposalDecisionSchema,
   createProposalVersionSchema,
   proposalVersionParamSchema,
+  listProposalsQuerySchema,
 };
