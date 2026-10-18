@@ -1,10 +1,7 @@
 const CHANGE_REQUEST_STATUS = {
   DRAFT: 'draft',
-  SUBMITTED: 'pending_estimate',
   PENDING_ESTIMATE: 'pending_estimate',
-  UNDER_REVIEW: 'pending_approval',
   PENDING_APPROVAL: 'pending_approval',
-  ESTIMATED: 'pending_approval',
   APPROVED: 'approved',
   REJECTED: 'rejected',
   IMPLEMENTED: 'implemented',

@@ -28,11 +28,13 @@ const createChangeRequestSchema = z
     relatedDeliverables: z.array(z.string().regex(objectIdRegex, 'Invalid deliverable ID format')).optional().default([]),
     effortEstimate: z
       .number({ invalid_type_error: 'Effort estimate must be a number' })
+      .finite('Effort estimate must be a finite number')
       .nonnegative('Effort estimate cannot be negative')
       .optional()
       .default(0),
     priceAdjustment: z
       .number({ invalid_type_error: 'Price adjustment must be a number' })
+      .finite('Price adjustment must be a finite number')
       .nonnegative('Price adjustment cannot be negative')
       .optional()
       .default(0),

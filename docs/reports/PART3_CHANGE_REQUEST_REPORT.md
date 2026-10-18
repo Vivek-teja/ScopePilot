@@ -5,7 +5,7 @@
 **Module Assignee:** Mokshagna  
 **Project:** ScopePilot (AI-Powered Freelance Scope & Change Management Platform)  
 **Date:** October 18, 2026  
-**Status:** Completed, Verified & Ready for Integration  
+**Status:** Integrated from origin/mokshagna (original commits preserved in history); decisions are approve/reject only; listing is project-scoped; known follow-ups listed below.
 **Active Feature Branch:** `mokshagna`  
 **Runtime & Tech Stack:** Node.js (v20+), Express 4.21, Mongoose 8.9.5, Zod 3.24.1, Jest 29.7, Oxlint 1.88  
 
@@ -17,7 +17,7 @@ The Change Request module records and manages additional work requested after th
 
 ### Key Deliverables Implemented & Verified:
 1. **ChangeRequest Mongoose Model (`changeRequest.model.js`):**
-   - Stores references to `project` (with `projectId` alias), `requestedBy`, `title`, `description`, `status`, `affectedMilestones`, `relatedDeliverables`, `effortEstimate`, `priceAdjustment`, `scheduleImpact`, unified `decision`, `clientDecision`, and `freelancerDecision`.
+   - Stores references to `project`, `requestedBy`, `title`, `description`, `status`, `affectedMilestones`, `relatedDeliverables`, `effortEstimate`, `priceAdjustment`, `scheduleImpact`, `clientDecision`, and `freelancerDecision`.
    - Preserves uninstantiated schemas for future AI integration (`aiAnalysis`, `scopeComparison`).
    - Added compound indexes `{ project: 1, status: 1 }` and `{ project: 1, createdAt: -1 }`.
 2. **Strict Multi-Tenant Project Authorization (`checkProjectAccess`):**
@@ -31,7 +31,7 @@ The Change Request module records and manages additional work requested after th
    - Enforces valid state transitions: `draft` -> `pending_estimate` / `submitted` -> `pending_approval` / `under_review` -> `approved` / `rejected`.
    - Prevents decisions on `draft` requests (`400 Bad Request`).
    - Finalized requests (`approved`, `rejected`, `implemented`) are locked against subsequent mutation or reversal (`409 Conflict`).
-   - Accepts both `'approve'` and `'accept'` keywords for approval.
+   - Decisions are strictly `'approve'` or `'reject'`.
 5. **Mass-Assignment & Referential Integrity Safeguards:**
    - Restricts initial creation status to non-finalized states (`draft`, `pending_estimate`).
    - Strips client-supplied `requestedBy` and protected decision metadata during creation.
@@ -66,7 +66,7 @@ The Change Request module records and manages additional work requested after th
                                                      │
                                      ┌───────────────┴───────────────┐
                                      ▼                               ▼
-                          [ APPROVED / ACCEPTED ]          [ REJECTED ]
+                                [ APPROVED ]                   [ REJECTED ]
                                      │                               │
                                 (Terminal)                      (Terminal)
                                  (Locked)                        (Locked)
@@ -252,7 +252,7 @@ Content-Type: application/json
 ```
 
 #### Error Responses:
-- `400 Bad Request`: Invalid decision value (not in `['approve', 'reject', 'accept']`) or request is in `draft` status.
+- `400 Bad Request`: Invalid decision value (not in `['approve', 'reject']`) or request is in `draft` status.
 - `401 Unauthorized`: Missing or invalid Bearer token.
 - `403 Forbidden`: User has role `'freelancer'`, is the assigned project freelancer, is the original requester, or is an outsider.
 - `404 Not Found`: Change Request or associated Project not found.
@@ -263,7 +263,7 @@ Content-Type: application/json
 ### 3.4 List Change Requests (Project-Scoped)
 - **Method & Route:** `GET /api/change-requests?projectId=<id>&status=<status>`
 - **Authentication:** Bearer JWT required
-- **Authorization:** Only project participants. Non-admin queries require `projectId`.
+- **Authorization:** Only project participants. All queries require `projectId` (or `project`).
 
 #### Success Response (`200 OK`):
 ```json
@@ -347,3 +347,12 @@ npm run lint
 - Shared models (`Project`, `Proposal`, `Milestone`, `Deliverable`, `User`, `Workspace`) remain unaltered.
 - Immutability of approved scope contracts is fully preserved.
 - Ready for Review 3 submission.
+
+---
+
+## 7. Known Follow-Ups
+
+1. **Admin-Global Listing:** Admin-global listing without a `projectId` query parameter was intentionally not ported to preserve strict multi-tenant project scoping.
+2. **Price Adjustment Sign:** `priceAdjustment` cannot be negative under current schema validation; a product decision is pending regarding support for credits and price discounts.
+3. **Demo vs Live Status Alignment:** Demo mode fixtures use status `'submitted'` whereas the live backend uses canonical `'pending_estimate'`.
+4. **Atomic Finalized-Status Guard:** The check-then-save guard in `recordDecision` can be upgraded to an atomic conditional update (`findOneAndUpdate` with status filter) in a dedicated refactor alongside test harness modernization.

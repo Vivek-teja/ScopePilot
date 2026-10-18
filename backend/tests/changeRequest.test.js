@@ -1066,6 +1066,25 @@ describe('Change Request Security & Tenancy (Task 1)', () => {
       expect(res.statusCode).toBe(400);
       expect(res.body.success).toBe(false);
     });
+
+    it('Should reject non-finite (Infinity) effortEstimate with 400 Bad Request', async () => {
+      const res = await request(app)
+        .post('/api/change-requests')
+        .set('Authorization', `Bearer ${freelancerToken}`)
+        .set('Content-Type', 'application/json')
+        .send(
+          JSON.stringify({
+            project: mockProjectId,
+            title: 'Infinity Effort Test',
+            description: 'Testing non-finite effort estimate',
+          }).replace('}', ',"effortEstimate":1e309}')
+        );
+
+      expect(res.statusCode).toBe(400);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toBe('Validation failed');
+      expect(res.body.errors.some((e) => /effort/i.test(e.field) || /finite/i.test(e.message))).toBe(true);
+    });
   });
 
   // =========================================================================
