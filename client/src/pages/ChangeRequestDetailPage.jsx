@@ -488,7 +488,7 @@ function HumanDecisionSection({ cr, session, onDecided }) {
               variant="primary"
               size="sm"
               loading={deciding}
-              onClick={() => handleDecide('approved')}
+              onClick={() => handleDecide('approve')}
             >
               ✓ Approve Request
             </Button>
@@ -496,7 +496,7 @@ function HumanDecisionSection({ cr, session, onDecided }) {
               variant="danger"
               size="sm"
               loading={deciding}
-              onClick={() => handleDecide('rejected')}
+              onClick={() => handleDecide('reject')}
             >
               ✕ Reject Request
             </Button>

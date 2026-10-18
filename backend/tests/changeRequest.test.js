@@ -220,6 +220,37 @@ describe('Change Request Security & Tenancy (Task 1)', () => {
       expect(res.body.errors.some((e) => /Decision must be either/i.test(e.message))).toBe(true);
     });
 
+    it('POST /api/change-requests/:id/decision should reject non-canonical past-participle values ("approved" / "rejected")', async () => {
+      const resApproved = await request(app)
+        .post(`/api/change-requests/${mockChangeRequestId}/decision`)
+        .set('Authorization', `Bearer ${clientToken}`)
+        .send({ decision: 'approved' });
+
+      expect(resApproved.statusCode).toBe(400);
+      expect(resApproved.body.success).toBe(false);
+      expect(resApproved.body.errors.some((e) => /Decision must be either 'approve' or 'reject'/i.test(e.message))).toBe(true);
+
+      const resRejected = await request(app)
+        .post(`/api/change-requests/${mockChangeRequestId}/decision`)
+        .set('Authorization', `Bearer ${clientToken}`)
+        .send({ decision: 'rejected' });
+
+      expect(resRejected.statusCode).toBe(400);
+      expect(resRejected.body.success).toBe(false);
+      expect(resRejected.body.errors.some((e) => /Decision must be either 'approve' or 'reject'/i.test(e.message))).toBe(true);
+    });
+
+    it('POST /api/change-requests/:id/decision should reject "request_revision" as it is not part of the active decision contract', async () => {
+      const res = await request(app)
+        .post(`/api/change-requests/${mockChangeRequestId}/decision`)
+        .set('Authorization', `Bearer ${clientToken}`)
+        .send({ decision: 'request_revision' });
+
+      expect(res.statusCode).toBe(400);
+      expect(res.body.success).toBe(false);
+      expect(res.body.errors.some((e) => /Decision must be either 'approve' or 'reject'/i.test(e.message))).toBe(true);
+    });
+
     it('POST /api/change-requests should return 400 when title is missing or too short', async () => {
       const res = await request(app)
         .post('/api/change-requests')

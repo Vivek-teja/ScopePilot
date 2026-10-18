@@ -5,9 +5,9 @@ import { DEMO_USERS } from '../mocks/fixtures.js';
 import styles from './LoginPage.module.css';
 
 const SEEDED_ACCOUNTS = [
-  { role: 'freelancer', email: 'freelancer@scopepilot.dev', password: 'password123', label: 'Alex Freelancer', avatar: 'AF' },
-  { role: 'client', email: 'client@scopepilot.dev', password: 'password123', label: 'Sarah Client', avatar: 'SC' },
-  { role: 'admin', email: 'admin@scopepilot.dev', password: 'password123', label: 'ScopePilot Admin', avatar: 'SA' },
+  { role: 'freelancer', email: 'freelancer@scopepilot.dev', label: 'Alex Freelancer', avatar: 'AF' },
+  { role: 'client', email: 'client@scopepilot.dev', label: 'Sarah Client', avatar: 'SC' },
+  { role: 'admin', email: 'admin@scopepilot.dev', label: 'ScopePilot Admin', avatar: 'SA' },
 ];
 
 export default function LoginPage() {
@@ -18,8 +18,8 @@ export default function LoginPage() {
   const [isRegister, setIsRegister] = useState(false);
 
   // Live credentials state
-  const [email, setEmail] = useState('freelancer@scopepilot.dev');
-  const [password, setPassword] = useState('password123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [role, setRole] = useState('freelancer');
   const [loading, setLoading] = useState(false);
@@ -52,7 +52,6 @@ export default function LoginPage() {
 
   function handleQuickFill(acc) {
     setEmail(acc.email);
-    setPassword(acc.password);
     setIsRegister(false);
     setErrorMessage(null);
   }
@@ -99,7 +98,7 @@ export default function LoginPage() {
         {authTab === 'live' && (
           <div className={styles.liveSection}>
             <div className={styles.quickAccounts}>
-              <span className={styles.quickLabel}>Quick-select seeded database account:</span>
+              <span className={styles.quickLabel}>Quick-fill development account email:</span>
               <div className={styles.quickBtnGroup}>
                 {SEEDED_ACCOUNTS.map((acc) => (
                   <button

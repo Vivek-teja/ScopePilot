@@ -28,7 +28,7 @@ const seedData = async () => {
     console.log('🧹 Cleared existing database records.');
 
     // 1. Create Users
-    const defaultPassword = 'password123';
+    const defaultPassword = process.env.SEED_DEFAULT_PASSWORD || 'password123';
     const passwordHash = await User.hashPassword(defaultPassword);
 
     const freelancer = await User.create({
@@ -56,9 +56,10 @@ const seedData = async () => {
     });
 
     console.log('👤 Created Users:');
-    console.log(`   - Freelancer: ${freelancer.email} (Password: ${defaultPassword})`);
-    console.log(`   - Client: ${client.email} (Password: ${defaultPassword})`);
-    console.log(`   - Admin: ${admin.email} (Password: ${defaultPassword})`);
+    console.log(`   - Freelancer: ${freelancer.email}`);
+    console.log(`   - Client: ${client.email}`);
+    console.log(`   - Admin: ${admin.email}`);
+    console.log('   (Passwords set via SEED_DEFAULT_PASSWORD or development default; omitted from logs for security)');
 
     // 2. Create Workspace
     const workspace = await Workspace.create({

@@ -461,9 +461,13 @@ function normalizeChangeRequest(cr) {
   if (!cr) return null;
   const id = (cr._id || cr.id).toString();
   const decisionObj = cr.clientDecision || cr.freelancerDecision || {};
+  const rawDecision = decisionObj.decision;
   const humanDecision =
-    decisionObj.decision ||
-    (cr.status === 'approved' ? 'approved' : cr.status === 'rejected' ? 'rejected' : 'pending');
+    rawDecision === 'approve'
+      ? 'approved'
+      : rawDecision === 'reject'
+        ? 'rejected'
+        : (cr.status === 'approved' ? 'approved' : cr.status === 'rejected' ? 'rejected' : 'pending');
 
   return {
     id,

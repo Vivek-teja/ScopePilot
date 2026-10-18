@@ -174,13 +174,14 @@ export function simulateHumanDecision(crId, decision, note, deciderId) {
   const idx = all.findIndex((c) => c.id === crId);
   if (idx === -1) return Promise.reject(new Error('Change request not found'));
 
+  const isApproved = decision === 'approve' || decision === 'approved';
   const updated = {
     ...all[idx],
-    humanDecision: decision,
+    humanDecision: isApproved ? 'approved' : 'rejected',
     humanDecisionAt: new Date().toISOString(),
     humanDecisionBy: deciderId,
     humanDecisionNote: note ?? '',
-    status: decision === 'approved' ? 'approved' : 'rejected',
+    status: isApproved ? 'approved' : 'rejected',
     updatedAt: new Date().toISOString(),
   };
   const next = [...all];
