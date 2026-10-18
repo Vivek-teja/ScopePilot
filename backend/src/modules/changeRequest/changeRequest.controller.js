@@ -17,8 +17,14 @@ const recordDecision = asyncHandler(async (req, res) => {
   return ApiResponse.success(res, 'Change request decision recorded successfully', result);
 });
 
+const listChangeRequests = asyncHandler(async (req, res) => {
+  const result = await changeRequestService.listChangeRequests(req.user._id, req.query, req.user);
+  return ApiResponse.success(res, 'Change requests retrieved successfully', result);
+});
+
 module.exports = {
   createChangeRequest,
   getChangeRequestById,
   recordDecision,
+  listChangeRequests,
 };

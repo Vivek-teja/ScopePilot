@@ -1,5 +1,8 @@
 const { z } = require('zod');
-const { ALLOWED_CHANGE_REQUEST_STATUSES, CHANGE_REQUEST_DECISION } = require('./changeRequest.constants');
+const {
+  CHANGE_REQUEST_STATUS,
+  CHANGE_REQUEST_DECISION,
+} = require('./changeRequest.constants');
 
 const objectIdRegex = /^[0-9a-fA-F]{24}$/;
 
@@ -13,11 +16,25 @@ const createChangeRequestSchema = z
     projectId: z.string().regex(objectIdRegex, 'Invalid project ID format').optional(),
     title: z.string().min(2, 'Change request title must be at least 2 characters').max(200),
     description: z.string().min(5, 'Description must be at least 5 characters'),
-    status: z.enum(ALLOWED_CHANGE_REQUEST_STATUSES).optional(),
+    status: z
+      .enum([CHANGE_REQUEST_STATUS.DRAFT, CHANGE_REQUEST_STATUS.PENDING_ESTIMATE], {
+        errorMap: () => ({
+          message: `Initial status must be either '${CHANGE_REQUEST_STATUS.DRAFT}' or '${CHANGE_REQUEST_STATUS.PENDING_ESTIMATE}'`,
+        }),
+      })
+      .optional(),
     affectedMilestones: z.array(z.string().regex(objectIdRegex, 'Invalid milestone ID format')).optional().default([]),
     relatedDeliverables: z.array(z.string().regex(objectIdRegex, 'Invalid deliverable ID format')).optional().default([]),
-    effortEstimate: z.number().nonnegative().optional().default(0),
-    priceAdjustment: z.number().nonnegative().optional().default(0),
+    effortEstimate: z
+      .number({ invalid_type_error: 'Effort estimate must be a number' })
+      .nonnegative('Effort estimate cannot be negative')
+      .optional()
+      .default(0),
+    priceAdjustment: z
+      .number({ invalid_type_error: 'Price adjustment must be a number' })
+      .nonnegative('Price adjustment cannot be negative')
+      .optional()
+      .default(0),
     scheduleImpact: z
       .object({
         daysAdded: z.number().int().nonnegative().optional().default(0),
@@ -32,7 +49,7 @@ const createChangeRequestSchema = z
   });
 
 const changeRequestDecisionSchema = z.object({
-  decision: z.enum([CHANGE_REQUEST_DECISION.APPROVE, CHANGE_REQUEST_DECISION.REJECT], {
+  decision: z.enum([CHANGE_REQUEST_DECISION.APPROVE, CHANGE_REQUEST_DECISION.REJECT, CHANGE_REQUEST_DECISION.ACCEPT], {
     errorMap: () => ({
       message: `Decision must be either '${CHANGE_REQUEST_DECISION.APPROVE}' or '${CHANGE_REQUEST_DECISION.REJECT}'`,
     }),
@@ -40,8 +57,15 @@ const changeRequestDecisionSchema = z.object({
   comment: z.string().trim().optional().default(''),
 });
 
+const listChangeRequestsQuerySchema = z.object({
+  projectId: z.string().regex(objectIdRegex, 'Invalid project ID format').optional(),
+  project: z.string().regex(objectIdRegex, 'Invalid project ID format').optional(),
+  status: z.string().optional(),
+});
+
 module.exports = {
   changeRequestIdParamSchema,
   createChangeRequestSchema,
   changeRequestDecisionSchema,
+  listChangeRequestsQuerySchema,
 };

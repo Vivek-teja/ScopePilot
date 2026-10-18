@@ -67,6 +67,7 @@ const changeRequestSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Project',
       required: [true, 'Project reference is required'],
+      alias: 'projectId',
       index: true,
     },
     requestedBy: {
@@ -118,6 +119,7 @@ const changeRequestSchema = new mongoose.Schema(
       min: 0,
     },
     scheduleImpact: scheduleImpactSchema,
+    decision: decisionSchema,
     freelancerDecision: decisionSchema,
     clientDecision: decisionSchema,
 
@@ -137,6 +139,10 @@ const changeRequestSchema = new mongoose.Schema(
 );
 
 changeRequestSchema.index({ project: 1, status: 1 });
+changeRequestSchema.index({ project: 1, createdAt: -1 });
+
+changeRequestSchema.set('toJSON', { virtuals: true });
+changeRequestSchema.set('toObject', { virtuals: true });
 
 const ChangeRequest = mongoose.model('ChangeRequest', changeRequestSchema);
 

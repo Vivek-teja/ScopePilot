@@ -4,7 +4,11 @@ const Workspace = require('../workspace/workspace.model');
 const Milestone = require('../milestone/milestone.model');
 const Deliverable = require('../deliverable/deliverable.model');
 const ApiError = require('../../utils/apiError');
-const { CHANGE_REQUEST_STATUS, CHANGE_REQUEST_DECISION } = require('./changeRequest.constants');
+const {
+  CHANGE_REQUEST_STATUS,
+  CHANGE_REQUEST_DECISION,
+  FINALIZED_CHANGE_REQUEST_STATUSES,
+} = require('./changeRequest.constants');
 
 /**
  * Helper to verify whether a user has access to a project
@@ -163,12 +167,17 @@ class ChangeRequestService {
       }
     }
 
+    const initialStatus =
+      status === CHANGE_REQUEST_STATUS.DRAFT
+        ? CHANGE_REQUEST_STATUS.DRAFT
+        : CHANGE_REQUEST_STATUS.PENDING_ESTIMATE;
+
     const changeRequest = await ChangeRequest.create({
       project: projectId,
       requestedBy: userId,
       title,
       description,
-      status: status || CHANGE_REQUEST_STATUS.PENDING_ESTIMATE,
+      status: initialStatus,
       affectedMilestones: affectedMilestones || [],
       relatedDeliverables: relatedDeliverables || [],
       effortEstimate: effortEstimate || 0,
@@ -177,6 +186,41 @@ class ChangeRequestService {
     });
 
     return changeRequest;
+  }
+
+  /**
+   * List change requests with project scoping and access validation
+   */
+  async listChangeRequests(userId, query = {}, user = null) {
+    const projectId = query.projectId || query.project;
+    const filter = {};
+
+    if (projectId) {
+      const project = await Project.findById(projectId);
+      if (!project) {
+        throw ApiError.notFound('Project not found');
+      }
+      const hasAccess = await checkProjectAccess(project, userId, user);
+      if (!hasAccess) {
+        throw ApiError.forbidden('You do not have access to this project');
+      }
+      filter.project = projectId;
+    } else {
+      if (!user || user.role !== 'admin') {
+        throw ApiError.badRequest('projectId query parameter is required to list change requests');
+      }
+    }
+
+    if (query.status) {
+      filter.status = query.status;
+    }
+
+    const changeRequests = await ChangeRequest.find(filter)
+      .populate('project', 'title status freelancer client workspace')
+      .populate('requestedBy', 'name email role')
+      .sort({ createdAt: -1 });
+
+    return changeRequests;
   }
 
   /**
@@ -245,15 +289,34 @@ class ChangeRequestService {
       throw ApiError.forbidden('You are not authorized to record a decision on this change request');
     }
 
-    const isApproved = decision === CHANGE_REQUEST_DECISION.APPROVE;
+    // Terminal status checks: once finalized, decisions cannot be overwritten or reversed
+    if (FINALIZED_CHANGE_REQUEST_STATUSES.includes(changeRequest.status)) {
+      throw ApiError.conflict(
+        `Cannot record decision on a finalized change request (current status: '${changeRequest.status}')`
+      );
+    }
+
+    if (changeRequest.status === CHANGE_REQUEST_STATUS.DRAFT) {
+      throw ApiError.badRequest(
+        'Cannot record decision on a draft change request. It must be submitted for review first.'
+      );
+    }
+
+    const isApproved =
+      decision === CHANGE_REQUEST_DECISION.APPROVE || decision === CHANGE_REQUEST_DECISION.ACCEPT;
+    const normalizedDecision = isApproved
+      ? CHANGE_REQUEST_DECISION.APPROVE
+      : CHANGE_REQUEST_DECISION.REJECT;
+
     const decisionRecord = {
-      decision,
+      decision: normalizedDecision,
       comment: comment || '',
       decidedAt: new Date(),
       decidedBy: userId,
     };
 
     changeRequest.clientDecision = decisionRecord;
+    changeRequest.decision = decisionRecord;
     changeRequest.status = isApproved
       ? CHANGE_REQUEST_STATUS.APPROVED
       : CHANGE_REQUEST_STATUS.REJECTED;
