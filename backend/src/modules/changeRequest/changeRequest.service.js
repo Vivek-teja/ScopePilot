@@ -4,7 +4,11 @@ const Workspace = require('../workspace/workspace.model');
 const Milestone = require('../milestone/milestone.model');
 const Deliverable = require('../deliverable/deliverable.model');
 const ApiError = require('../../utils/apiError');
-const { CHANGE_REQUEST_STATUS, CHANGE_REQUEST_DECISION } = require('./changeRequest.constants');
+const {
+  CHANGE_REQUEST_STATUS,
+  CHANGE_REQUEST_DECISION,
+  FINALIZED_CHANGE_REQUEST_STATUSES,
+} = require('./changeRequest.constants');
 
 /**
  * Helper to verify whether a user has access to a project
@@ -163,12 +167,17 @@ class ChangeRequestService {
       }
     }
 
+    const initialStatus =
+      status === CHANGE_REQUEST_STATUS.DRAFT
+        ? CHANGE_REQUEST_STATUS.DRAFT
+        : CHANGE_REQUEST_STATUS.PENDING_ESTIMATE;
+
     const changeRequest = await ChangeRequest.create({
       project: projectId,
       requestedBy: userId,
       title,
       description,
-      status: status || CHANGE_REQUEST_STATUS.PENDING_ESTIMATE,
+      status: initialStatus,
       affectedMilestones: affectedMilestones || [],
       relatedDeliverables: relatedDeliverables || [],
       effortEstimate: effortEstimate || 0,
@@ -243,6 +252,19 @@ class ChangeRequestService {
     const canReview = await checkDecisionAccess(project, userId, userObj, changeRequest);
     if (!canReview) {
       throw ApiError.forbidden('You are not authorized to record a decision on this change request');
+    }
+
+    // Terminal status checks: once finalized, decisions cannot be overwritten or reversed
+    if (FINALIZED_CHANGE_REQUEST_STATUSES.includes(changeRequest.status)) {
+      throw ApiError.conflict(
+        `Cannot record decision on a finalized change request (current status: '${changeRequest.status}')`
+      );
+    }
+
+    if (changeRequest.status === CHANGE_REQUEST_STATUS.DRAFT) {
+      throw ApiError.badRequest(
+        'Cannot record decision on a draft change request. It must be submitted for review first.'
+      );
     }
 
     const isApproved = decision === CHANGE_REQUEST_DECISION.APPROVE;
