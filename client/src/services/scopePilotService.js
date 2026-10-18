@@ -499,6 +499,15 @@ export async function requestAiAnalysis(analysisInput) {
   return aiApi.analyzeScopeMock(analysisInput);
 }
 
+export async function retrieveScopePassages(payload) {
+  return aiApi.retrieveScopePassages(payload);
+}
+
+export async function getScopeCorpus() {
+  return aiApi.getScopeCorpus();
+}
+
 export function resetDemoData() {
   demoStore.resetDemoData();
 }
+
