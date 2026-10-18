@@ -1,169 +1,319 @@
-/* Login / Demo Entry page */
+/* ============================================================
+   LoginPage.module.css – Cyber-geometric login screen
+   Matching Reference Drawing 1 & design.txt
+   2x Scaled Typography & Inputs
+   ============================================================ */
 
-.page {
+.loginViewport {
   min-height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--space-8) var(--space-5);
-  background: var(--bg);
+  background-color: #000000;
+  padding: 40px 20px;
   position: relative;
   overflow: hidden;
 }
 
-/* decorative orbs */
-.orb1, .orb2 {
+/* ── Card Wrapper with Corner Elements ──────────────────────── */
+.cardWrapper {
+  position: relative;
+  width: 100%;
+  max-width: 660px;
+  padding: 24px;
+}
+
+/* ── Central Octagonal Box (True Connected 8-Sided Border) ───── */
+.octCard {
+  position: relative;
+  background-color: #ffffff;
+  padding: 2px;
+  clip-path: polygon(
+    60px 0%, calc(100% - 60px) 0%,
+    100% 60px, 100% calc(100% - 60px),
+    calc(100% - 60px) 100%, 60px 100%,
+    0% calc(100% - 60px), 0% 60px
+  );
+  box-sizing: border-box;
+  z-index: 2;
+}
+
+.octCardInner {
+  width: 100%;
+  height: 100%;
+  background-color: #09090e;
+  padding: 56px 60px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  clip-path: polygon(
+    58.6px 0%, calc(100% - 58.6px) 0%,
+    100% 58.6px, 100% calc(100% - 58.6px),
+    calc(100% - 58.6px) 100%, 58.6px 100%,
+    0% calc(100% - 58.6px), 0% 58.6px
+  );
+  box-sizing: border-box;
+}
+
+@media (max-width: 600px) {
+  .octCard {
+    clip-path: polygon(
+      36px 0%, calc(100% - 36px) 0%,
+      100% 36px, 100% calc(100% - 36px),
+      calc(100% - 36px) 100%, 36px 100%,
+      0% calc(100% - 36px), 0% 36px
+    );
+  }
+  .octCardInner {
+    padding: 34px 26px;
+    clip-path: polygon(
+      34.6px 0%, calc(100% - 34.6px) 0%,
+      100% 34.6px, 100% calc(100% - 34.6px),
+      calc(100% - 34.6px) 100%, 34.6px 100%,
+      0% calc(100% - 34.6px), 0% 34.6px
+    );
+  }
+}
+
+/* ── Corner Accents (Parallel diagonal lines & White/Pastel Triangle Gems) ── */
+.cornerAccent {
   position: absolute;
-  border-radius: 50%;
-  filter: blur(80px);
-  opacity: 0.25;
+  width: 72px;
+  height: 72px;
+  z-index: 1;
   pointer-events: none;
 }
-.orb1 {
-  width: 480px; height: 480px;
-  background: var(--accent);
-  top: -120px; left: -120px;
-}
-.orb2 {
-  width: 360px; height: 360px;
-  background: #06b6d4;
-  bottom: -80px; right: -80px;
+
+.cornerTopLeft {
+  top: 0;
+  left: 0;
 }
 
-.card {
-  position: relative;
-  z-index: 1;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-10) var(--space-10);
-  max-width: 480px;
-  width: 100%;
-  box-shadow: var(--shadow-md);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-5);
-}
-@media (max-width: 540px) {
-  .card { padding: var(--space-8) var(--space-6); }
+.cornerTopRight {
+  top: 0;
+  right: 0;
 }
 
-.logoRow {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-}
-.logoIcon { font-size: 2rem; }
-.logoText  { font-size: 1.5rem; font-weight: 800; color: var(--text-heading); letter-spacing: -0.04em; }
-
-.headline {
-  font-size: 1.5rem;
-  font-weight: 700;
-  line-height: 1.25;
-  letter-spacing: -0.02em;
-  color: var(--text-heading);
-  margin: 0;
-}
-.sub { color: var(--text-secondary); font-size: 0.92rem; line-height: 1.55; }
-
-/* Demo banner */
-.demoBanner {
-  background: var(--accent-light);
-  border: 1px solid var(--accent);
-  border-radius: var(--radius-sm);
-  padding: var(--space-3) var(--space-4);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-.demoBanner p { font-size: 0.82rem; color: var(--accent-dark); }
-.demoBadge {
-  font-size: 0.65rem;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  background: var(--accent);
-  color: var(--text-on-accent);
-  padding: 2px 8px;
-  border-radius: 999px;
-  align-self: flex-start;
+.cornerBottomLeft {
+  bottom: 0;
+  left: 0;
 }
 
-/* Role picker */
-.roleGroup {
-  border: none;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
+.cornerBottomRight {
+  bottom: 0;
+  right: 0;
 }
-.roleLegend {
-  font-size: 0.82rem;
-  font-weight: 700;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  margin-bottom: var(--space-2);
-  padding: 0;
-}
-.radioInput {
+
+.parallelLines {
   position: absolute;
-  opacity: 0;
-  width: 0;
-  height: 0;
+  width: 44px;
+  height: 44px;
 }
-.roleCard {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
-  border: 1.5px solid var(--border);
-  border-radius: var(--radius);
-  cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
-  position: relative;
-}
-.roleCard:hover { border-color: var(--accent); background: var(--accent-light); }
-.roleCardSelected { border-color: var(--accent); background: var(--accent-light); }
 
-.roleAvatar {
-  font-size: 1.4rem;
-  width: 40px;
-  height: 40px;
+.cornerTopLeft .parallelLines {
+  top: 14px;
+  left: 14px;
+  border-bottom: 2px solid #ffffff;
+  transform: rotate(-45deg);
+}
+
+.cornerTopRight .parallelLines {
+  top: 14px;
+  right: 14px;
+  border-bottom: 2px solid #ffffff;
+  transform: rotate(45deg);
+}
+
+.cornerBottomLeft .parallelLines {
+  bottom: 14px;
+  left: 14px;
+  border-top: 2px solid #ffffff;
+  transform: rotate(45deg);
+}
+
+.cornerBottomRight .parallelLines {
+  bottom: 14px;
+  right: 14px;
+  border-top: 2px solid #ffffff;
+  transform: rotate(-45deg);
+}
+
+.triangleSvg {
+  position: absolute;
+}
+
+.cornerTopLeft .triangleSvg {
+  top: -2px;
+  left: -2px;
+}
+
+.cornerTopRight .triangleSvg {
+  top: -2px;
+  right: -2px;
+}
+
+.cornerBottomLeft .triangleSvg {
+  bottom: -2px;
+  left: -2px;
+}
+
+.cornerBottomRight .triangleSvg {
+  bottom: -2px;
+  right: -2px;
+}
+
+/* ── Title with Purple Dot on 'i' (2x Larger) ────────────────── */
+.titleRow {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   justify-content: center;
+  font-family: var(--font-display);
+  font-size: 4.2rem;
+  letter-spacing: 0.1em;
+  color: #ffffff;
+  line-height: 1;
+  margin-top: 8px;
+}
+
+.titleLetter {
+  display: inline-block;
+}
+
+.titleIWrapper {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  width: 24px;
+}
+
+.purpleDot {
+  position: absolute;
+  top: -12px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
-  background: var(--gray-bg);
-  font-style: normal;
-}
-.roleInfo { display: flex; flex-direction: column; flex: 1; }
-.roleName { font-weight: 600; font-size: 0.9rem; color: var(--text-heading); }
-.roleTag  { font-size: 0.75rem; color: var(--text-secondary); text-transform: capitalize; }
-.roleCheck {
-  color: var(--accent);
-  font-weight: 700;
-  font-size: 1rem;
+  background-color: var(--purple-vivid);
+  box-shadow: 0 0 12px var(--purple-vivid);
 }
 
-/* Enter button */
-.enterBtn {
-  background: var(--accent);
-  color: var(--text-on-accent);
-  border: none;
-  border-radius: var(--radius-sm);
-  padding: 13px var(--space-6);
-  font-size: 0.95rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: background 0.15s, transform 0.1s;
-  width: 100%;
+.titleIBody {
+  display: inline-block;
 }
-.enterBtn:hover:not(:disabled) { background: var(--accent-hover); transform: translateY(-1px); }
-.enterBtn:disabled { opacity: 0.65; cursor: not-allowed; }
 
-.disclaimer {
-  font-size: 0.78rem;
-  color: var(--text-muted);
-  line-height: 1.55;
+.loginSubtitle {
   text-align: center;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  letter-spacing: 0.08em;
+  color: var(--purple-light);
+  margin-top: -6px;
+  margin-bottom: 8px;
+}
+
+/* ── Form Inputs (2x Larger) ─────────────────────────────────── */
+.fieldBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.inputLabel {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  color: #ffffff;
+  letter-spacing: 0.05em;
+}
+
+.whiteInput {
+  width: 100%;
+  height: 52px;
+  padding: 10px 18px;
+  background-color: #ffffff;
+  color: #000000;
+  border: 2px solid #ffffff;
+  font-family: var(--font-sans);
+  font-size: 1.25rem;
+  font-weight: 500;
+  border-radius: 0;
+  transition: box-shadow 0.15s ease;
+}
+
+.whiteInput:focus {
+  outline: none;
+  box-shadow: 0 0 16px var(--purple-glow);
+}
+
+/* ── Demo Selection Boxes (2x Larger) ────────────────────────── */
+.demoSelectionSection {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.demoSelectionTitle {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  color: var(--text-dim);
+  letter-spacing: 0.06em;
+}
+
+.demoBoxGroup {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.demoBox {
+  flex: 1;
+  min-width: 200px;
+  padding: 14px 18px;
+  background-color: transparent;
+  border: 1.5px solid #ffffff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #ffffff;
+  font-family: var(--font-display);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.demoBox:hover {
+  background-color: var(--purple-subtle-bg);
+  border-color: var(--purple-light);
+}
+
+.demoBoxActive {
+  background-color: rgba(216, 180, 254, 0.22);
+  border-color: var(--purple-vivid);
+  box-shadow: 0 0 12px var(--purple-glow);
+}
+
+.demoBoxName {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.demoBoxRole {
+  font-size: 1rem;
+  color: var(--purple-light);
+  text-transform: capitalize;
+}
+
+/* ── Proceed Button Container ────────────────────────────────── */
+.buttonContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 22px 0 8px;
+}
+
+.disclaimerNote {
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  color: var(--text-dim);
+  letter-spacing: 0.05em;
 }

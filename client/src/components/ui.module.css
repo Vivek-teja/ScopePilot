@@ -1,25 +1,112 @@
 /* ============================================================
-   ui.module.css – scoped styles for shared UI components
+   ui.module.css – Scoped styles for shared UI components
+   Cyber-geometric pitch-black, chamfered octagon aesthetic
+   Scaled up typography (~2x) & exact status color specifications
    ============================================================ */
 
-/* ── Badge ──────────────────────────────────────────────────── */
+/* ── Badge (Wide Diamond / Elongated Hexagon) ───────────────── */
 .badge {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  padding: 2px 10px;
-  border-radius: 999px;
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
+  justify-content: center;
+  padding: 2.5px 12px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   white-space: nowrap;
+  font-family: var(--font-display);
+  background: transparent !important;
+  border: none !important;
 }
-.badge-green  { background: var(--green-bg);  color: var(--green);  }
-.badge-yellow { background: var(--yellow-bg); color: var(--yellow); }
-.badge-red    { background: var(--red-bg);    color: var(--red);    }
-.badge-blue   { background: var(--blue-bg);   color: var(--blue);   }
-.badge-gray   { background: var(--gray-bg);   color: var(--gray);   }
-.badge-orange { background: var(--orange-bg); color: var(--orange); }
+
+.badgeHexSvg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.badgeHexPolygon {
+  stroke-width: 0.75px;
+  stroke-linejoin: miter;
+  transition: all 0.15s ease;
+}
+
+.badgeContent {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.badgeDiamondGlyph {
+  font-size: 0.65rem;
+  line-height: 1;
+}
+
+/*
+   Statuses from design.txt lines 32 & 48:
+   - Active & In Progress: Lighter purple (than usual), Black text
+   - Paused & Pending: White, Black text
+   - Completed & Accepted & Approved: Black, White outline on all sides, White text
+*/
+.badge-active,
+.badge-in_progress {
+  color: #000000 !important;
+}
+.badge-active .badgeHexPolygon,
+.badge-in_progress .badgeHexPolygon {
+  fill: #d8b4fe !important;
+  stroke: #d8b4fe !important;
+  stroke-width: 0.75px !important;
+}
+
+.badge-paused,
+.badge-pending {
+  color: #000000 !important;
+}
+.badge-paused .badgeHexPolygon,
+.badge-pending .badgeHexPolygon {
+  fill: #ffffff !important;
+  stroke: #ffffff !important;
+  stroke-width: 0.75px !important;
+}
+
+.badge-completed,
+.badge-accepted,
+.badge-approved {
+  color: #ffffff !important;
+}
+.badge-completed .badgeHexPolygon,
+.badge-accepted .badgeHexPolygon,
+.badge-approved .badgeHexPolygon {
+  fill: #000000 !important;
+  stroke: #ffffff !important;
+  stroke-width: 0.8px !important;
+}
+
+.badge-red {
+  color: var(--red) !important;
+}
+.badge-red .badgeHexPolygon {
+  fill: #000000 !important;
+  stroke: var(--red) !important;
+  stroke-width: 0.75px !important;
+}
+
+.badge-gray {
+  color: var(--text-muted) !important;
+}
+.badge-gray .badgeHexPolygon {
+  fill: #000000 !important;
+  stroke: var(--border-muted) !important;
+  stroke-width: 0.75px !important;
+}
 
 /* ── Avatar ─────────────────────────────────────────────────── */
 .avatar {
@@ -27,61 +114,119 @@
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: var(--accent-light);
-  color: var(--accent);
+  background: var(--bg-obsidian);
+  color: var(--purple-light);
+  border: 2px solid var(--border-white);
   font-weight: 700;
-  font-size: 0.75rem;
+  font-family: var(--font-display);
   flex-shrink: 0;
 }
-.avatar-sm { width: 28px; height: 28px; font-size: 0.65rem; }
-.avatar-md { width: 36px; height: 36px; }
-.avatar-lg { width: 48px; height: 48px; font-size: 1rem; }
-.avatar-xl { width: 64px; height: 64px; font-size: 1.25rem; }
+.avatar-sm { width: 36px; height: 36px; font-size: 0.85rem; }
+.avatar-md { width: 50px; height: 50px; font-size: 1.25rem; }
+.avatar-lg { width: 64px; height: 64px; font-size: 1.55rem; }
+.avatar-xl { width: 80px; height: 80px; font-size: 1.85rem; }
 
-/* ── Progress ────────────────────────────────────────────────── */
-.progressWrap {
-  display: flex;
+/* ── Circular Progress Gauge ────────────────────────────────── */
+.circularProgressWrap {
+  position: relative;
+  display: inline-flex;
   align-items: center;
-  gap: var(--space-2);
-}
-.progressBar {
-  flex: 1;
-  height: 8px;
-  background: var(--border);
-  border-radius: 999px;
-  overflow: hidden;
-}
-.progressFill {
-  height: 100%;
-  background: var(--accent);
-  border-radius: 999px;
-  transition: width 0.4s ease;
-}
-.progressLabel {
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: var(--text-secondary);
-  min-width: 34px;
-  text-align: right;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
-/* ── Card ────────────────────────────────────────────────────── */
-.card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: var(--space-5) var(--space-6);
-  box-shadow: var(--shadow-sm);
-  transition: box-shadow 0.15s ease, border-color 0.15s ease;
+.circularSvg {
+  transform: rotate(-90deg);
 }
+
+.circularTrack {
+  fill: transparent;
+  stroke: var(--bg-obsidian);
+}
+
+.circularIndicator {
+  fill: transparent;
+  stroke: var(--purple-vivid);
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.5s ease;
+}
+
+.circularLabelWrap {
+  position: absolute;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.circularPercentNum {
+  font-size: 0.78rem;
+  font-weight: 700;
+  font-family: var(--font-sans);
+  color: var(--text-white);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.circularPercentSymbol {
+  font-size: 0.55rem;
+  color: var(--purple-light);
+  margin-left: 1px;
+  line-height: 1;
+}
+
+/* ── Chamfered Octagonal Card (True Connected 8-Sided Border) ── */
+.card {
+  position: relative;
+  background-color: var(--border-white);
+  padding: 1.5px;
+  clip-path: polygon(
+    14px 0%, calc(100% - 14px) 0%,
+    100% 14px, 100% calc(100% - 14px),
+    calc(100% - 14px) 100%, 14px 100%,
+    0% calc(100% - 14px), 0% 14px
+  );
+  box-sizing: border-box;
+  display: flex;
+  transition: background-color 0.15s ease, filter 0.15s ease, transform 0.1s ease;
+}
+
+.cardInner {
+  width: 100%;
+  height: 100%;
+  padding: 14px 18px;
+  clip-path: polygon(
+    13.4px 0%, calc(100% - 13.4px) 0%,
+    100% 13.4px, 100% calc(100% - 13.4px),
+    calc(100% - 13.4px) 100%, 13.4px 100%,
+    0% calc(100% - 13.4px), 0% 13.4px
+  );
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  transition: background-color 0.15s ease;
+}
+
+.cardDark {
+  background-color: var(--bg-surface-dark);
+}
+
+.cardGrey {
+  background-color: var(--bg-surface-grey);
+}
+
 .cardClickable {
   cursor: pointer;
-  display: block;
+  display: flex;
   color: inherit;
+  text-decoration: none;
 }
+
 .cardClickable:hover {
-  box-shadow: var(--shadow-md);
-  border-color: var(--accent);
+  background-color: var(--purple-light);
+  filter: drop-shadow(0 0 12px var(--purple-glow));
+  transform: translateY(-1px);
 }
 
 /* ── Section Header ──────────────────────────────────────────── */
@@ -91,67 +236,142 @@
   justify-content: space-between;
   gap: var(--space-4);
   flex-wrap: wrap;
-  margin-bottom: var(--space-5);
+  margin-bottom: var(--space-4);
+  border-bottom: 1.5px solid var(--border-dim);
+  padding-bottom: var(--space-2);
 }
+
 .sectionTitle {
-  font-size: 1.1rem;
+  font-size: 1.85rem;
   margin-bottom: var(--space-1);
+  color: var(--text-white);
+  font-family: var(--font-display);
 }
+
 .sectionSubtitle {
-  font-size: 0.85rem;
-  color: var(--text-secondary);
+  font-size: 0.88rem;
+  color: var(--purple-light);
 }
+
 .sectionAction { flex-shrink: 0; }
 
-/* ── Button ──────────────────────────────────────────────────── */
+/* ── Standard Button ─────────────────────────────────────────── */
 .btn {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  border: none;
-  border-radius: var(--radius-sm);
-  font-weight: 600;
-  transition: background 0.15s, opacity 0.15s, box-shadow 0.15s;
+  border-radius: 0;
+  font-weight: 700;
+  font-family: var(--font-display);
+  letter-spacing: 0.05em;
+  transition: all 0.15s ease;
   white-space: nowrap;
   text-decoration: none;
+  cursor: pointer;
+  clip-path: polygon(8px 0%, calc(100% - 8px) 0%, 100% 8px, 100% calc(100% - 8px), calc(100% - 8px) 100%, 8px 100%, 0% calc(100% - 8px), 0% 8px);
 }
-.btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
 .btn-primary {
-  background: var(--accent);
-  color: var(--text-on-accent);
+  background: var(--purple-vivid);
+  color: #ffffff;
+  border: 1.5px solid var(--purple-light);
 }
-.btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
+.btn-primary:hover:not(:disabled) {
+  background: var(--purple-light);
+  color: #000000;
+  box-shadow: 0 0 16px var(--purple-glow);
+}
 
 .btn-secondary {
   background: transparent;
-  color: var(--accent);
-  border: 1.5px solid var(--accent);
+  color: var(--text-white);
+  border: 1.5px solid var(--border-white);
 }
-.btn-secondary:hover:not(:disabled) { background: var(--accent-light); }
+.btn-secondary:hover:not(:disabled) {
+  background: var(--purple-subtle-bg);
+  border-color: var(--purple-light);
+  color: var(--purple-light);
+}
 
 .btn-ghost {
   background: transparent;
-  color: var(--text-secondary);
+  color: var(--text-muted);
+  border: 1px solid transparent;
 }
-.btn-ghost:hover:not(:disabled) { background: var(--gray-bg); color: var(--text-heading); }
+.btn-ghost:hover:not(:disabled) {
+  background: var(--bg-surface-lighter);
+  color: var(--text-white);
+}
 
 .btn-danger {
   background: var(--red);
-  color: #fff;
+  color: #ffffff;
+  border: 1px solid var(--red);
 }
-.btn-danger:hover:not(:disabled) { opacity: 0.85; }
 
-.btn-sm { padding: 5px 12px; font-size: 0.8rem; }
-.btn-md { padding: 9px 18px; font-size: 0.88rem; }
-.btn-lg { padding: 12px 24px; font-size: 1rem; }
+.btn-sm { padding: 5px 12px; font-size: 0.82rem; }
+.btn-md { padding: 8px 18px; font-size: 0.92rem; }
+.btn-lg { padding: 11px 24px; font-size: 1.05rem; }
+
+/* ── Diamond Proceed Button (Ref Image 1) ────────────────────── */
+.diamondBtnOuter {
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s ease;
+}
+
+.diamondBtnOuter:hover:not(:disabled) {
+  transform: scale(1.06);
+}
+
+.diamondBtnOuter:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.diamondBoxShape {
+  width: 170px;
+  height: 85px;
+  background: #ffffff;
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #ffffff;
+}
+
+.diamondInnerSelectionBox {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #000000;
+  padding: 3px 8px;
+  border-radius: 0;
+  line-height: 1;
+}
+
+.diamondBtnText {
+  color: #ffffff;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  line-height: 1;
+}
 
 /* ── Spinner ─────────────────────────────────────────────────── */
 .spinner {
   display: inline-block;
-  width: 16px;
-  height: 16px;
-  border: 2px solid currentColor;
+  width: 20px;
+  height: 20px;
+  border: 2.5px solid currentColor;
   border-top-color: transparent;
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
@@ -159,133 +379,126 @@
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* ── State containers ────────────────────────────────────────── */
+/* ── State Containers ────────────────────────────────────────── */
 .stateContainer {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: var(--space-3);
-  padding: var(--space-12) var(--space-6);
+  padding: var(--space-6) var(--space-4);
   text-align: center;
+  background: var(--bg-surface-dark);
+  border: 1.5px solid var(--border-white);
+  clip-path: polygon(14px 0%, calc(100% - 14px) 0%, 100% 14px, 100% calc(100% - 14px), calc(100% - 14px) 100%, 14px 100%, 0% calc(100% - 14px), 0% 14px);
 }
 .stateError { color: var(--red); }
-.emptyIcon { font-size: 2.5rem; line-height: 1; }
-.stateMessage { color: var(--text-secondary); font-size: 0.9rem; max-width: 36ch; }
+.emptyDiamondGlyph { font-size: 2.4rem; color: var(--purple-light); line-height: 1; }
+.errorGlyph { font-size: 2rem; font-weight: 700; color: var(--red); }
+.stateMessage { color: var(--text-muted); font-size: 0.88rem; max-width: 48ch; }
 
 /* ── Notice ──────────────────────────────────────────────────── */
 .notice {
-  border-radius: var(--radius-sm);
-  padding: var(--space-3) var(--space-4);
+  padding: 8px 14px;
   font-size: 0.85rem;
   line-height: 1.5;
-  border-left: 4px solid;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  background: var(--bg-obsidian);
+  border: 1.5px solid var(--border-white);
 }
-.noticeInfo    { background: var(--blue-bg);   color: var(--blue);   border-color: var(--blue); }
-.noticeWarning { background: var(--yellow-bg); color: var(--yellow); border-color: var(--yellow); }
-.noticeDemo    { background: var(--accent-light); color: var(--accent-dark); border-color: var(--accent); }
+.noticeDiamondIcon {
+  color: var(--purple-light);
+  font-size: 0.95rem;
+  line-height: 1.2;
+}
+.noticeContent { flex: 1; }
+.noticeInfo    { border-color: var(--purple-vivid); color: var(--text-white); }
+.noticeWarning { border-color: var(--yellow); color: var(--yellow); }
+.noticeDemo    { border-color: var(--purple-light); background: var(--purple-subtle-bg); color: var(--text-purple-1); }
 
 /* ── Breadcrumb ──────────────────────────────────────────────── */
-.breadcrumb { margin-bottom: var(--space-4); }
+.breadcrumb { margin-bottom: var(--space-3); }
 .breadcrumbList {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 2px;
+  gap: var(--space-2);
 }
 .breadcrumbItem {
   display: flex;
   align-items: center;
-  gap: 2px;
-  font-size: 0.82rem;
+  gap: var(--space-2);
+  font-size: 0.88rem;
+  font-family: var(--font-display);
 }
 .breadcrumbLink {
-  color: var(--accent);
-  font-weight: 500;
+  color: var(--purple-light);
 }
 .breadcrumbLink:hover { text-decoration: underline; }
-.breadcrumbSep { color: var(--text-muted); padding: 0 2px; }
-.breadcrumbCurrent { color: var(--text-secondary); font-weight: 500; }
+.breadcrumbSep { color: var(--text-dim); }
+.breadcrumbCurrent { color: var(--text-white); }
 
-/* ── Tabs ────────────────────────────────────────────────────── */
-.tabs {
-  display: flex;
-  gap: 2px;
-  border-bottom: 2px solid var(--border);
-  margin-bottom: var(--space-6);
-  flex-wrap: wrap;
-}
-.tab {
-  padding: var(--space-2) var(--space-4);
-  background: transparent;
-  border: none;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -2px;
-  font-size: 0.88rem;
-  font-weight: 500;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: color 0.15s, border-color 0.15s;
-}
-.tab:hover { color: var(--text-heading); }
-.tabActive  { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
-
-/* ── Form fields ─────────────────────────────────────────────── */
+/* ── Form Fields ─────────────────────────────────────────────── */
 .formField {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: 5px;
 }
 .label {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--text-heading);
+  font-size: 0.88rem;
+  font-family: var(--font-display);
+  color: var(--text-white);
+  letter-spacing: 0.05em;
 }
-.required { color: var(--red); }
+.required { color: var(--purple-light); }
 .hint { font-size: 0.78rem; color: var(--text-muted); }
+
+/* Inputs with crisp white background from design.txt */
 .input {
   width: 100%;
-  padding: 9px 13px;
-  border: 1.5px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  color: var(--text-heading);
-  transition: border-color 0.15s, box-shadow 0.15s;
+  padding: 8px 12px;
+  border: 1.5px solid var(--border-white);
+  background: var(--input-bg-white);
+  color: var(--input-text-dark);
   font-size: 0.88rem;
+  font-family: var(--font-sans);
+  border-radius: 0;
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
 .input:focus {
   outline: none;
-  border-color: var(--border-focus);
-  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12);
+  border-color: var(--purple-vivid);
+  box-shadow: 0 0 0 3px var(--purple-glow);
 }
 .inputError { border-color: var(--red); }
-.textarea { resize: vertical; min-height: 90px; }
+.textarea { resize: vertical; min-height: 80px; }
 .select { appearance: auto; }
-.fieldError { font-size: 0.78rem; color: var(--red); font-weight: 500; }
+.fieldError { font-size: 0.8rem; color: var(--red); font-weight: 600; }
 
 /* ── Divider ─────────────────────────────────────────────────── */
 .divider {
   border: none;
-  border-top: 1px solid var(--border);
-  margin: var(--space-5) 0;
+  border-top: 1.5px solid var(--border-dim);
+  margin: var(--space-3) 0;
 }
 
-/* ── KV grid ─────────────────────────────────────────────────── */
+/* ── KV Grid ─────────────────────────────────────────────────── */
 .kvGrid {
   display: grid;
   grid-template-columns: max-content 1fr;
-  gap: var(--space-2) var(--space-5);
+  gap: 6px var(--space-4);
   align-items: baseline;
 }
 .kvRow { display: contents; }
 .kvLabel {
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--text-muted);
-  text-transform: uppercase;
+  font-size: 0.82rem;
+  font-family: var(--font-display);
+  color: var(--purple-light);
   letter-spacing: 0.05em;
   white-space: nowrap;
 }
-.kvValue { font-size: 0.9rem; color: var(--text-heading); }
+.kvValue { font-size: 0.88rem; color: var(--text-white); }
 .kvMono  { font-family: var(--font-mono); font-size: 0.82rem; }
-.kvEmpty { color: var(--text-muted); font-style: italic; }
+.kvEmpty { color: var(--text-dim); font-style: italic; }

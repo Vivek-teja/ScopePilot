@@ -1,0 +1,338 @@
+/* ============================================================
+   TopArchNav.module.css – Semicircle Navigation Hub
+   Reduced real estate: ONLY the semicircle hub covers top-middle
+   No horizontal upper bar
+   ============================================================ */
+
+/* ── Discrete Floating Corner Reset Controls (Zero Height Impact) ── */
+.cornerFloatingControls {
+  position: fixed;
+  top: 12px;
+  right: 18px;
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  pointer-events: auto;
+}
+
+.cornerBrand {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  letter-spacing: 0.1em;
+  color: var(--text-dim);
+}
+
+.discreteResetBtn {
+  background: var(--bg-surface-dark);
+  border: 1px solid var(--border-dim);
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.discreteResetBtn:hover {
+  border-color: var(--purple-vivid);
+  color: var(--purple-light);
+  box-shadow: 0 0 8px var(--purple-glow);
+}
+
+/* ── Semicircle Floating Nav Container (Centered at Top) ─────── */
+.archNavFloating {
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  pointer-events: none; /* Empty left/right screen areas let clicks pass through */
+  margin-bottom: 8px;
+}
+
+/* Dynamic height depending on whether circles 3 & 4 are active */
+.archContainer {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  pointer-events: auto;
+  transition: height 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: visible;
+}
+
+/* When in Project Detail (Circles 1, 2, 3, 4 active) */
+.archContainerProject {
+  width: 100%;
+  max-width: 680px;
+  height: 255px;
+  aspect-ratio: 800 / 300;
+  overflow: visible;
+}
+
+/* When in Workspace or Projects list (Only Circles 1 & 2 active) */
+/* Same 680px max-width & matching aspect ratio guarantees 100% identical size for Circles 1 & 2 */
+.archContainerWorkspace {
+  width: 100%;
+  max-width: 680px;
+  height: 170px;
+  aspect-ratio: 800 / 200;
+  overflow: visible;
+}
+
+.archSvg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* ── Outer Circles Animation (Circles 3 & 4 emerge outward while Circles 1 & 2 stay static) ── */
+.outerCirclesGroup {
+  transform-box: view-box;
+  transform-origin: 400px 0px;
+  animation: outerCirclesEmerge 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes outerCirclesEmerge {
+  0% {
+    opacity: 0;
+    transform: scale(0.72);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Annular Sector Click Targets (Matching User Drawing) */
+.sectorClickTarget {
+  cursor: pointer;
+  pointer-events: auto;
+  fill: transparent;
+}
+
+.sectorClickTarget:hover {
+  fill: transparent;
+}
+
+/* ── Curved SVG TextPath Typography (Bigger & on OUTSIDE of outlines) ── */
+.curvedText {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  fill: #ffffff;
+  letter-spacing: 0.08em;
+  user-select: none;
+  pointer-events: none;
+  transition: fill 0.2s ease;
+}
+
+.curvedText:hover {
+  fill: var(--purple-light);
+}
+
+.curvedTextOuter {
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 700;
+  fill: #ffffff;
+  letter-spacing: 0.06em;
+  user-select: none;
+  pointer-events: none;
+  transition: fill 0.2s ease;
+}
+
+.curvedTextOuter:hover {
+  fill: var(--purple-light);
+}
+
+.curvedTextHover {
+  fill: var(--purple-light) !important;
+  font-weight: 700;
+  filter: drop-shadow(0 0 8px rgba(216, 180, 254, 0.95));
+}
+
+.curvedTextActive {
+  fill: var(--purple-light) !important;
+  font-weight: 700;
+  filter: drop-shadow(0 0 8px rgba(216, 180, 254, 0.95));
+}
+
+/* ── Isolated Profile Clickbox (Inside Circle 1) ─────────────── */
+.profileCore {
+  position: absolute;
+  top: 36px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 500;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none; /* Container does not catch clicks */
+  overflow: visible;
+}
+
+/* Clickbox is tightly isolated to profile name and wide triangle */
+.profileBtn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 0;
+  pointer-events: auto;
+  transition: transform 0.15s ease;
+}
+
+.profileBtn:hover .profileName {
+  filter: drop-shadow(0 0 8px var(--purple-glow));
+}
+
+.profileBtn:hover .triangleSvgIcon polygon {
+  fill: var(--purple-light);
+}
+
+.profileName {
+  font-family: var(--font-display);
+  font-size: 1.45rem;
+  letter-spacing: 0.06em;
+  color: var(--purple-vivid);
+  white-space: nowrap;
+  line-height: 1.1;
+  user-select: none;
+}
+
+.triangleSvgIcon {
+  display: block;
+  margin-top: 1px;
+}
+
+/* ── Reverse Animated Profile Dropdown ───────────────────────── */
+.profileDropdown {
+  position: absolute;
+  top: 48px;
+  width: 260px;
+  background: var(--bg-surface-dark);
+  border: 1.5px solid #ffffff;
+  padding: 14px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.95), 0 0 12px rgba(216, 180, 254, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  animation: dropdownEmerge 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transform-origin: top center;
+  pointer-events: auto;
+  z-index: 1000;
+  overflow: visible;
+}
+
+@keyframes dropdownEmerge {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scaleY(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scaleY(1);
+  }
+}
+
+.dropdownHeader {
+  display: flex;
+  justify-content: center;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border-dim);
+}
+
+.dropdownUserRole {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+
+.rolePickerList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rolePickerTitle {
+  font-size: 0.85rem;
+  font-family: var(--font-display);
+  color: var(--text-muted);
+}
+
+.dropdownOption {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 10px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-white);
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.dropdownOption:hover {
+  border-color: var(--purple-vivid);
+  background: var(--purple-subtle-bg);
+}
+
+.dropdownOptionActive {
+  border-color: var(--purple-light);
+  color: var(--purple-light);
+  font-weight: 700;
+}
+
+.dropdownOptionTag {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  text-transform: capitalize;
+}
+
+.dropdownDivider {
+  height: 1px;
+  background: var(--border-dim);
+  margin: 4px 0;
+}
+
+.dropdownResetBtn {
+  background: transparent;
+  border: 1px solid var(--border-dim);
+  color: var(--purple-light);
+  padding: 8px;
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.dropdownResetBtn:hover {
+  background: var(--purple-subtle-bg);
+  border-color: var(--purple-vivid);
+}
+
+.dropdownLogout {
+  background: transparent;
+  border: 1px solid var(--border-dim);
+  color: var(--red);
+  padding: 8px;
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.dropdownLogout:hover {
+  background: var(--red-bg);
+  border-color: var(--red);
+}
