@@ -13,8 +13,8 @@ const router = Router();
 
 router.use(requireAuth);
 
-router.post('/', validate({ body: createChangeRequestSchema }), changeRequestController.createChangeRequest);
 router.get('/', validate({ query: listChangeRequestsQuerySchema }), changeRequestController.listChangeRequests);
+router.post('/', validate({ body: createChangeRequestSchema }), changeRequestController.createChangeRequest);
 router.get('/:id', validate({ params: changeRequestIdParamSchema }), changeRequestController.getChangeRequestById);
 router.post(
   '/:id/decision',

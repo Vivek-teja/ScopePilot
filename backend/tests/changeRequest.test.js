@@ -925,4 +925,356 @@ describe('Change Request Security & Tenancy (Task 1)', () => {
       expect(res.body.message).toMatch(/Project not found/i);
     });
   });
+
+  // =========================================================================
+  // 5. MASS-ASSIGNMENT & IDENTITY SAFEGUARDS
+  // =========================================================================
+  describe('Mass-Assignment & Identity Safeguards', () => {
+    it('Client-supplied requester identity cannot override authenticated identity', async () => {
+      let capturedCreationPayload = null;
+      jest.spyOn(ChangeRequest, 'create').mockImplementation((payload) => {
+        capturedCreationPayload = payload;
+        return Promise.resolve({
+          _id: new mongoose.Types.ObjectId(mockChangeRequestId),
+          ...payload,
+        });
+      });
+
+      const res = await request(app)
+        .post('/api/change-requests')
+        .set('Authorization', `Bearer ${freelancerToken}`)
+        .send({
+          project: mockProjectId,
+          title: 'Tampering Requester Test',
+          description: 'Attempting to inject a different requestedBy ID',
+          requestedBy: mockUnrelatedUserId, // spoofed requester!
+        });
+
+      expect(res.statusCode).toBe(201);
+      expect(capturedCreationPayload).toBeDefined();
+      expect(capturedCreationPayload.requestedBy.toString()).toBe(mockFreelancerId);
+      expect(capturedCreationPayload.requestedBy.toString()).not.toBe(mockUnrelatedUserId);
+    });
+
+    it('Protected status "approved" cannot be mass-assigned on creation', async () => {
+      const res = await request(app)
+        .post('/api/change-requests')
+        .set('Authorization', `Bearer ${freelancerToken}`)
+        .send({
+          project: mockProjectId,
+          title: 'Pre-Approved Exploit',
+          description: 'Attempting to bypass review via status injection',
+          status: 'approved',
+        });
+
+      expect(res.statusCode).toBe(400);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toBe('Validation failed');
+    });
+
+    it('Protected status "rejected" cannot be mass-assigned on creation', async () => {
+      const res = await request(app)
+        .post('/api/change-requests')
+        .set('Authorization', `Bearer ${freelancerToken}`)
+        .send({
+          project: mockProjectId,
+          title: 'Pre-Rejected Exploit',
+          description: 'Attempting to set rejected status on creation',
+          status: 'rejected',
+        });
+
+      expect(res.statusCode).toBe(400);
+      expect(res.body.success).toBe(false);
+    });
+
+    it('Protected decision fields in create payload are not assigned on creation', async () => {
+      let capturedCreationPayload = null;
+      jest.spyOn(ChangeRequest, 'create').mockImplementation((payload) => {
+        capturedCreationPayload = payload;
+        return Promise.resolve({
+          _id: new mongoose.Types.ObjectId(mockChangeRequestId),
+          ...payload,
+        });
+      });
+
+      const res = await request(app)
+        .post('/api/change-requests')
+        .set('Authorization', `Bearer ${freelancerToken}`)
+        .send({
+          project: mockProjectId,
+          title: 'Decision Injection Attempt',
+          description: 'Attempting to insert clientDecision at creation time',
+          decision: { decision: 'approve', decidedBy: mockClientId },
+          clientDecision: { decision: 'approve', decidedBy: mockClientId },
+        });
+
+      expect(res.statusCode).toBe(201);
+      expect(capturedCreationPayload.decision).toBeUndefined();
+      expect(capturedCreationPayload.clientDecision).toBeUndefined();
+    });
+  });
+
+  // =========================================================================
+  // 6. NUMERIC & VALUE VALIDATION
+  // =========================================================================
+  describe('Numeric & Value Validation', () => {
+    it('Should reject negative effortEstimate with 400 Bad Request', async () => {
+      const res = await request(app)
+        .post('/api/change-requests')
+        .set('Authorization', `Bearer ${freelancerToken}`)
+        .send({
+          project: mockProjectId,
+          title: 'Negative Effort Test',
+          description: 'Testing invalid negative effort estimate',
+          effortEstimate: -10,
+        });
+
+      expect(res.statusCode).toBe(400);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toBe('Validation failed');
+      expect(res.body.errors.some((e) => /effort/i.test(e.field) || /negative/i.test(e.message))).toBe(true);
+    });
+
+    it('Should reject negative priceAdjustment with 400 Bad Request', async () => {
+      const res = await request(app)
+        .post('/api/change-requests')
+        .set('Authorization', `Bearer ${freelancerToken}`)
+        .send({
+          project: mockProjectId,
+          title: 'Negative Price Test',
+          description: 'Testing invalid negative price adjustment',
+          priceAdjustment: -500,
+        });
+
+      expect(res.statusCode).toBe(400);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toBe('Validation failed');
+      expect(res.body.errors.some((e) => /price/i.test(e.field) || /negative/i.test(e.message))).toBe(true);
+    });
+
+    it('Should reject non-numeric effortEstimate with 400 Bad Request', async () => {
+      const res = await request(app)
+        .post('/api/change-requests')
+        .set('Authorization', `Bearer ${freelancerToken}`)
+        .send({
+          project: mockProjectId,
+          title: 'String Effort Test',
+          description: 'Testing string passed to numeric effort',
+          effortEstimate: 'fourteen days',
+        });
+
+      expect(res.statusCode).toBe(400);
+      expect(res.body.success).toBe(false);
+    });
+  });
+
+  // =========================================================================
+  // 7. LIFECYCLE TRANSITIONS & FINALIZED STATE GUARDS
+  // =========================================================================
+  describe('Lifecycle Transitions & Finalized State Guards', () => {
+    it('Should reject decision on an already APPROVED change request with 409 Conflict', async () => {
+      const mockApprovedCR = {
+        _id: new mongoose.Types.ObjectId(mockChangeRequestId),
+        project: mockProjectDoc,
+        requestedBy: new mongoose.Types.ObjectId(mockFreelancerId),
+        status: CHANGE_REQUEST_STATUS.APPROVED,
+        clientDecision: { decision: 'approve', decidedAt: new Date(), decidedBy: mockClientId },
+        save: jest.fn().mockResolvedValue(true),
+      };
+
+      jest.spyOn(ChangeRequest, 'findById').mockResolvedValue(mockApprovedCR);
+
+      const res = await request(app)
+        .post(`/api/change-requests/${mockChangeRequestId}/decision`)
+        .set('Authorization', `Bearer ${clientToken}`)
+        .send({
+          decision: CHANGE_REQUEST_DECISION.REJECT,
+          comment: 'Attempting to reverse approved decision',
+        });
+
+      expect(res.statusCode).toBe(409);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toMatch(/finalized/i);
+      expect(mockApprovedCR.save).not.toHaveBeenCalled();
+    });
+
+    it('Should reject decision on an already REJECTED change request with 409 Conflict', async () => {
+      const mockRejectedCR = {
+        _id: new mongoose.Types.ObjectId(mockChangeRequestId),
+        project: mockProjectDoc,
+        requestedBy: new mongoose.Types.ObjectId(mockFreelancerId),
+        status: CHANGE_REQUEST_STATUS.REJECTED,
+        clientDecision: { decision: 'reject', decidedAt: new Date(), decidedBy: mockClientId },
+        save: jest.fn().mockResolvedValue(true),
+      };
+
+      jest.spyOn(ChangeRequest, 'findById').mockResolvedValue(mockRejectedCR);
+
+      const res = await request(app)
+        .post(`/api/change-requests/${mockChangeRequestId}/decision`)
+        .set('Authorization', `Bearer ${clientToken}`)
+        .send({
+          decision: CHANGE_REQUEST_DECISION.APPROVE,
+          comment: 'Attempting to flip rejected to approved',
+        });
+
+      expect(res.statusCode).toBe(409);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toMatch(/finalized/i);
+    });
+
+    it('Should reject decision on an already IMPLEMENTED change request with 409 Conflict', async () => {
+      const mockImplementedCR = {
+        _id: new mongoose.Types.ObjectId(mockChangeRequestId),
+        project: mockProjectDoc,
+        requestedBy: new mongoose.Types.ObjectId(mockFreelancerId),
+        status: CHANGE_REQUEST_STATUS.IMPLEMENTED,
+        save: jest.fn().mockResolvedValue(true),
+      };
+
+      jest.spyOn(ChangeRequest, 'findById').mockResolvedValue(mockImplementedCR);
+
+      const res = await request(app)
+        .post(`/api/change-requests/${mockChangeRequestId}/decision`)
+        .set('Authorization', `Bearer ${clientToken}`)
+        .send({
+          decision: CHANGE_REQUEST_DECISION.REJECT,
+        });
+
+      expect(res.statusCode).toBe(409);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toMatch(/finalized/i);
+    });
+
+    it('Should reject decision on a DRAFT change request with 400 Bad Request', async () => {
+      const mockDraftCR = {
+        _id: new mongoose.Types.ObjectId(mockChangeRequestId),
+        project: mockProjectDoc,
+        requestedBy: new mongoose.Types.ObjectId(mockFreelancerId),
+        status: CHANGE_REQUEST_STATUS.DRAFT,
+        save: jest.fn().mockResolvedValue(true),
+      };
+
+      jest.spyOn(ChangeRequest, 'findById').mockResolvedValue(mockDraftCR);
+
+      const res = await request(app)
+        .post(`/api/change-requests/${mockChangeRequestId}/decision`)
+        .set('Authorization', `Bearer ${clientToken}`)
+        .send({
+          decision: CHANGE_REQUEST_DECISION.APPROVE,
+        });
+
+      expect(res.statusCode).toBe(400);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toMatch(/draft/i);
+    });
+
+    it('Should reject decision with non-canonical keyword "accept" with 400 Bad Request', async () => {
+      const res = await request(app)
+        .post(`/api/change-requests/${mockChangeRequestId}/decision`)
+        .set('Authorization', `Bearer ${clientToken}`)
+        .send({
+          decision: 'accept',
+          comment: 'Accepted using alternative keyword',
+        });
+
+      expect(res.statusCode).toBe(400);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toBe('Validation failed');
+    });
+  });
+
+  // =========================================================================
+  // 8. PROJECT-SCOPED LISTING & QUERYING
+  // =========================================================================
+  describe('Project-Scoped Change Request Listing', () => {
+    it('Authorized project participant can list change requests for their project', async () => {
+      const mockList = [
+        {
+          _id: new mongoose.Types.ObjectId(),
+          project: mockProjectDoc,
+          requestedBy: mockFreelancerUser,
+          title: 'Request 1',
+          status: CHANGE_REQUEST_STATUS.PENDING_ESTIMATE,
+        },
+      ];
+
+      const findQuery = {
+        populate: jest.fn().mockReturnThis(),
+        sort: jest.fn().mockResolvedValue(mockList),
+      };
+
+      jest.spyOn(ChangeRequest, 'find').mockReturnValue(findQuery);
+
+      const res = await request(app)
+        .get(`/api/change-requests?projectId=${mockProjectId}`)
+        .set('Authorization', `Bearer ${freelancerToken}`);
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.message).toMatch(/retrieved successfully/i);
+      expect(Array.isArray(res.body.data)).toBe(true);
+      expect(res.body.data.length).toBe(1);
+    });
+
+    it('Outsider cannot list change requests for unrelated project', async () => {
+      const res = await request(app)
+        .get(`/api/change-requests?projectId=${mockProjectId}`)
+        .set('Authorization', `Bearer ${unrelatedUserToken}`);
+
+      expect(res.statusCode).toBe(403);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toMatch(/You do not have access to this project/i);
+    });
+
+    it('Listing without projectId query parameter is rejected with 400 Bad Request', async () => {
+      const res = await request(app)
+        .get('/api/change-requests')
+        .set('Authorization', `Bearer ${freelancerToken}`);
+
+      expect(res.statusCode).toBe(400);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toBe('Validation failed');
+      expect(res.body.errors.some((e) => /Project reference is required/i.test(e.message))).toBe(true);
+    });
+  });
+
+  // =========================================================================
+  // 9. PROPOSAL SCOPE INTEGRITY (ORIGINAL PROPOSAL UNCHANGED)
+  // =========================================================================
+  describe('Proposal Scope Integrity', () => {
+    it('Creating and deciding a change request leaves original approved proposal untouched', async () => {
+      const mockProposalId = new mongoose.Types.ObjectId();
+      const mockProjectWithProposal = {
+        ...mockProjectDoc,
+        currentApprovedProposal: mockProposalId,
+      };
+
+      jest.spyOn(Project, 'findById').mockResolvedValue(mockProjectWithProposal);
+
+      const createdDoc = {
+        _id: new mongoose.Types.ObjectId(mockChangeRequestId),
+        project: mockProjectWithProposal._id,
+        requestedBy: new mongoose.Types.ObjectId(mockFreelancerId),
+        title: 'Non-destructive change request',
+        description: 'Verifying original approved proposal is preserved',
+        status: CHANGE_REQUEST_STATUS.PENDING_ESTIMATE,
+      };
+
+      jest.spyOn(ChangeRequest, 'create').mockResolvedValue(createdDoc);
+
+      const res = await request(app)
+        .post('/api/change-requests')
+        .set('Authorization', `Bearer ${freelancerToken}`)
+        .send({
+          project: mockProjectId,
+          title: 'Non-destructive change request',
+          description: 'Verifying original approved proposal is preserved',
+        });
+
+      expect(res.statusCode).toBe(201);
+      // Project's currentApprovedProposal was not mutated
+      expect(mockProjectWithProposal.currentApprovedProposal).toBe(mockProposalId);
+    });
+  });
 });

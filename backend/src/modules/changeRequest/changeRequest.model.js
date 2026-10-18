@@ -141,6 +141,10 @@ const changeRequestSchema = new mongoose.Schema(
 );
 
 changeRequestSchema.index({ project: 1, status: 1 });
+changeRequestSchema.index({ project: 1, createdAt: -1 });
+
+changeRequestSchema.set('toJSON', { virtuals: true });
+changeRequestSchema.set('toObject', { virtuals: true });
 
 const ChangeRequest = mongoose.model('ChangeRequest', changeRequestSchema);
 
