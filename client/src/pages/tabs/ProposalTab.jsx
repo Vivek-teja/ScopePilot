@@ -222,4 +222,3 @@ function PendingProposalSection({ proposal: p, session, onDecisionSuccess }) {
     </Card>
   );
 }
-
