@@ -40,6 +40,7 @@ function save(key, value) {
 function seed() {
   if (!load('seeded')) {
     save('changeRequests', CHANGE_REQUESTS);
+    save('projects', PROJECTS);
     save('seeded', true);
   }
 }
@@ -50,6 +51,10 @@ seed();
 
 function getChangeRequests() {
   return load('changeRequests') ?? CHANGE_REQUESTS;
+}
+
+function getProjects() {
+  return load('projects') ?? PROJECTS;
 }
 
 // ── Auth / session ────────────────────────────────────────────────────────────
@@ -82,15 +87,37 @@ export function fetchWorkspaceMembers() {
 // ── Projects ──────────────────────────────────────────────────────────────────
 
 export function fetchProjects(workspaceId) {
-  const list = PROJECTS.filter((p) => p.workspaceId === workspaceId);
+  const all = getProjects();
+  const list = workspaceId ? all.filter((p) => p.workspaceId === workspaceId) : all;
   return Promise.resolve(list);
 }
 
 export function fetchProject(projectId) {
-  const project = PROJECTS.find((p) => p.id === projectId);
+  const all = getProjects();
+  const project = all.find((p) => p.id === projectId);
   return project
     ? Promise.resolve(project)
     : Promise.reject(new Error('Project not found'));
+}
+
+export function createProject(data) {
+  const all = getProjects();
+  const newProj = {
+    id: `p-${Date.now()}`,
+    workspaceId: data.workspaceId || WORKSPACE.id,
+    title: data.title,
+    name: data.title,
+    summary: data.description || '',
+    description: data.description || '',
+    status: data.status || 'active',
+    startDate: new Date().toLocaleDateString(),
+    estimatedEndDate: 'TBD',
+    tags: ['scope'],
+    activeProposalVersion: 1,
+    ...data,
+  };
+  save('projects', [...all, newProj]);
+  return Promise.resolve(newProj);
 }
 
 // ── Proposals ─────────────────────────────────────────────────────────────────
@@ -174,13 +201,14 @@ export function simulateHumanDecision(crId, decision, note, deciderId) {
   const idx = all.findIndex((c) => c.id === crId);
   if (idx === -1) return Promise.reject(new Error('Change request not found'));
 
+  const isApproved = decision === 'approve' || decision === 'approved';
   const updated = {
     ...all[idx],
-    humanDecision: decision,
+    humanDecision: isApproved ? 'approved' : 'rejected',
     humanDecisionAt: new Date().toISOString(),
     humanDecisionBy: deciderId,
     humanDecisionNote: note ?? '',
-    status: decision === 'approved' ? 'approved' : 'rejected',
+    status: isApproved ? 'approved' : 'rejected',
     updatedAt: new Date().toISOString(),
   };
   const next = [...all];

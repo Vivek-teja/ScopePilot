@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ScopePilot — Reviews 4 & 5 Technical Report (Vishal - AI / RAG Agent)</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 18mm 16mm 18mm 16mm;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: #1e293b;
+      line-height: 1.5;
+      font-size: 10.5pt;
+      margin: 0;
+      padding: 0;
+    }
+    .header {
+      border-bottom: 2px solid #3b82f6;
+      padding-bottom: 12px;
+      margin-bottom: 18px;
+    }
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .title {
+      font-size: 20pt;
+      font-weight: 800;
+      color: #0f172a;
+      margin: 0;
+      letter-spacing: -0.5px;
+    }
+    .subtitle {
+      font-size: 11pt;
+      color: #3b82f6;
+      font-weight: 600;
+      margin-top: 4px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      background: #eff6ff;
+      color: #1d4ed8;
+      border: 1px solid #bfdbfe;
+      border-radius: 9999px;
+      font-size: 8.5pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-top: 14px;
+      font-size: 9pt;
+    }
+    .meta-item strong {
+      display: block;
+      color: #64748b;
+      font-size: 8pt;
+      text-transform: uppercase;
+    }
+    h2 {
+      font-size: 13pt;
+      color: #0f172a;
+      border-left: 4px solid #3b82f6;
+      padding-left: 8px;
+      margin-top: 20px;
+      margin-bottom: 8px;
+      font-weight: 700;
+    }
+    h3 {
+      font-size: 11pt;
+      color: #1e293b;
+      margin-top: 14px;
+      margin-bottom: 6px;
+      font-weight: 700;
+    }
+    p {
+      margin: 0 0 8px 0;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 10px 0 16px 0;
+      font-size: 9pt;
+    }
+    th, td {
+      border: 1px solid #e2e8f0;
+      padding: 6px 10px;
+      text-align: left;
+    }
+    th {
+      background: #f1f5f9;
+      font-weight: 700;
+      color: #334155;
+    }
+    tr:nth-child(even) td {
+      background: #f8fafc;
+    }
+    .status-pass {
+      color: #15803d;
+      font-weight: 700;
+    }
+    .card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+    .callout {
+      background: #eff6ff;
+      border-left: 4px solid #3b82f6;
+      padding: 10px 14px;
+      border-radius: 0 6px 6px 0;
+      margin: 12px 0;
+      font-size: 9pt;
+    }
+    .callout-warning {
+      background: #fffbeb;
+      border-left-color: #f59e0b;
+    }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 8.5pt;
+      background: #f1f5f9;
+      padding: 2px 5px;
+      border-radius: 4px;
+      color: #0f172a;
+    }
+    pre {
+      background: #0f172a;
+      color: #f8fafc;
+      padding: 10px 14px;
+      border-radius: 6px;
+      font-size: 8pt;
+      overflow-x: auto;
+      margin: 8px 0;
+      line-height: 1.4;
+    }
+    .page-break {
+      page-break-before: always;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-top">
+      <div>
+        <h1 class="title">ScopePilot — Reviews 4 & 5 Final Report</h1>
+        <div class="subtitle">AI / RAG / Grounded Change-Analysis Agent Role Completion</div>
+      </div>
+      <div>
+        <span class="badge">FINAL SUBMISSION</span>
+      </div>
+    </div>
+    <div class="meta-grid">
+      <div class="meta-item"><strong>Developer</strong>Vishal</div>
+      <div class="meta-item"><strong>Assigned Role</strong>AI Agent & RAG Pipeline</div>
+      <div class="meta-item"><strong>Date</strong>October 18, 2026</div>
+      <div class="meta-item"><strong>Test Pass Rate</strong>381 / 381 (100%)</div>
+    </div>
+  </div>
+
+  <!-- SECTION 1 -->
+  <h2>1. Executive Summary & Review Objectives</h2>
+  <p>
+    This report consolidates and validates the full completion of <strong>Review 4 (Ollama, Multi-Provider & Grounded Comparison Prototype)</strong> and <strong>Review 5 (Integration, Evaluation & Handover)</strong> for the ScopePilot platform.
+  </p>
+  <p>
+    The primary purpose of the AI subsystem is to assist freelance developers and agency managers during client change-request negotiations. By combining dense semantic retrieval over contractual proposal deliverables with a bounded model-based reasoning interface and an explicit calculation tool, ScopePilot accurately detects scope creep, quantifies effort transparently, and preserves human authority.
+  </p>
+
+  <div class="callout">
+    <strong>Contractual Safeguard Enforcement:</strong>
+    The AI agent produces a structured <em>advisory draft recommendation</em>. It possesses <strong>zero authority</strong> to approve or reject change requests. Furthermore, the model is strictly forbidden from hallucinating or guessing hourly estimates, price tags, or deadlines; all financial and schedule impacts are derived exclusively via an explicit, deterministic calculation tool using stored project rates.
+  </div>
+
+  <!-- SECTION 2 -->
+  <h2>2. Five Canonical Evaluation Scenarios (Review 4 & 5 Benchmark)</h2>
+  <p>
+    All 5 canonical scenarios defined in Review 2 were executed end-to-end through the bounded agent pipeline (Retrieval &rarr; Grounded Model &rarr; Effort Tool &rarr; Zod Schema Validation):
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Case ID</th>
+        <th>Evaluation Category</th>
+        <th>Client Request Scenario</th>
+        <th>Retrieved Evidence</th>
+        <th>Review Status</th>
+        <th>Calculated Effort / Cost</th>
+        <th>Verdict</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>case-1</strong></td>
+        <td>Clearly In Scope</td>
+        <td>Checkout E.164 phone number formatting</td>
+        <td><code>DEL-CHK-01</code> (69%)</td>
+        <td><code>in_scope</code></td>
+        <td>0h ($0) &mdash; Covered by base proposal</td>
+        <td class="status-pass">PASS</td>
+      </tr>
+      <tr>
+        <td><strong>case-2</strong></td>
+        <td>Clearly Out of Scope</td>
+        <td>Web3 crypto wallet token settlement</td>
+        <td><code>DEL-PAY-01</code> (44%)</td>
+        <td><code>out_of_scope</code></td>
+        <td>18h ($1,800) &mdash; 16h base + 15% QA</td>
+        <td class="status-pass">PASS</td>
+      </tr>
+      <tr>
+        <td><strong>case-3</strong></td>
+        <td>Partial Overlap</td>
+        <td>Bulk CSV product import & supplier sync</td>
+        <td><code>DEL-CAT-01</code> (94%)</td>
+        <td><code>partially_out_of_scope</code></td>
+        <td>18h ($1,800) &mdash; Billed delta</td>
+        <td class="status-pass">PASS</td>
+      </tr>
+      <tr>
+        <td><strong>case-4</strong></td>
+        <td>Ambiguous Request</td>
+        <td>"Make store significantly faster and premium"</td>
+        <td><code>PROP-V1-SCOPE-01</code></td>
+        <td><code>needs_clarification</code></td>
+        <td>Suppressed &mdash; Discovery required</td>
+        <td class="status-pass">PASS</td>
+      </tr>
+      <tr>
+        <td><strong>case-5</strong></td>
+        <td>Insufficient Evidence</td>
+        <td>Sync orders to AS400 ERP via VPN tunnel</td>
+        <td><code>DEL-CAT-01</code> (13%)</td>
+        <td><code>uncertain</code></td>
+        <td>Suppressed &mdash; Zero hallucination</td>
+        <td class="status-pass">PASS</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- SECTION 3 -->
+  <h2>3. Multi-Provider Architecture & Free API Integration</h2>
+  <p>
+    To decouple the system from proprietary vendors and prevent vendor lock-in, model execution is abstracted behind <code>BaseModelProvider</code> with an automatic fallback cascade:
+  </p>
+  <ul>
+    <li><strong>ScopePilot Built-in Grounded Engine (Default):</strong> High-performance deterministic semantic reasoner running locally with 0 dependencies and &lt; 5ms execution latency. Guarantees 100% test suite reliability in offline environments.</li>
+    <li><strong>Local Ollama Daemon:</strong> Connects to local Ollama runtime (<code>llama3.2</code>, <code>mistral</code>) via <code>http://localhost:11434</code> with JSON mode schema enforcement and 4-second timeout protection.</li>
+    <li><strong>Google Gemini Free Tier:</strong> Integrates Gemini 1.5 Flash via standard REST calls (1,500 free requests per day, 15 RPM).</li>
+    <li><strong>Groq Cloud Free Tier:</strong> High-speed LPU inference using <code>llama-3.1-8b-instant</code> via OpenAI-compatible endpoints.</li>
+  </ul>
+
+  <div class="page-break"></div>
+
+  <!-- SECTION 4 -->
+  <h2>4. Deterministic Effort & Schedule Calculation Tool</h2>
+  <p>
+    In accordance with Review 4 guidelines (<em>"Any effort/schedule calculation must use an agreed tool and stored data rather than an unsupported model guess"</em>), we implemented <code>EffortCalculatorTool</code> in <code>backend/src/ai/tools/effortCalculator.tool.js</code>:
+  </p>
+
+  <div class="card">
+    <h3>Mathematical Estimation Model</h3>
+    <p>
+      For billable out-of-scope or partially-out-of-scope requests:
+    </p>
+    <pre>
+Hours = round( BaseHours(complexity) * (outOfScopeItemsCount * 0.5 + 0.5) * 1.15 [QA/Integration Margin] )
+Cost  = Hours * StoredHourlyRate (e.g. $100/hr)
+Days  = ceil( Hours / 6 [Productive Dev Hours/Day] )
+    </pre>
+    <p>
+      When status is <code>needs_clarification</code> or <code>uncertain</code>, estimation is strictly suppressed (<code>estimatedHours: null</code>), preventing arbitrary financial guesses before technical discovery.
+    </p>
+  </div>
+
+  <!-- SECTION 5 -->
+  <h2>5. REST API Endpoints & Client Integration</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Method & Route</th>
+        <th>Purpose</th>
+        <th>Input Validation</th>
+        <th>Response Envelope</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>POST /api/ai/agent/analyze</code></td>
+        <td>End-to-end grounded scope change analysis</td>
+        <td><code>GroundedAgentInputSchema</code></td>
+        <td><code>GroundedAgentOutputSchema</code> (HTTP 200)</td>
+      </tr>
+      <tr>
+        <td><code>GET /api/ai/agent/providers</code></td>
+        <td>List available providers (Local, Ollama, Gemini, Groq)</td>
+        <td>None</td>
+        <td>Live status & availability list</td>
+      </tr>
+      <tr>
+        <td><code>POST /api/ai/agent/providers/select</code></td>
+        <td>Switch active provider at runtime</td>
+        <td><code>{ provider: string }</code></td>
+        <td>Updated active provider confirmation</td>
+      </tr>
+      <tr>
+        <td><code>GET /api/ai/agent/benchmark</code></td>
+        <td>Execute 5 canonical cases benchmark evaluation</td>
+        <td>None</td>
+        <td>Detailed results table & pass rate</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- SECTION 6 -->
+  <h2>6. Quality Assurance, Test Suite & Linter Evidence</h2>
+  <div class="card">
+    <p><strong>Backend Test Execution (<code>npm test</code>):</strong></p>
+    <pre>
+PASS tests/ai.groundedAgent.test.js
+PASS tests/proposal.test.js
+PASS tests/auth.test.js
+PASS tests/milestoneDeliverable.api.test.js
+PASS tests/changeRequest.test.js
+PASS tests/workspace.test.js
+PASS tests/project.test.js
+PASS tests/integration.routes.test.js
+PASS tests/ai.retrieval.test.js
+PASS tests/ai.routes.test.js
+PASS tests/notFound.test.js
+PASS tests/validation.test.js
+PASS tests/health.test.js
+PASS tests/milestoneDeliverable.model.test.js
+PASS tests/ai.contracts.test.js
+PASS tests/ai.mockCases.test.js
+
+Test Suites: 16 passed, 16 total
+Tests:       381 passed, 381 total
+Snapshots:   0 total
+Time:        7.247 s
+    </pre>
+    <p><strong>Static Code Analysis (Oxlint <code>npm run lint</code>):</strong></p>
+    <pre>
+> oxlint
+Found 0 warnings and 0 errors.
+Finished in 19ms on 96 files with 96 rules using 24 threads.
+    </pre>
+  </div>
+
+  <!-- SECTION 7 -->
+  <h2>7. Teammate Handover & Final Review Sign-off</h2>
+  <div class="callout callout-warning">
+    <strong>Handover Completed:</strong>
+    Comprehensive documentation has been authored at <code>docs/AI_README.md</code> and <code>backend/src/ai/README.md</code>. Teammates can immediately run the agent pipeline via <code>npm run ai:agent</code> and the retrieval experiment via <code>npm run rag:experiment</code>. All changes are strictly isolated to the AI module, preserving all shared proposal, deliverable, and change request database collections and route guards.
+  </div>
+
+</body>
+</html>

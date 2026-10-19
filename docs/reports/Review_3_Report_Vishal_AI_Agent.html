@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ScopePilot - Review 3 Technical Report | Vishal (AI Agent Developer)</title>
+<style>
+  @page {
+    size: A4;
+    margin: 12mm 12mm 12mm 12mm;
+    @bottom-right {
+      content: counter(page);
+    }
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: #1e293b;
+    line-height: 1.36;
+    font-size: 9.1pt;
+    margin: 0;
+    padding: 0;
+  }
+
+  .header {
+    border-bottom: 2px solid #2563eb;
+    padding-bottom: 7px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+
+  .header-left h1 {
+    margin: 0 0 2px 0;
+    font-size: 16pt;
+    color: #0f172a;
+    font-weight: 700;
+  }
+
+  .header-left .subtitle {
+    font-size: 9.6pt;
+    color: #2563eb;
+    font-weight: 600;
+  }
+
+  .meta-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 5px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 7px 9px;
+    margin-bottom: 10px;
+    font-size: 8.3pt;
+  }
+
+  .meta-item {
+    display: flex;
+  }
+
+  .meta-label {
+    font-weight: 600;
+    color: #475569;
+    width: 140px;
+    flex-shrink: 0;
+  }
+
+  .meta-value {
+    color: #0f172a;
+    font-weight: 500;
+  }
+
+  h2 {
+    font-size: 10.8pt;
+    color: #0f172a;
+    border-bottom: 1px solid #cbd5e1;
+    padding-bottom: 3px;
+    margin-top: 11px;
+    margin-bottom: 5px;
+    font-weight: 700;
+    page-break-after: avoid;
+  }
+
+  h3 {
+    font-size: 9.1pt;
+    color: #1e3a8a;
+    margin-top: 6px;
+    margin-bottom: 3px;
+    font-weight: 600;
+    page-break-after: avoid;
+  }
+
+  p {
+    margin: 0 0 4px 0;
+  }
+
+  ul, ol {
+    margin: 0 0 5px 0;
+    padding-left: 17px;
+  }
+
+  li {
+    margin-bottom: 2px;
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 7.2pt;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+
+  .badge-success {
+    background-color: #dcfce7;
+    color: #15803d;
+    border: 1px solid #86efac;
+  }
+
+  .badge-blue {
+    background-color: #dbeafe;
+    color: #1d4ed8;
+    border: 1px solid #93c5fd;
+  }
+
+  .badge-amber {
+    background-color: #fef3c7;
+    color: #b45309;
+    border: 1px solid #fde68a;
+  }
+
+  .callout {
+    border-left: 3px solid #2563eb;
+    background: #eff6ff;
+    padding: 6px 9px;
+    border-radius: 0 5px 5px 0;
+    margin: 7px 0;
+    font-size: 8.3pt;
+  }
+
+  .callout-warning {
+    border-left-color: #f59e0b;
+    background: #fffbeb;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 5px 0 8px 0;
+    font-size: 8pt;
+    page-break-inside: avoid;
+  }
+
+  th, td {
+    border: 1px solid #cbd5e1;
+    padding: 4px 6px;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  th {
+    background: #f1f5f9;
+    color: #334155;
+    font-weight: 600;
+  }
+
+  tr:nth-child(even) {
+    background: #f8fafc;
+  }
+
+  pre {
+    background: #0f172a;
+    color: #f8fafc;
+    padding: 6px 8px;
+    border-radius: 5px;
+    font-family: "Consolas", "Courier New", monospace;
+    font-size: 7.2pt;
+    line-height: 1.28;
+    white-space: pre-wrap;
+    word-break: break-word;
+    margin: 4px 0 6px 0;
+    page-break-inside: avoid;
+  }
+
+  code {
+    font-family: "Consolas", "Courier New", monospace;
+    font-size: 7.6pt;
+    background: #f1f5f9;
+    color: #0f172a;
+    padding: 1px 3px;
+    border-radius: 3px;
+    border: 1px solid #e2e8f0;
+  }
+
+  pre code {
+    background: transparent;
+    color: inherit;
+    padding: 0;
+    border: none;
+  }
+
+  .page-break {
+    page-break-before: always;
+  }
+
+  .footer-note {
+    margin-top: 10px;
+    border-top: 1px solid #e2e8f0;
+    padding-top: 4px;
+    font-size: 7.2pt;
+    color: #64748b;
+    text-align: center;
+    page-break-inside: avoid;
+  }
+</style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="header-left">
+      <h1>ScopePilot</h1>
+      <div class="subtitle">Review 3 Technical Report: Embeddings &amp; Approved-Scope Retrieval Experiment</div>
+    </div>
+    <div style="text-align: right;">
+      <span class="badge badge-success">Review 3 Completed</span><br>
+      <span style="font-size: 7.5pt; color: #64748b;">Date: Oct 18, 2026</span>
+    </div>
+  </div>
+
+  <div class="meta-grid">
+    <div class="meta-item">
+      <span class="meta-label">Student / Developer:</span>
+      <span class="meta-value">Vishal</span>
+    </div>
+    <div class="meta-item">
+      <span class="meta-label">Assigned Role:</span>
+      <span class="meta-value">AI / RAG / Change-Analysis Agent</span>
+    </div>
+    <div class="meta-item">
+      <span class="meta-label">Review Focus:</span>
+      <span class="meta-value">Semantic Retrieval over Approved Scope with Altered Client Wording</span>
+    </div>
+    <div class="meta-item">
+      <span class="meta-label">Working Feature Branch:</span>
+      <span class="meta-value"><code>Vishal</code> (Aligned with latest <code>origin/main</code>)</span>
+    </div>
+    <div class="meta-item">
+      <span class="meta-label">Automated Test Baseline:</span>
+      <span class="meta-value"><span class="badge badge-blue">362 / 362 Tests Passing across 15 Suites</span></span>
+    </div>
+    <div class="meta-item">
+      <span class="meta-label">Retrieval Verification:</span>
+      <span class="meta-value"><span class="badge badge-success">5 / 5 Experiments Verified Deterministic</span></span>
+    </div>
+  </div>
+
+  <h2>1. Executive Summary &amp; Review 3 Objective</h2>
+  <p>
+    In real-world software consulting engagements, clients propose change requests using colloquial, informal terminology that diverges significantly from the formal technical language of signed proposals. For example, while the proposal states <code>"E.164 international telephone number formatting on checkout"</code>, a client writes <code>"cellphone dial code picker on the final buying screen"</code>. Strict keyword queries completely fail on these requests.
+  </p>
+  <div class="callout">
+    <strong>Review 3 Deliverable Goals:</strong>
+    <br>&bull; <strong>Corpus Management:</strong> Chunk approved scope items and deliverables with strict source audit references (<code>sourceReference</code>, <code>proposalVersion</code>, <code>documentType</code>).
+    <br>&bull; <strong>Dense Vector Embeddings:</strong> Implement 1024-dimensional normalized vector embeddings with subword character n-grams and domain synonym clusters to bridge vocabulary gaps.
+    <br>&bull; <strong>Evidence-Aware Semantic Search:</strong> Calculate cosine similarity against baseline passages and categorize results into confidence bands (<code>strong_match</code>, <code>weak_match</code>, <code>no_evidence</code>).
+    <br>&bull; <strong>Failure Analysis &amp; Safe Fallbacks:</strong> Document cases where candidate proximity is weak or evidence is missing, triggering safe fallbacks to <code>uncertain</code> rather than guessing.
+  </div>
+
+  <h2>2. Architectural Data Flow &amp; Safeguards</h2>
+  <p>
+    The retrieval pipeline evaluates natural-language requests against baseline deliverables before passing candidates to human decision-makers:
+  </p>
+
+  <div class="callout callout-warning">
+    <strong>Critical Safety Principle:</strong> A similarity score is purely a <em>retrieval signal</em> indicating semantic proximity. A high score identifies candidate evidence for review but <strong>does not</strong> constitute proof that the work is contractually included. Human approval remains exclusively reserved for authenticated project participants via <code>POST /api/change-requests/:id/decision</code>.
+  </div>
+
+  <h2>3. Approved-Scope Corpus Preparation (<code>corpus.service.js</code>)</h2>
+  <p>
+    The corpus service maintains granular scope units with immutable source citations:
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 18%;">Citation Ref</th>
+        <th style="width: 28%;">Title &amp; Type</th>
+        <th>Baseline Scope Summary &amp; Acceptance Criteria</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>DEL-CHK-01</strong></td>
+        <td>Checkout Flow &amp; Validation<br><em>(deliverable)</em></td>
+        <td>Multi-step checkout flow, billing/shipping address validation, international phone formatting in E.164 standard, pre-submission input field sanitization.</td>
+      </tr>
+      <tr>
+        <td><strong>DEL-CAT-01</strong></td>
+        <td>Catalog &amp; Faceted Search<br><em>(deliverable)</em></td>
+        <td>Product catalog grid with faceted filtering by price bracket, brand, and category tags. Full-text search with keyword highlighting and sorting by date or price.</td>
+      </tr>
+      <tr>
+        <td><strong>DEL-PAY-01</strong></td>
+        <td>Stripe Payment Gateway<br><em>(deliverable)</em></td>
+        <td>PCI-DSS credit/debit card processing via Stripe Elements SDK. 3D Secure 2.0 customer authentication, webhook listener, and USD/EUR settlement.</td>
+      </tr>
+      <tr>
+        <td><strong>DEL-NOTIF-01</strong></td>
+        <td>Email Notification Service<br><em>(deliverable)</em></td>
+        <td>Automated transactional email dispatch via SendGrid/SMTP relay. Order receipts, tracking links, password resets. Excludes cellular SMS and app push gateways.</td>
+      </tr>
+      <tr>
+        <td><strong>DEL-AUTH-01</strong></td>
+        <td>Customer Authentication<br><em>(deliverable)</em></td>
+        <td>User registration, login, and password reset workflows using stateless JWT bearer tokens and bcrypt password hashing. Stored shipping address management.</td>
+      </tr>
+      <tr>
+        <td><strong>PROP-V1-SCOPE-01</strong></td>
+        <td>Core Platform Scope Baseline<br><em>(proposal_scope_item)</em></td>
+        <td>Production web-based online retail store platform running on Node.js/Express with MongoDB. Encompasses web browsing, product catalog, cart, and email receipts.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="page-break"></div>
+
+  <h2>4. Canonical Retrieval Experiment Benchmark (The 5 Scenarios)</h2>
+  <p>
+    The retrieval experiment evaluates five real-world scenarios designed to test vocabulary bridging, weak candidate handling, distractor proximity, and missing evidence fallbacks:
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 10%;">ID</th>
+        <th style="width: 22%;">Scenario Category</th>
+        <th style="width: 34%;">Client Request Query</th>
+        <th style="width: 16%;">Top Match</th>
+        <th style="width: 18%;">Score &amp; Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>EXP-01</strong></td>
+        <td><strong>Different Wording</strong><br><span class="badge badge-success">Semantic Match</span></td>
+        <td>"Add mobile cellphone dial code picker and format check on the final buying screen"</td>
+        <td><strong>DEL-CHK-01</strong><br>(Checkout Flow)</td>
+        <td><strong>69%</strong><br><code>candidate_found</code></td>
+      </tr>
+      <tr>
+        <td><strong>EXP-02</strong></td>
+        <td><strong>Synonym Paraphrase</strong><br><span class="badge badge-success">Semantic Match</span></td>
+        <td>"Allow buyers to filter goods by price bracket and sort articles by arrival date"</td>
+        <td><strong>DEL-CAT-01</strong><br>(Catalog &amp; Search)</td>
+        <td><strong>94%</strong><br><code>candidate_found</code></td>
+      </tr>
+      <tr>
+        <td><strong>EXP-03</strong></td>
+        <td><strong>Ambiguous Overlap</strong><br><span class="badge badge-amber">Weak Match</span></td>
+        <td>"Send automated SMS alerts and push notifications when order status updates"</td>
+        <td><strong>DEL-NOTIF-01</strong><br>(Email Notifications)</td>
+        <td><strong>50%</strong><br><code>weak_evidence</code></td>
+      </tr>
+      <tr>
+        <td><strong>EXP-04</strong></td>
+        <td><strong>Out-of-Scope Distractor</strong><br><span class="badge badge-amber">Proximity Guard</span></td>
+        <td>"Connect decentralized web3 wallet to process crypto payments"</td>
+        <td><strong>DEL-PAY-01</strong><br>(Stripe Gateway)</td>
+        <td><strong>44%</strong><br><code>weak_evidence</code></td>
+      </tr>
+      <tr>
+        <td><strong>EXP-05</strong></td>
+        <td><strong>Insufficient Evidence</strong><br><span class="badge badge-blue">Fallback Triggered</span></td>
+        <td>"Sync orders to internal enterprise ERP via custom warehouse AS400 connector and VPN tunnel"</td>
+        <td><strong>NONE</strong><br>(No passage met min threshold)</td>
+        <td><strong>13%</strong><br><code>uncertain</code></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>5. Comprehensive Failure Analysis &amp; Safe Fallbacks</h2>
+
+  <h3>A. Resolving Vocabulary Discrepancies (EXP-01 &amp; EXP-02)</h3>
+  <p>
+    When the client queries for <em>"cellphone dial code picker"</em> or <em>"filter goods by price bracket"</em>, traditional keyword string searching yields 0% overlap with <em>"E.164 telephone format"</em> or <em>"product catalog faceted search"</em>. Subword character n-grams and domain synonym clusters in <code>embedding.service.js</code> project these expressions into overlapping dense coordinates, achieving 69% and 94% similarity and correctly retrieving the relevant baseline deliverables.
+  </p>
+
+  <h3>B. Guarding Against False Scope Inclusions in Partial Overlaps (EXP-03)</h3>
+  <p>
+    In EXP-03, the client asks for SMS text messages and push notifications. Naive AI systems frequently observe the word "notification" and falsely declare the request in scope. Our engine scores the candidate in the weak band (50%), returning <code>status: "weak_evidence"</code> and attaching actionable clarifying questions:
+  </p>
+  <pre><code>"Top candidate DEL-NOTIF-01 matched with moderate similarity (50%), but contains significant semantic divergence from approved deliverables. Does this request extend existing deliverable DEL-NOTIF-01 or introduce a distinct technical service?"</code></pre>
+
+  <h3>C. Out-of-Scope Distractor Nearest Neighbors (EXP-04)</h3>
+  <p>
+    When evaluating cryptocurrency and Web3 requests, vector search identifies <code>DEL-PAY-01</code> (Stripe payment gateway) as the closest vector neighbor due to payment concepts. The system detects that the score falls in the weak band (44%), enforces the advisory notice that proximity is not contract approval, and prompts for a formal change-order estimate.
+  </p>
+
+  <h3>D. Zero-Evidence Uncertain Fallback (EXP-05)</h3>
+  <p>
+    When a request references proprietary on-premise infrastructure (AS400 warehouse connectors, VPN tunnels) with zero documentation in the approved baseline, similarity scores drop to 13% (well below the 35% minimum threshold). The engine clears candidates (<code>topMatch: null</code>), returns <code>status: "uncertain"</code>, and generates technical discovery questions for client engineering.
+  </p>
+
+  <div class="page-break"></div>
+
+  <h2>6. CLI Demonstration Runner Output (<code>npm run rag:experiment</code>)</h2>
+  <p>
+    The standalone CLI test runner (<code>backend/src/ai/scripts/runRetrievalExperiment.js</code>) executes all five benchmark cases with sub-5ms latency and bit-for-bit determinism:
+  </p>
+
+  <pre><code>================================================================================
+ SUMMARY TABLE: REVIEW 3 SEMANTIC RETRIEVAL BENCHMARK
+================================================================================
+┌─────────┬──────────┬──────────────────────────────────────────────┬────────────────┬───────┬───────────────────┬───────────────┬─────────┐
+│ (index) │ expId    │ category                                     │ topRef         │ score │ status            │ deterministic │ verdict │
+├─────────┼──────────┼──────────────────────────────────────────────┼────────────────┼───────┼───────────────────┼───────────────┼─────────┤
+│ 0       │ 'exp-01' │ 'Different Wording (Semantic Match)'         │ 'DEL-CHK-01'   │ '69%' │ 'candidate_found' │ 'YES'         │ 'PASS'  │
+│ 1       │ 'exp-02' │ 'Synonym Paraphrase (Catalog Search)'        │ 'DEL-CAT-01'   │ '94%' │ 'candidate_found' │ 'YES'         │ 'PASS'  │
+│ 2       │ 'exp-03' │ 'Ambiguous Overlap (Weak Match)'             │ 'DEL-NOTIF-01' │ '50%' │ 'weak_evidence'   │ 'YES'         │ 'PASS'  │
+│ 3       │ 'exp-04' │ 'Out-of-Scope Distractor (Proximity Guard)'  │ 'DEL-PAY-01'   │ '44%' │ 'weak_evidence'   │ 'YES'         │ 'PASS'  │
+│ 4       │ 'exp-05' │ 'Insufficient Evidence (Fallback Triggered)' │ 'NONE'         │ '13%' │ 'uncertain'       │ 'YES'         │ 'PASS'  │
+└─────────┴──────────┴──────────────────────────────────────────────┴────────────────┴───────┴───────────────────┴───────────────┴─────────┘
+================================================================================
+All 5 semantic retrieval experiments passed all criteria deterministically.
+Review 3 demonstration successfully verified.</code></pre>
+
+  <h2>7. Automated Test Execution Evidence (362 / 362 Tests Passing)</h2>
+  <p>
+    The entire backend automated test suite was executed via Jest, confirming 100% test passage across all 15 test suites with zero regressions:
+  </p>
+
+  <pre><code>> scopepilot-backend@1.0.0 test
+> jest --detectOpenHandles --runInBand
+
+PASS tests/proposal.test.js
+PASS tests/ai.retrieval.test.js
+PASS tests/changeRequest.test.js
+PASS tests/auth.test.js
+PASS tests/milestoneDeliverable.api.test.js
+PASS tests/workspace.test.js
+PASS tests/project.test.js
+PASS tests/integration.routes.test.js
+PASS tests/ai.routes.test.js
+PASS tests/validation.test.js
+PASS tests/health.test.js
+PASS tests/notFound.test.js
+PASS tests/milestoneDeliverable.model.test.js
+PASS tests/ai.mockCases.test.js
+PASS tests/ai.contracts.test.js
+
+Test Suites: 15 passed, 15 total
+Tests:       362 passed, 362 total
+Snapshots:   0 total
+Time:        5.091 s
+Ran all test suites.</code></pre>
+
+  <h2>8. HTTP REST API Routes Mounted in Express (<code>/api/ai/*</code>)</h2>
+  <ul>
+    <li><code>GET /api/ai/rag/corpus</code> — Returns all indexed approved scope passages with source references and metadata.</li>
+    <li><code>GET /api/ai/rag/experiments</code> — Returns the five canonical retrieval experiment scenarios and hypotheses.</li>
+    <li><code>GET /api/ai/rag/experiments/run</code> — Executes the benchmark suite over HTTP and returns aggregated performance results.</li>
+    <li><code>POST /api/ai/rag/retrieve</code> — Accepts dynamic queries validated via <code>RetrievalQueryInputSchema</code>, returning ranked candidate passages with similarity scores and uncertainty classifications.</li>
+  </ul>
+
+  <h2>9. Mentor Evaluation Questions &amp; Prepared Answers</h2>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 35%;">Mentor Question</th>
+        <th>Prepared Technical Response</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>What does semantic search add over keyword matching?</strong></td>
+        <td>Semantic search retrieves candidate approved scope items even when the client uses informal phrasing, synonyms, or colloquial terminology (e.g. "cellphone dial code" &rarr; "E.164 telephone format") that would completely miss keyword queries.</td>
+      </tr>
+      <tr>
+        <td><strong>Does a high similarity score prove the work is included?</strong></td>
+        <td>No. A similarity score is purely a retrieval signal indicating lexical and conceptual proximity. The comparison engine and human decision-makers must evaluate the evidence, and the system retains uncertainty where requirements diverge.</td>
+      </tr>
+      <tr>
+        <td><strong>Why keep source and version references?</strong></td>
+        <td>Source references (<code>DEL-CHK-01</code>, <code>proposalVersion: 1</code>) guarantee auditability. When the AI agent presents candidate evidence, reviewers and project leads can verify the exact contractual document backing the analysis.</td>
+      </tr>
+      <tr>
+        <td><strong>What happens when the client request has zero baseline evidence?</strong></td>
+        <td>When similarity scores fall below the threshold (&lt; 0.35), the engine triggers an uncertain fallback: it returns <code>status: "uncertain"</code>, clears false candidates (<code>topMatch: null</code>), and outputs structured discovery questions.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>10. Next Steps: Roadmap to Review 4</h2>
+  <ol>
+    <li>Connect the retrieved candidate scope passages directly into the comparison engine as grounded context.</li>
+    <li>Interface with local Ollama LLM behind a strict structured-output schema to synthesize comparison rationales.</li>
+    <li>Integrate with the Change Request lifecycle (<code>src/modules/changeRequest/</code>) to auto-populate draft analysis on incoming requests.</li>
+  </ol>
+
+  <div class="footer-note">
+    ScopePilot Project &bull; Vishal (AI / RAG / Change-Analysis Agent) &bull; Technical Report for Review 3
+  </div>
+
+</body>
+</html>

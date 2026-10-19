@@ -98,13 +98,14 @@ Populate the database with initial development entities (users, workspace, proje
 npm run seed
 ```
 
-### Seeded Test Accounts
+### Seeded Test Accounts (Local Development Only)
 
-| Role | Email | Password |
-| :--- | :--- | :--- |
-| **Freelancer** | `freelancer@scopepilot.dev` | `password123` |
-| **Client** | `client@scopepilot.dev` | `password123` |
-| **Admin** | `admin@scopepilot.dev` | `password123` |
+The development seed script (`npm run seed`) provisions three local development accounts:
+- **Freelancer:** `freelancer@scopepilot.dev`
+- **Client:** `client@scopepilot.dev`
+- **Admin:** `admin@scopepilot.dev`
+
+Passwords can be configured for local development via the `SEED_DEFAULT_PASSWORD` environment variable. If omitted in local development, the seed script falls back to the development default configured for local test runners. Never deploy seed scripts or default development credentials to production or publicly accessible environments.
 
 ---
 

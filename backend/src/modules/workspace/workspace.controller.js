@@ -22,9 +22,15 @@ const getWorkspaceMembers = asyncHandler(async (req, res) => {
   return ApiResponse.success(res, 'Workspace members retrieved successfully', members);
 });
 
+const listWorkspaces = asyncHandler(async (req, res) => {
+  const workspaces = await workspaceService.listWorkspaces(req.user._id);
+  return ApiResponse.success(res, 'Workspaces retrieved successfully', workspaces);
+});
+
 module.exports = {
   createWorkspace,
   getWorkspaceById,
   inviteMember,
   getWorkspaceMembers,
+  listWorkspaces,
 };

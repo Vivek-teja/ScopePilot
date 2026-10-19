@@ -14,6 +14,7 @@ const router = Router();
 router.use(requireAuth);
 
 router.post('/', validate({ body: createWorkspaceSchema }), workspaceController.createWorkspace);
+router.get('/', workspaceController.listWorkspaces);
 router.get('/:id', validate({ params: workspaceIdParamSchema }), workspaceController.getWorkspaceById);
 router.post(
   '/:id/invitations',

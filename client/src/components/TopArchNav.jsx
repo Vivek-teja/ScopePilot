@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useDemoSession } from '../hooks/DemoContext.jsx';
+import { useProjectTabs } from '../hooks/ProjectTabsContext.jsx';
 import { DEMO_USERS } from '../mocks/fixtures.js';
 import { resetDemoData } from '../services/scopePilotService.js';
 import styles from './TopArchNav.module.css';
@@ -8,7 +9,7 @@ import styles from './TopArchNav.module.css';
 /**
  * TopArchNav:
  * The cyber-geometric semicircle navigation hub anchored at the top-center of the screen.
- * 
+ *
  * Features:
  * - Constant coordinate scale: Circles 1 & 2 maintain exact identical physical size across both 2-circle and 4-circle modes.
  * - Semicircle boundary is pure pitch black (#000000, no outline), blending into background.
@@ -21,9 +22,16 @@ import styles from './TopArchNav.module.css';
  * - Paired circles: Pair (1, 2) and Pair (3, 4).
  * - Curved text on the OUTSIDE of each outline.
  * - Floating diamond at bottom with NO middle line.
+ * - Zero emojis throughout all states.
  */
-export default function TopArchNav({ projectTabs, activeProjectTab = 'overview', onSelectProjectTab }) {
-  const { session, switchRole, logout } = useDemoSession();
+export default function TopArchNav(props) {
+  const { session, mode, switchRole, logout } = useDemoSession();
+  const { activeTab, setActiveTab, isProjectDetail } = useProjectTabs();
+  const projectTabs = props.projectTabs ?? isProjectDetail;
+  const activeProjectTab = props.activeProjectTab ?? activeTab;
+  const onSelectProjectTab = props.onSelectProjectTab ?? setActiveTab;
+  const isLive = mode === 'live';
+
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [hoveredSection, setHoveredSection] = useState(null);
   const location = useLocation();
@@ -78,17 +86,33 @@ export default function TopArchNav({ projectTabs, activeProjectTab = 'overview',
 
   return (
     <>
-      {/* Discrete floating demo reset in corner (takes 0 screen height) */}
+      {/* Discrete floating live/demo indicator and reset in corner */}
       <div className={styles.cornerFloatingControls}>
         <span className={styles.cornerBrand}>SCOPEPILOT</span>
-        <button
-          type="button"
-          className={styles.discreteResetBtn}
-          onClick={handleReset}
-          title="Reset demo data"
+        <span
+          style={{
+            fontFamily: 'var(--font-mono)',
+            fontSize: '0.75rem',
+            padding: '3px 8px',
+            border: `1px solid ${isLive ? 'rgba(74, 222, 128, 0.4)' : 'rgba(216, 180, 254, 0.3)'}`,
+            background: isLive ? 'rgba(74, 222, 128, 0.12)' : 'rgba(216, 180, 254, 0.1)',
+            color: isLive ? 'var(--green)' : 'var(--purple-light)',
+            letterSpacing: '0.04em',
+          }}
+          title={isLive ? 'Connected to live Express backend API' : 'Running on local demo fixtures'}
         >
-          [ ↺ Reset ]
-        </button>
+          {isLive ? '[ LIVE API ]' : '[ DEMO ]'}
+        </span>
+        {!isLive && (
+          <button
+            type="button"
+            className={styles.discreteResetBtn}
+            onClick={handleReset}
+            title="Reset demo data"
+          >
+            [ ↺ Reset ]
+          </button>
+        )}
       </div>
 
       {/* Semicircle Navigation Arch (Anchored at top center, NO horizontal bar) */}
@@ -448,27 +472,38 @@ export default function TopArchNav({ projectTabs, activeProjectTab = 'overview',
                 <div className={styles.dropdownHeader}>
                   <span className={styles.dropdownUserRole}>[ {session?.role ?? 'freelancer'} ]</span>
                 </div>
-                <div className={styles.rolePickerList}>
-                  <span className={styles.rolePickerTitle}>Switch Persona:</span>
-                  {DEMO_USERS.map((u) => (
-                    <button
-                      key={u.id}
-                      type="button"
-                      className={`${styles.dropdownOption} ${session?.id === u.id ? styles.dropdownOptionActive : ''}`}
-                      onClick={() => {
-                        switchRole(u.id);
-                        setDropdownOpen(false);
-                      }}
-                    >
-                      <span>{u.name}</span>
-                      <span className={styles.dropdownOptionTag}>[{u.role}]</span>
+                {!isLive && (
+                  <div className={styles.rolePickerList}>
+                    <span className={styles.rolePickerTitle}>Switch Persona:</span>
+                    {DEMO_USERS.map((u) => (
+                      <button
+                        key={u.id}
+                        type="button"
+                        className={`${styles.dropdownOption} ${session?.id === u.id ? styles.dropdownOptionActive : ''}`}
+                        onClick={() => {
+                          switchRole(u.id);
+                          setDropdownOpen(false);
+                        }}
+                      >
+                        <span>{u.name}</span>
+                        <span className={styles.dropdownOptionTag}>[{u.role}]</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {isLive && session?.email && (
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', padding: '6px 4px', textAlign: 'center' }}>
+                    {session.email}
+                  </div>
+                )}
+                {!isLive && (
+                  <>
+                    <div className={styles.dropdownDivider} />
+                    <button type="button" className={styles.dropdownResetBtn} onClick={handleReset}>
+                      ↺ Reset Demo Data
                     </button>
-                  ))}
-                </div>
-                <div className={styles.dropdownDivider} />
-                <button type="button" className={styles.dropdownResetBtn} onClick={handleReset}>
-                  ↺ Reset Demo Data
-                </button>
+                  </>
+                )}
                 <div className={styles.dropdownDivider} />
                 <button type="button" className={styles.dropdownLogout} onClick={handleLogout}>
                   Log out ◊

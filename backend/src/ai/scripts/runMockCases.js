@@ -39,8 +39,8 @@ for (const testCase of ALL_CASES) {
 
   // Reproducibility check: run second time to verify determinism
   const secondRun = changeAnalysisMockService.analyze(testCase.payload);
-  const { analyzedAt: t1, ...payload1 } = output;
-  const { analyzedAt: t2, ...payload2 } = secondRun;
+  const { analyzedAt: _t1, ...payload1 } = output;
+  const { analyzedAt: _t2, ...payload2 } = secondRun;
   const isDeterministic = JSON.stringify(payload1) === JSON.stringify(payload2);
 
   resultsSummary.push({

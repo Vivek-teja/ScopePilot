@@ -7,8 +7,13 @@
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
     "test": "jest --detectOpenHandles --runInBand",
+    "lint": "oxlint",
     "seed": "node src/scripts/seed.js",
-    "mock:cases": "node src/ai/scripts/runMockCases.js"
+    "mock:cases": "node src/ai/scripts/runMockCases.js",
+    "rag:experiment": "node src/ai/scripts/runRetrievalExperiment.js",
+    "retrieval:cases": "node src/ai/scripts/runRetrievalExperiment.js",
+    "ai:agent": "node src/ai/scripts/runGroundedAgent.js",
+    "ai:benchmark": "node src/ai/scripts/runGroundedAgent.js"
   },
   "keywords": [
     "scopepilot",
@@ -34,6 +39,7 @@
   },
   "devDependencies": {
     "jest": "^29.7.0",
+    "oxlint": "^1.88.0",
     "supertest": "^7.0.0"
   },
   "engines": {

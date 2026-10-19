@@ -5,27 +5,66 @@ import { DEMO_USERS } from '../mocks/fixtures.js';
 import { DiamondProceedButton } from '../components/ui.jsx';
 import styles from './LoginPage.module.css';
 
+const SEEDED_ACCOUNTS = [
+  { role: 'freelancer', email: 'freelancer@scopepilot.dev', label: 'Alex Freelancer' },
+  { role: 'client', email: 'client@scopepilot.dev', label: 'Sarah Client' },
+  { role: 'admin', email: 'admin@scopepilot.dev', label: 'Admin User' },
+];
+
 /**
  * LoginPage:
- * Implements the exact layout from Reference Image 1 & design.txt:
- * - Central octagonal card with white border and pitch-black outer background.
- * - Corner details: dual parallel lines outside diagonal edges, outer wireframe triangles with inner filled purple triangle gems.
- * - Title "Login" with a distinct glowing purple dot on the "i".
- * - White rectangular Username and Password input boxes with black text.
- * - Two demo user selection boxes with white outlines.
- * - Diamond "Proceed" button with inner floating black box enclosing white text.
+ * Harmonizes the cyber-geometric octagonal card and DiamondProceedButton
+ * with ScopePilot live JWT authentication, registration, and demo fixtures.
+ * Zero emojis.
  */
 export default function LoginPage() {
-  const { login } = useDemoSession();
+  const { login, loginWithCredentials, registerWithCredentials } = useDemoSession();
   const navigate = useNavigate();
-  const [selected, setSelected] = useState(DEMO_USERS[0].id);
-  const [entering, setEntering] = useState(false);
-  const [username, setUsername] = useState('taran');
-  const [password, setPassword] = useState('••••••••');
+
+  const [authTab, setAuthTab] = useState('live'); // 'live' | 'demo'
+  const [isRegister, setIsRegister] = useState(false);
+
+  // Live credentials state
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+  const [role, setRole] = useState('freelancer');
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState(null);
+
+  // Demo perspective state
+  const [selectedDemoUser, setSelectedDemoUser] = useState(DEMO_USERS[0].id);
+
+  async function handleLiveSubmit(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    setLoading(true);
+    setErrorMessage(null);
+
+    try {
+      if (isRegister) {
+        await registerWithCredentials({ name, email, password, role });
+      } else {
+        await loginWithCredentials(email, password);
+      }
+      navigate('/workspace');
+    } catch (err) {
+      const msg = err.errors?.length
+        ? `${err.message}: ${err.errors.map((x) => `${x.field}: ${x.message}`).join(', ')}`
+        : err.message || 'Authentication failed. Please verify credentials.';
+      setErrorMessage(msg);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function handleQuickFill(acc) {
+    setEmail(acc.email);
+    setIsRegister(false);
+    setErrorMessage(null);
+  }
 
   function handleEnterDemo() {
-    setEntering(true);
-    login(selected);
+    login(selectedDemoUser);
     navigate('/workspace');
   }
 
@@ -86,60 +125,165 @@ export default function LoginPage() {
               ScopePilot // Freelance Scope &amp; Change Control
             </p>
 
-            {/* Form Fields */}
-            <div className={styles.fieldBlock}>
-              <label className={styles.inputLabel} htmlFor="login-username">Username:</label>
-              <input
-                id="login-username"
-                type="text"
-                className={styles.whiteInput}
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Username"
-              />
+            {/* Mode Switcher Tabs */}
+            <div className={styles.authTabGroup} role="tablist">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={authTab === 'live'}
+                className={`${styles.authTabBtn} ${authTab === 'live' ? styles.authTabBtnActive : ''}`}
+                onClick={() => { setAuthTab('live'); setErrorMessage(null); }}
+              >
+                [ LIVE API ]
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={authTab === 'demo'}
+                className={`${styles.authTabBtn} ${authTab === 'demo' ? styles.authTabBtnActive : ''}`}
+                onClick={() => { setAuthTab('demo'); setErrorMessage(null); }}
+              >
+                [ DEMO PERSPECTIVE ]
+              </button>
             </div>
 
-            <div className={styles.fieldBlock}>
-              <label className={styles.inputLabel} htmlFor="login-password">Password:</label>
-              <input
-                id="login-password"
-                type="password"
-                className={styles.whiteInput}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Password"
-              />
-            </div>
+            {authTab === 'live' ? (
+              <form onSubmit={handleLiveSubmit} className={styles.fieldBlock}>
+                {/* Quick Account Fill Buttons */}
+                <div className={styles.quickAccountsRow}>
+                  <span className={styles.quickLabel}>QUICK-FILL SEEDED CREDENTIALS:</span>
+                  <div className={styles.quickBtnGroup}>
+                    {SEEDED_ACCOUNTS.map((acc) => (
+                      <button
+                        key={acc.email}
+                        type="button"
+                        className={`${styles.quickBtn} ${email === acc.email ? styles.quickBtnActive : ''}`}
+                        onClick={() => handleQuickFill(acc)}
+                      >
+                        {acc.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
-            {/* Demo User Selection Boxes */}
-            <div className={styles.demoSelectionSection}>
-              <span className={styles.demoSelectionTitle}>Demo Persona:</span>
-              <div className={styles.demoBoxGroup}>
-                {DEMO_USERS.map((u) => (
+                {errorMessage && (
+                  <div className={styles.errorBox} role="alert">
+                    [ ! ] {errorMessage}
+                  </div>
+                )}
+
+                {isRegister && (
+                  <>
+                    <div className={styles.fieldBlock}>
+                      <label className={styles.inputLabel} htmlFor="reg-name">FULL NAME:</label>
+                      <input
+                        id="reg-name"
+                        type="text"
+                        className={styles.whiteInput}
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="e.g. Alex Developer"
+                        required
+                      />
+                    </div>
+                    <div className={styles.fieldBlock}>
+                      <label className={styles.inputLabel} htmlFor="reg-role">ACCOUNT ROLE:</label>
+                      <select
+                        id="reg-role"
+                        className={styles.whiteSelect}
+                        value={role}
+                        onChange={(e) => setRole(e.target.value)}
+                      >
+                        <option value="freelancer">Freelancer</option>
+                        <option value="client">Client</option>
+                        <option value="admin">Admin</option>
+                      </select>
+                    </div>
+                  </>
+                )}
+
+                <div className={styles.fieldBlock}>
+                  <label className={styles.inputLabel} htmlFor="auth-email">EMAIL ADDRESS:</label>
+                  <input
+                    id="auth-email"
+                    type="email"
+                    className={styles.whiteInput}
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="name@example.com"
+                    required
+                  />
+                </div>
+
+                <div className={styles.fieldBlock}>
+                  <label className={styles.inputLabel} htmlFor="auth-password">PASSWORD:</label>
+                  <input
+                    id="auth-password"
+                    type="password"
+                    className={styles.whiteInput}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    required
+                  />
+                </div>
+
+                {/* Diamond Proceed Button */}
+                <div className={styles.buttonContainer}>
+                  <DiamondProceedButton
+                    onClick={handleLiveSubmit}
+                    loading={loading}
+                    text={isRegister ? 'Register' : 'Sign In'}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'center' }}>
                   <button
-                    key={u.id}
                     type="button"
-                    className={`${styles.demoBox} ${selected === u.id ? styles.demoBoxActive : ''}`}
-                    onClick={() => setSelected(u.id)}
+                    className={styles.toggleBtn}
+                    onClick={() => { setIsRegister(!isRegister); setErrorMessage(null); }}
                   >
-                    <span className={styles.demoBoxName}>{u.name}</span>
-                    <span className={styles.demoBoxRole}>[ {u.role} ]</span>
+                    {isRegister
+                      ? 'Already have an account? Sign in here ◊'
+                      : 'Need an account? Register new account ◊'}
                   </button>
-                ))}
-              </div>
-            </div>
+                </div>
+              </form>
+            ) : (
+              <div className={styles.fieldBlock}>
+                {/* Demo User Selection Boxes */}
+                <div className={styles.demoSelectionSection}>
+                  <span className={styles.demoSelectionTitle}>SELECT DEMO PERSONA:</span>
+                  <div className={styles.demoBoxGroup}>
+                    {DEMO_USERS.map((u) => (
+                      <button
+                        key={u.id}
+                        type="button"
+                        className={`${styles.demoBox} ${selectedDemoUser === u.id ? styles.demoBoxActive : ''}`}
+                        onClick={() => setSelectedDemoUser(u.id)}
+                      >
+                        <span className={styles.demoBoxName}>{u.name}</span>
+                        <span className={styles.demoBoxRole}>[ {u.role} ]</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
-            {/* Diamond Proceed Button */}
-            <div className={styles.buttonContainer}>
-              <DiamondProceedButton
-                onClick={handleEnterDemo}
-                loading={entering}
-                text="Proceed"
-              />
-            </div>
+                {/* Diamond Proceed Button */}
+                <div className={styles.buttonContainer}>
+                  <DiamondProceedButton
+                    onClick={handleEnterDemo}
+                    loading={loading}
+                    text="Enter Demo"
+                  />
+                </div>
+              </div>
+            )}
 
             <p className={styles.disclaimerNote}>
-              Local sample data mode // No backend credentials required
+              {authTab === 'live'
+                ? `Live API connected at ${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'}`
+                : 'Local sample data mode // No backend credentials required'}
             </p>
           </div>
         </div>

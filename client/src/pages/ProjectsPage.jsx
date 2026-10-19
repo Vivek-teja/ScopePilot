@@ -1,9 +1,10 @@
 import { useState, useCallback } from 'react';
-import { fetchProjects } from '../services/scopePilotService.js';
+import { fetchProjects, createProject } from '../services/scopePilotService.js';
 import { WORKSPACE } from '../mocks/fixtures.js';
 import { useAsync } from '../hooks/useAsync.js';
 import {
   Card, Badge, LoadingState, ErrorState, EmptyState, Breadcrumb,
+  Button, FormField, Input, Textarea, Select, Notice,
 } from '../components/ui.jsx';
 import styles from './ProjectsPage.module.css';
 
@@ -24,8 +25,47 @@ export default function ProjectsPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
+  // Create form state
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [newTitle, setNewTitle] = useState('');
+  const [newDescription, setNewDescription] = useState('');
+  const [newStatus, setNewStatus] = useState('active');
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState(null);
+
   const fetchFn = useCallback(() => fetchProjects(WORKSPACE.id), []);
   const { data: projects, loading, error, reload } = useAsync(fetchFn, []);
+
+  async function handleCreateProject(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    if (!newTitle.trim()) {
+      setCreateError('Project title is required.');
+      return;
+    }
+    if (newTitle.trim().length < 2) {
+      setCreateError('Project title must be at least 2 characters.');
+      return;
+    }
+
+    setCreating(true);
+    setCreateError(null);
+    try {
+      await createProject({
+        workspaceId: WORKSPACE.id,
+        title: newTitle.trim(),
+        description: newDescription.trim(),
+        status: newStatus,
+      });
+      setNewTitle('');
+      setNewDescription('');
+      setShowCreateForm(false);
+      reload();
+    } catch (err) {
+      setCreateError(err.message || 'Failed to create project.');
+    } finally {
+      setCreating(false);
+    }
+  }
 
   if (loading) return <LoadingState message="Loading projects..." />;
   if (error)   return <ErrorState message={error} onRetry={reload} />;
@@ -51,11 +91,74 @@ export default function ProjectsPage() {
 
       {/* Page Header */}
       <div className={styles.pageHeader}>
-        <h1 className={styles.pageTitle}>Projects</h1>
-        <span className={styles.projectCountBadge}>
-          [ {filtered.length} of {projects?.length ?? 0} ]
-        </span>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: '16px' }}>
+          <h1 className={styles.pageTitle}>Projects</h1>
+          <span className={styles.projectCountBadge}>
+            [ {filtered.length} of {projects?.length ?? 0} ]
+          </span>
+        </div>
+        {!showCreateForm && (
+          <Button variant="primary" size="sm" onClick={() => setShowCreateForm(true)}>
+            + New Project ◊
+          </Button>
+        )}
       </div>
+
+      {/* New Project Inline Expandable Cyber-Geometric Card */}
+      {showCreateForm && (
+        <Card surface="grey" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h3 style={{ margin: 0, color: 'var(--text-white)', fontSize: '1.25rem', fontFamily: 'var(--font-display)' }}>
+              Create New Project
+            </h3>
+            <span style={{ color: 'var(--purple-light)', fontFamily: 'var(--font-mono)', fontSize: '0.85rem' }}>
+              [ NEW PROJECT ◊ ]
+            </span>
+          </div>
+          {createError && <Notice variant="warning">{createError}</Notice>}
+          <form onSubmit={handleCreateProject} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <FormField label="PROJECT TITLE" htmlFor="proj-title" required>
+              <Input
+                id="proj-title"
+                placeholder="e.g. Mobile App Redesign"
+                value={newTitle}
+                onChange={(e) => setNewTitle(e.target.value)}
+                disabled={creating}
+              />
+            </FormField>
+            <FormField label="DESCRIPTION & SCOPE SUMMARY" htmlFor="proj-desc">
+              <Textarea
+                id="proj-desc"
+                placeholder="Briefly describe the project deliverables and scope..."
+                value={newDescription}
+                onChange={(e) => setNewDescription(e.target.value)}
+                disabled={creating}
+                rows={3}
+              />
+            </FormField>
+            <FormField label="INITIAL STATUS" htmlFor="proj-status">
+              <Select
+                id="proj-status"
+                value={newStatus}
+                onChange={(e) => setNewStatus(e.target.value)}
+                disabled={creating}
+              >
+                <option value="active">Active</option>
+                <option value="paused">Paused</option>
+                <option value="completed">Completed</option>
+              </Select>
+            </FormField>
+            <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
+              <Button type="submit" variant="primary" loading={creating}>
+                {creating ? 'Creating...' : 'Create Project ◊'}
+              </Button>
+              <Button type="button" variant="ghost" onClick={() => setShowCreateForm(false)} disabled={creating}>
+                Cancel
+              </Button>
+            </div>
+          </form>
+        </Card>
+      )}
 
       {/* Search & Filter Toolbar (Ref Image 3) */}
       <div className={styles.toolbar}>
@@ -99,6 +202,13 @@ export default function ProjectsPage() {
         <EmptyState
           title="No projects match your filter"
           message={search ? `No results found for "${search}".` : 'No projects found in this view.'}
+          action={
+            !showCreateForm && (
+              <Button variant="primary" onClick={() => setShowCreateForm(true)}>
+                + Create First Project ◊
+              </Button>
+            )
+          }
         />
       ) : (
         <div className={styles.grid}>

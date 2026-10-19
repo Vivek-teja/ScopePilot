@@ -1,11 +1,15 @@
 const mongoose = require('mongoose');
-const { CHANGE_REQUEST_STATUS, ALLOWED_CHANGE_REQUEST_STATUSES } = require('./changeRequest.constants');
+const {
+  CHANGE_REQUEST_STATUS,
+  ALLOWED_CHANGE_REQUEST_STATUSES,
+  ALLOWED_CHANGE_REQUEST_DECISIONS,
+} = require('./changeRequest.constants');
 
 const decisionSchema = new mongoose.Schema(
   {
     decision: {
       type: String,
-      enum: ['approve', 'reject', 'request_revision'],
+      enum: ALLOWED_CHANGE_REQUEST_DECISIONS,
     },
     comment: {
       type: String,
@@ -13,6 +17,10 @@ const decisionSchema = new mongoose.Schema(
     },
     decidedAt: {
       type: Date,
+    },
+    decidedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
     },
   },
   { _id: false }

@@ -1,18 +1,52 @@
 const mongoose = require('mongoose');
 const { DELIVERABLE_STATUS, ALLOWED_DELIVERABLE_STATUSES } = require('./deliverable.constants');
 
+const evidenceSchema = new mongoose.Schema(
+  {
+    comment: {
+      type: String,
+      required: true,
+      trim: true,
+      alias: 'content',
+    },
+    fileUrls: [
+      {
+        type: String,
+        trim: true,
+      },
+    ],
+    reference: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    submittedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+    },
+    submittedAt: {
+      type: Date,
+      default: Date.now,
+    },
+  },
+  { _id: true }
+);
+
 const deliverableSchema = new mongoose.Schema(
   {
     project: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Project',
       required: [true, 'Project reference is required'],
+      alias: 'projectId',
       index: true,
     },
     milestone: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Milestone',
       required: [true, 'Milestone reference is required'],
+      alias: 'milestoneId',
       index: true,
     },
     title: {
@@ -28,8 +62,8 @@ const deliverableSchema = new mongoose.Schema(
     },
     scopeReference: {
       type: String,
-      required: [true, 'Scope reference identifier is required for scope-audit compatibility'],
       trim: true,
+      default: '',
       index: true,
     },
     status: {
@@ -47,6 +81,7 @@ const deliverableSchema = new mongoose.Schema(
         trim: true,
       },
     ],
+    evidence: [evidenceSchema],
   },
   {
     timestamps: true,
@@ -54,6 +89,10 @@ const deliverableSchema = new mongoose.Schema(
 );
 
 deliverableSchema.index({ project: 1, milestone: 1 });
+deliverableSchema.index({ milestone: 1, status: 1 });
+
+deliverableSchema.set('toJSON', { virtuals: true });
+deliverableSchema.set('toObject', { virtuals: true });
 
 const Deliverable = mongoose.model('Deliverable', deliverableSchema);
 

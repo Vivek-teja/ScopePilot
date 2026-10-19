@@ -1,4 +1,3 @@
-const mongoose = require('mongoose');
 const { connectDB, disconnectDB } = require('../config/db');
 const User = require('../modules/auth/auth.model');
 const Workspace = require('../modules/workspace/workspace.model');
@@ -6,11 +5,13 @@ const Project = require('../modules/project/project.model');
 const { Proposal, ProposalVersion } = require('../modules/proposal/proposal.model');
 const Milestone = require('../modules/milestone/milestone.model');
 const Deliverable = require('../modules/deliverable/deliverable.model');
+const ChangeRequest = require('../modules/changeRequest/changeRequest.model');
 const { ROLES, WORKSPACE_ROLES } = require('../constants/roles');
 const { PROJECT_STATUS } = require('../modules/project/project.constants');
 const { PROPOSAL_STATUS } = require('../modules/proposal/proposal.constants');
 const { MILESTONE_STATUS } = require('../modules/milestone/milestone.constants');
 const { DELIVERABLE_STATUS } = require('../modules/deliverable/deliverable.constants');
+const { CHANGE_REQUEST_STATUS } = require('../modules/changeRequest/changeRequest.constants');
 
 const seedData = async () => {
   try {
@@ -25,11 +26,12 @@ const seedData = async () => {
     await ProposalVersion.deleteMany({});
     await Milestone.deleteMany({});
     await Deliverable.deleteMany({});
+    await ChangeRequest.deleteMany({});
 
     console.log('🧹 Cleared existing database records.');
 
     // 1. Create Users
-    const defaultPassword = 'password123';
+    const defaultPassword = process.env.SEED_DEFAULT_PASSWORD || 'password123';
     const passwordHash = await User.hashPassword(defaultPassword);
 
     const freelancer = await User.create({
@@ -57,9 +59,10 @@ const seedData = async () => {
     });
 
     console.log('👤 Created Users:');
-    console.log(`   - Freelancer: ${freelancer.email} (Password: ${defaultPassword})`);
-    console.log(`   - Client: ${client.email} (Password: ${defaultPassword})`);
-    console.log(`   - Admin: ${admin.email} (Password: ${defaultPassword})`);
+    console.log(`   - Freelancer: ${freelancer.email}`);
+    console.log(`   - Client: ${client.email}`);
+    console.log(`   - Admin: ${admin.email}`);
+    console.log('   (Passwords set via SEED_DEFAULT_PASSWORD or development default; omitted from logs for security)');
 
     // 2. Create Workspace
     const workspace = await Workspace.create({
@@ -86,16 +89,16 @@ const seedData = async () => {
 
     console.log(`📁 Created Project: "${project.title}" (ID: ${project._id})`);
 
-    // 4. Create Proposal & Proposal Version 1
+    // 4. Create Proposal with Version 1 (Approved) AND Version 2 (Pending Review)
     const proposal = await Proposal.create({
       project: project._id,
       title: 'Initial Scope & Architecture Proposal',
-      currentVersionNumber: 1,
-      status: PROPOSAL_STATUS.APPROVED,
+      currentVersionNumber: 2,
+      status: PROPOSAL_STATUS.PENDING_APPROVAL,
       createdBy: freelancer._id,
     });
 
-    const proposalVersion = await ProposalVersion.create({
+    const proposalVersion1 = await ProposalVersion.create({
       proposal: proposal._id,
       project: project._id,
       versionNumber: 1,
@@ -125,18 +128,57 @@ const seedData = async () => {
       currency: 'USD',
       status: PROPOSAL_STATUS.APPROVED,
       decidedBy: client._id,
-      decidedAt: new Date(),
-      decisionComment: 'Scope and budget approved. Ready to proceed.',
+      decidedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 7 days ago
+      decisionComment: 'Scope and budget approved for Phase 1. Ready to proceed.',
+      createdBy: freelancer._id,
     });
 
-    proposal.activeVersion = proposalVersion._id;
+    const proposalVersion2 = await ProposalVersion.create({
+      proposal: proposal._id,
+      project: project._id,
+      versionNumber: 2,
+      title: 'Phase 2 Expansion Proposal - v2',
+      scopeSummary: 'Add mobile responsive performance optimizations and multi-currency payment checkout.',
+      scopeItems: [
+        {
+          title: 'Design System & UI Components',
+          description: 'Responsive React component library matching client branding guidelines.',
+          estimatedHours: 40,
+          price: 4000,
+        },
+        {
+          title: 'Catalog API & Cart Service',
+          description: 'Node.js/Express microservices with MongoDB database indexing.',
+          estimatedHours: 50,
+          price: 5000,
+        },
+        {
+          title: 'Payment Gateway Integration',
+          description: 'Stripe webhook listener and customer invoice generation.',
+          estimatedHours: 30,
+          price: 3000,
+        },
+        {
+          title: 'Multi-Currency & Regional Tax Calculation',
+          description: 'Automatic FX rate conversion and VAT/sales tax automation.',
+          estimatedHours: 35,
+          price: 4000,
+        },
+      ],
+      totalBudget: 16000,
+      currency: 'USD',
+      status: PROPOSAL_STATUS.PENDING_APPROVAL,
+      createdBy: freelancer._id,
+    });
+
+    proposal.activeVersion = proposalVersion2._id;
     await proposal.save();
 
-    // Link current approved proposal into project
-    project.currentApprovedProposal = proposalVersion._id;
+    // Link approved v1 as baseline
+    project.currentApprovedProposal = proposalVersion1._id;
     await project.save();
 
-    console.log(`📜 Created Approved Proposal Version: "${proposalVersion.title}"`);
+    console.log(`📜 Created Proposal: v1 (Approved) & v2 (Pending Client Review)`);
 
     // 5. Create Milestone & Deliverable
     const milestone = await Milestone.create({
@@ -167,6 +209,20 @@ const seedData = async () => {
 
     console.log(`🎯 Created Milestone: "${milestone.title}"`);
     console.log(`📦 Created Deliverable: "${deliverable.title}" (Scope Ref: ${deliverable.scopeReference})`);
+
+    // 6. Create Change Request created by Client
+    const changeRequest = await ChangeRequest.create({
+      project: project._id,
+      requestedBy: client._id,
+      title: 'Cryptocurrency Wallet Integration & Web3 Checkout',
+      description: 'Client requests integration of Web3 / Metamask crypto wallet checkout in addition to standard credit card processing.',
+      status: CHANGE_REQUEST_STATUS.SUBMITTED,
+      effortEstimate: 24,
+      affectedMilestones: [milestone._id],
+      relatedDeliverables: [deliverable._id],
+    });
+
+    console.log(`🔄 Created Change Request by Client: "${changeRequest.title}" (ID: ${changeRequest._id})`);
 
     console.log('✨ Development seed completed successfully!');
   } catch (error) {

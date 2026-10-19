@@ -57,6 +57,10 @@ const proposalVersionSchema = new mongoose.Schema(
       default: PROPOSAL_STATUS.DRAFT,
       index: true,
     },
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    },
     decidedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',

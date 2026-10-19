@@ -1,21 +1,100 @@
-.page { display: flex; flex-direction: column; gap: var(--space-6); }
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
 
-.header { display: flex; flex-direction: column; gap: var(--space-3); }
-.headerTop { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-4); flex-wrap: wrap; }
-.headerMeta { display: flex; flex-direction: column; gap: var(--space-2); }
-.projectTitle { margin: 0; }
-.badgeRow { display: flex; gap: var(--space-2); align-items: center; }
-.summary { color: var(--text-secondary); font-size: 0.92rem; margin: 0; }
-.dates { display: flex; gap: var(--space-5); flex-wrap: wrap; font-size: 0.82rem; color: var(--text-muted); align-items: center; }
-.tag { background: var(--gray-bg); color: var(--gray); padding: 2px 8px; border-radius: 999px; font-size: 0.72rem; font-weight: 500; }
+/* ── Project Header ── */
+.headerBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-bottom: var(--space-5);
+  border-bottom: 2px solid var(--border-dim);
+}
 
-.overviewGrid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-5); }
-@media (max-width: 680px) { .overviewGrid { grid-template-columns: 1fr; } }
-.overviewCard { display: flex; flex-direction: column; gap: var(--space-3); }
-.overviewHint { color: var(--text-secondary); font-size: 0.85rem; }
+.headerTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
 
-.quickLinks { display: flex; flex-direction: column; gap: var(--space-3); }
-.quickLink { display: flex; align-items: flex-start; gap: var(--space-3); padding: var(--space-3); background: var(--bg); border-radius: var(--radius-sm); }
-.quickLinkIcon { font-size: 1.2rem; flex-shrink: 0; }
-.quickLinkLabel { font-weight: 600; font-size: 0.88rem; color: var(--text-heading); }
-.quickLinkDesc  { font-size: 0.78rem; color: var(--text-secondary); }
+.projectTitle {
+  font-family: var(--font-display);
+  font-size: 2.8rem;
+  color: var(--text-white);
+  letter-spacing: 0.05em;
+  margin: 0;
+}
+
+.summary {
+  color: var(--text-purple-1);
+  font-size: 0.95rem;
+  max-width: 75ch;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.metaLine {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+
+.tagPill {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  padding: 2px 8px;
+  background: var(--purple-subtle-bg);
+  color: var(--purple-light);
+  border: 1px solid var(--border-dim);
+}
+
+/* ── Tab Content Panel ── */
+.tabContentPanel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  min-height: 400px;
+}
+
+/* ── Overview Tab Container & Details Card ── */
+.overviewContainer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.projectDetailsOctCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: 18px 24px;
+}
+
+.cardTitleLine {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.cardTitle {
+  font-family: var(--font-display);
+  font-size: 1.8rem;
+  color: var(--text-white);
+  letter-spacing: 0.05em;
+  margin: 0;
+}
+
+.cardIdBadge {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--purple-light);
+}

@@ -3,6 +3,7 @@ const PROPOSAL_STATUS = {
   PENDING_APPROVAL: 'pending_approval',
   APPROVED: 'approved',
   REJECTED: 'rejected',
+  SUPERSEDED: 'superseded',
 };
 
 const PROPOSAL_DECISION = {
