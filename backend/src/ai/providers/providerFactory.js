@@ -22,7 +22,11 @@ class ProviderFactory {
 
     this.activeProviderName = process.env.AI_PROVIDER || 'local';
     // Per-user provider preferences: userId (string) -> providerName
+    // NOTE: In-memory only — lost on server restart (acceptable for single-instance dev/staging).
+    // For multi-instance deployments, save preference to the user record in the database instead.
     this.userPreferences = new Map();
+    // Cap to prevent unbounded growth: evicts oldest entries when full
+    this.MAX_USER_PREFS = 1000;
   }
 
   /**
@@ -87,6 +91,11 @@ class ProviderFactory {
       throw new Error(`Invalid provider "${providerName}". Supported: ${SUPPORTED_PROVIDERS.join(', ')}`);
     }
     if (userId) {
+      // Evict the oldest entry when the cap is reached
+      if (this.userPreferences.size >= this.MAX_USER_PREFS && !this.userPreferences.has(userId.toString())) {
+        const oldestKey = this.userPreferences.keys().next().value;
+        this.userPreferences.delete(oldestKey);
+      }
       this.userPreferences.set(userId.toString(), providerName);
       return providerName;
     }

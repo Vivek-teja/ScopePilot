@@ -59,7 +59,7 @@ describe('AI Model Providers Unit Tests (Mocked Adapters)', () => {
 
   // ── 1. Google Gemini Provider Tests ─────────────────────────────────────────
   describe('CloudModelProvider (Gemini)', () => {
-    const geminiKey = 'test-gemini-secret-api-key-12345';
+    const geminiKey = 'fake-gemini-key-for-unit-tests-only';
 
     it('reports availability based on presence of API key', async () => {
       const withKey = new CloudModelProvider('gemini', { apiKey: geminiKey });
@@ -206,7 +206,7 @@ describe('AI Model Providers Unit Tests (Mocked Adapters)', () => {
 
   // ── 2. Groq Cloud Provider Tests ────────────────────────────────────────────
   describe('CloudModelProvider (Groq)', () => {
-    const groqKey = 'gsk_test_groq_secret_api_key_67890';
+    const groqKey = 'fake-groq-key-for-unit-tests-only';
 
     it('reports availability based on presence of API key', async () => {
       const withKey = new CloudModelProvider('groq', { apiKey: groqKey });

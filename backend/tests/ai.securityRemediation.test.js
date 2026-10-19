@@ -329,4 +329,351 @@ describe('AI security and classification remediation', () => {
       expect(findProposalVersion).not.toHaveBeenCalled();
     });
   });
+
+  // ── B1: Public routes must require auth when they call providers ─────────────
+  describe('B1 – provider-calling routes require authentication', () => {
+    it('GET /api/ai/agent/benchmark returns 401 without token', async () => {
+      const res = await request(app).get('/api/ai/agent/benchmark');
+      expect(res.status).toBe(401);
+    });
+
+    it('POST /api/ai/scope-chat returns 401 without token', async () => {
+      const res = await request(app)
+        .post('/api/ai/scope-chat')
+        .send({ message: 'test', projectId });
+      expect(res.status).toBe(401);
+    });
+
+    it('POST /api/ai/change-agent returns 401 without token', async () => {
+      const res = await request(app)
+        .post('/api/ai/change-agent')
+        .send({ request: 'add feature', projectId });
+      expect(res.status).toBe(401);
+    });
+
+    it('POST /api/ai/scope-analysis-db returns 401 without token', async () => {
+      const res = await request(app)
+        .post('/api/ai/scope-analysis-db')
+        .send({ projectId });
+      expect(res.status).toBe(401);
+    });
+
+    it('POST /api/ai/rag/ingest returns 401 without token', async () => {
+      const res = await request(app)
+        .post('/api/ai/rag/ingest')
+        .send({ projectId });
+      expect(res.status).toBe(401);
+    });
+
+    it('top-level POST /api/scope-chat returns 401 without token', async () => {
+      const res = await request(app)
+        .post('/api/scope-chat')
+        .send({ message: 'test', projectId });
+      expect(res.status).toBe(401);
+    });
+
+    it('top-level POST /api/change-agent returns 401 without token', async () => {
+      const res = await request(app)
+        .post('/api/change-agent')
+        .send({ request: 'add feature', projectId });
+      expect(res.status).toBe(401);
+    });
+
+    it('GET /api/ai/cases is still public (no provider call)', async () => {
+      const res = await request(app).get('/api/ai/cases');
+      expect(res.status).toBe(200);
+    });
+
+    it('GET /api/ai/rag/corpus is still public (no provider call)', async () => {
+      const res = await request(app).get('/api/ai/rag/corpus');
+      expect(res.status).toBe(200);
+    });
+
+    it('GET /api/ai/agent/providers is still public (no provider call, no private data)', async () => {
+      const res = await request(app).get('/api/ai/agent/providers');
+      expect(res.status).toBe(200);
+    });
+  });
+
+  // ── B1: Rate limiter returns 429 and blocks calls before provider is reached ─
+  describe('B1 – AI rate limiter', () => {
+    const { createAiRateLimiter, _windows } = require('../src/ai/middleware/aiRateLimiter.middleware');
+
+    beforeEach(() => {
+      // Clear all rate-limit windows between tests
+      _windows.clear();
+    });
+
+    it('returns 429 after max calls are exceeded within the window', () => {
+      const limiter = createAiRateLimiter({ windowMs: 60000, max: 3 });
+      const mockReq = { user: { _id: 'rate-test-user' }, ip: '127.0.0.1' };
+      const mockRes = {
+        status: jest.fn().mockReturnThis(),
+        json: jest.fn().mockReturnThis(),
+        set: jest.fn(),
+      };
+      const next = jest.fn();
+
+      // First 3 calls should pass
+      limiter(mockReq, mockRes, next);
+      limiter(mockReq, mockRes, next);
+      limiter(mockReq, mockRes, next);
+      expect(next).toHaveBeenCalledTimes(3);
+
+      // 4th call must be rate-limited
+      limiter(mockReq, mockRes, next);
+      expect(next).toHaveBeenCalledTimes(3); // unchanged
+      expect(mockRes.status).toHaveBeenCalledWith(429);
+      expect(mockRes.json).toHaveBeenCalledWith(
+        expect.objectContaining({ success: false, retryAfterSeconds: expect.any(Number) })
+      );
+    });
+
+    it('sets Retry-After header on 429 response', () => {
+      const limiter = createAiRateLimiter({ windowMs: 60000, max: 1 });
+      const mockReq = { user: { _id: 'rate-header-user' }, ip: '127.0.0.1' };
+      const mockRes = {
+        status: jest.fn().mockReturnThis(),
+        json: jest.fn().mockReturnThis(),
+        set: jest.fn(),
+      };
+      const next = jest.fn();
+
+      limiter(mockReq, mockRes, next); // pass
+      limiter(mockReq, mockRes, next); // blocked
+
+      const setCalls = mockRes.set.mock.calls.map(([k]) => k);
+      expect(setCalls).toContain('Retry-After');
+    });
+
+    it('different users have independent windows (user A blocked does not block user B)', () => {
+      const limiter = createAiRateLimiter({ windowMs: 60000, max: 1 });
+      const userA = { user: { _id: 'user-a' }, ip: '127.0.0.1' };
+      const userB = { user: { _id: 'user-b' }, ip: '127.0.0.2' };
+      const nextA = jest.fn();
+      const nextB = jest.fn();
+      const mockRes = { status: jest.fn().mockReturnThis(), json: jest.fn(), set: jest.fn() };
+
+      limiter(userA, mockRes, nextA); // A: pass
+      limiter(userA, mockRes, nextA); // A: blocked
+      expect(nextA).toHaveBeenCalledTimes(1);
+
+      limiter(userB, mockRes, nextB); // B: still pass (separate bucket)
+      expect(nextB).toHaveBeenCalledTimes(1);
+    });
+
+    it('resets count after the window expires', () => {
+      const limiter = createAiRateLimiter({ windowMs: 1, max: 1 }); // 1ms window
+      const mockReq = { user: { _id: 'rate-reset-user' }, ip: '127.0.0.1' };
+      const mockRes = { status: jest.fn().mockReturnThis(), json: jest.fn(), set: jest.fn() };
+      const next = jest.fn();
+
+      limiter(mockReq, mockRes, next); // pass
+      limiter(mockReq, mockRes, next); // blocked
+
+      // Wait for window to expire, then try again
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          limiter(mockReq, mockRes, next); // should pass again
+          expect(next).toHaveBeenCalledTimes(2);
+          resolve();
+        }, 10);
+      });
+    });
+  });
+
+  // ── B2: Contradictory evidence must prevent in_scope classification ─────────
+  describe('B2 – contradictory evidence guard', () => {
+    it('returns needs_clarification when exclusion passage is present alongside strong match', async () => {
+      const provider = new LocalModelProvider();
+      jest.spyOn(provider, 'generateComparison').mockResolvedValue({
+        summary: 'Request matches checkout functionality',
+        reviewStatus: 'in_scope',
+        confidenceScore: 0.92,
+        inScopeItems: [{ item: 'Checkout redesign', matchedScopeReference: 'DEL-CHK-01', reason: 'matched checkout deliverable' }],
+        outOfScopeItems: [],
+        uncertainItems: [],
+        affectedDeliverables: [{ deliverableId: 'DEL-CHK-01', scopeReference: 'DEL-CHK-01', title: 'Checkout', impactDescription: 'Redesign impacts checkout flow' }],
+        suggestedQuestions: [],
+      });
+
+      const service = new GroundedAgentService({
+        providerFactory: {
+          getProvider: jest.fn().mockResolvedValue({ provider, fallbackUsed: false }),
+          localProvider: provider,
+        },
+        retrievalService: {
+          retrieve: jest.fn().mockReturnValue({
+            retrievedPassages: [
+              {
+                passageId: 'p1',
+                sourceReference: 'DEL-CHK-01',
+                sourceTitle: 'Checkout',
+                documentType: 'deliverable',
+                proposalVersion: 1,
+                similarityScore: 0.92, // strong match
+                relevanceCategory: 'strong_match',
+                // Key: exclusion keyword in the passage text
+                passageText: 'Checkout is excluded from this phase; it will be addressed in Phase 2.',
+                whyRetrieved: 'matched',
+                metadata: {},
+              },
+            ],
+          }),
+        },
+      });
+
+      const result = await service.analyze({
+        projectId,
+        approvedProposalVersion: {
+          versionNumber: 1,
+          title: 'Checkout Project Proposal v1',
+          scopeSummary: 'Checkout flow, payment processing and cart management.',
+          scopeItems: [],
+        },
+        deliverables: [{
+          id: 'DEL-CHK-01',
+          title: 'Checkout Flow',
+          description: 'Payment and cart deliverable',
+          scopeReference: 'DEL-CHK-01',
+          acceptanceCriteria: ['Cart works end to end'],
+        }],
+        newClientRequest: {
+          title: 'Checkout redesign',
+          description: 'Redesign the checkout flow',
+          requestedBy: 'client',
+        },
+      });
+
+      expect(result.reviewStatus).toBe('needs_clarification');
+      expect(result.summary).toMatch(/evidence conflict/i);
+    });
+
+    it('returns uncertain when model says in_scope but top passage is below threshold', async () => {
+      const provider = new LocalModelProvider();
+      jest.spyOn(provider, 'generateComparison').mockResolvedValue({
+        summary: 'Weak match found',
+        reviewStatus: 'in_scope',
+        confidenceScore: 0.25,
+        inScopeItems: [{ item: 'AI chatbot', matchedScopeReference: 'DEL-01', reason: 'weak keyword match' }],
+        outOfScopeItems: [],
+        uncertainItems: [],
+        affectedDeliverables: [],
+        suggestedQuestions: [],
+      });
+
+      const service = new GroundedAgentService({
+        providerFactory: {
+          getProvider: jest.fn().mockResolvedValue({ provider, fallbackUsed: false }),
+          localProvider: provider,
+        },
+        retrievalService: {
+          retrieve: jest.fn().mockReturnValue({
+            retrievedPassages: [
+              {
+                passageId: 'p2',
+                sourceReference: 'DEL-01',
+                sourceTitle: 'Reporting',
+                documentType: 'deliverable',
+                proposalVersion: 1,
+                similarityScore: 0.25, // below STRONG_MATCH_THRESHOLD
+                relevanceCategory: 'weak_match',
+                passageText: 'Monthly CSV export reporting.',
+                whyRetrieved: 'partial',
+                metadata: {},
+              },
+            ],
+          }),
+        },
+      });
+
+      const result = await service.analyze({
+        projectId,
+        approvedProposalVersion: {
+          versionNumber: 1,
+          title: 'Reporting Module Proposal v1',
+          scopeSummary: 'CSV reporting and data export features.',
+          scopeItems: [],
+        },
+        deliverables: [{
+          id: 'DEL-01',
+          title: 'Reporting Dashboard',
+          description: 'Monthly CSV export and reporting',
+          scopeReference: 'DEL-01',
+          acceptanceCriteria: ['Reports export in CSV format'],
+        }],
+        newClientRequest: {
+          title: 'Build AI chatbot assistant',
+          description: 'Add an AI chatbot to the app',
+          requestedBy: 'client',
+        },
+      });
+
+      expect(result.reviewStatus).toBe('uncertain');
+      expect(result.summary).toMatch(/insufficient/i);
+    });
+
+    it('preserves in_scope when evidence is strong and no contradictory passage exists', async () => {
+      const provider = new LocalModelProvider();
+      jest.spyOn(provider, 'generateComparison').mockResolvedValue({
+        summary: 'Clearly in scope — strong evidence found',
+        reviewStatus: 'in_scope',
+        confidenceScore: 0.95,
+        inScopeItems: [{ item: 'Checkout', matchedScopeReference: 'DEL-CHK-01', reason: 'Exact match to checkout deliverable' }],
+        outOfScopeItems: [],
+        uncertainItems: [],
+        affectedDeliverables: [{ deliverableId: 'DEL-CHK-01', scopeReference: 'DEL-CHK-01', title: 'Checkout', impactDescription: 'Bug fix in checkout payment validation' }],
+        suggestedQuestions: [],
+      });
+
+      const service = new GroundedAgentService({
+        providerFactory: {
+          getProvider: jest.fn().mockResolvedValue({ provider, fallbackUsed: false }),
+          localProvider: provider,
+        },
+        retrievalService: {
+          retrieve: jest.fn().mockReturnValue({
+            retrievedPassages: [
+              {
+                passageId: 'p3',
+                sourceReference: 'DEL-CHK-01',
+                sourceTitle: 'Checkout',
+                documentType: 'deliverable',
+                proposalVersion: 1,
+                similarityScore: 0.95, // strong
+                relevanceCategory: 'strong_match',
+                passageText: 'Checkout flow including cart, payment processing, and confirmation.',
+                whyRetrieved: 'strong match',
+                metadata: {},
+              },
+            ],
+          }),
+        },
+      });
+
+      const result = await service.analyze({
+        projectId,
+        approvedProposalVersion: {
+          versionNumber: 1,
+          title: 'E-Commerce Checkout Proposal v1',
+          scopeSummary: 'Full checkout flow including cart, payment and confirmation.',
+          scopeItems: [],
+        },
+        deliverables: [{
+          id: 'DEL-CHK-01',
+          title: 'Checkout Flow',
+          description: 'Checkout flow including cart, payment processing, and confirmation',
+          scopeReference: 'DEL-CHK-01',
+          acceptanceCriteria: ['Payment validation passes all tests'],
+        }],
+        newClientRequest: {
+          title: 'Checkout page bug fix',
+          description: 'Fix payment validation on checkout',
+          requestedBy: 'client',
+        },
+      });
+
+      expect(result.reviewStatus).toBe('in_scope');
+    });
+  });
 });

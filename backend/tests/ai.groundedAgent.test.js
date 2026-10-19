@@ -193,8 +193,20 @@ describe('AI Reviews 4 & 5: Grounded Agent, Multi-Provider & Handover Pipeline',
       expect(res.body.success).toBe(false);
     });
 
-    it('GET /api/ai/agent/benchmark should run all 5 canonical cases and return 200', async () => {
-      const res = await request(app).get('/api/ai/agent/benchmark');
+    it('GET /api/ai/agent/benchmark should require auth (B1 fix) and run all 5 canonical cases when authenticated', async () => {
+      // First verify it rejects anonymous requests
+      const anonRes = await request(app).get('/api/ai/agent/benchmark');
+      expect(anonRes.status).toBe(401);
+
+      // Then verify it works with a valid token
+      const userId = '64a000000000000000000001';
+      jest.spyOn(User, 'findById').mockReturnValue({
+        select: jest.fn().mockResolvedValue({ _id: userId, role: 'freelancer' }),
+      });
+      const token = generateToken({ id: userId });
+      const res = await request(app)
+        .get('/api/ai/agent/benchmark')
+        .set('Authorization', `Bearer ${token}`);
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
       expect(res.body.data.allPassed).toBe(true);

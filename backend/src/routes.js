@@ -9,6 +9,7 @@ const changeRequestRoutes = require('./modules/changeRequest/changeRequest.route
 const aiRoutes = require('./ai/ai.routes');
 const aiController = require('./ai/ai.controller');
 const { requireAuth } = require('./middleware/auth.middleware');
+const { aiProviderRateLimit } = require('./ai/middleware/aiRateLimiter.middleware');
 
 const router = Router();
 
@@ -31,8 +32,11 @@ router.use('/change-requests', changeRequestRoutes);
 router.use('/ai', aiRoutes);
 
 // Project 13 API Contract Direct Endpoints
-router.post('/scope-chat', requireAuth, aiController.scopeChat);
-router.post('/change-agent', requireAuth, aiController.changeAgent);
+// These mirror /api/ai/scope-chat and /api/ai/change-agent but at the top-level path
+// requireAuth + aiProviderRateLimit applied here as well (defense in depth)
+router.post('/scope-chat', requireAuth, aiProviderRateLimit, aiController.scopeChat);
+router.post('/change-agent', requireAuth, aiProviderRateLimit, aiController.changeAgent);
+
 
 module.exports = router;
 

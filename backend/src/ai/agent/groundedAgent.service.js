@@ -142,32 +142,83 @@ class GroundedAgentService {
       }
     }
 
-    // ── AUDIT FIX — Contradictory Evidence Guard ────────────────────────────
-    // If the model claims `in_scope` but retrieved evidence is weak/absent,
-    // override to `uncertain` to prevent hallucinated scope approvals.
-    const topEvidenceScore = retrievedPassages[0]?.similarityScore || 0;
-    const hasStrongEvidence = topEvidenceScore >= STRONG_MATCH_THRESHOLD;
+    // ── AUDIT FIX — Contradictory Evidence Guard (B2) ──────────────────────
+    // Checks ALL retrieved passages, not only the top similarity score:
+    //
+    // Rule 1 — Insufficient evidence: if the model says `in_scope` but no
+    //   passage scores above STRONG_MATCH_THRESHOLD, override to `uncertain`.
+    //
+    // Rule 2 — Contradictory evidence: if any retrieved passage explicitly
+    //   signals exclusion or explicit out-of-scope language (e.g. "excluded",
+    //   "not in scope", "change order required"), downgrade in_scope claims to
+    //   `needs_clarification` so a human reviews the contradiction.
+    //
+    // This prevents a high-similarity but irrelevant or contradictory passage
+    // from producing an automatic in_scope approval.
+    if (comparisonResult.reviewStatus === 'in_scope') {
+      const topEvidenceScore = retrievedPassages[0]?.similarityScore || 0;
+      const hasStrongEvidence = topEvidenceScore >= STRONG_MATCH_THRESHOLD;
 
-    if (comparisonResult.reviewStatus === 'in_scope' && !hasStrongEvidence) {
-      comparisonResult = {
-        ...comparisonResult,
-        summary: `Insufficient approved-scope evidence to classify "${newClientRequest.title}" definitively.`,
-        reviewStatus: 'uncertain',
-        inScopeItems: [],
-        outOfScopeItems: [],
-        uncertainItems: [
-          {
-            item: newClientRequest.title,
-            question: 'Can the client clarify how this request relates to the approved project scope?',
-            missingEvidence: 'No sufficiently relevant passage in the approved baseline supports a definitive classification.',
-          },
-        ],
-        affectedDeliverables: [],
-        suggestedQuestions: [
-          'Which approved deliverable or acceptance criterion does this request relate to?',
-          'Does this request require technical discovery or a formal change-order estimate?',
-        ],
-      };
+      // Exclusion signal patterns that indicate the passage contradicts in_scope
+      const EXCLUSION_PATTERNS = [
+        /\bexclud/i,
+        /\bnot (in|part of) scope\b/i,
+        /\bout.?of.?scope\b/i,
+        /\bchange.?order (required|needed)\b/i,
+        /\bnot covered\b/i,
+        /\bnot included\b/i,
+        /\bbeyond (the )?scope\b/i,
+        /\bphase [2-9]\b/i,
+        /\bfuture (phase|work|release)\b/i,
+      ];
+
+      const contradictoryPassage = retrievedPassages.find((p) =>
+        EXCLUSION_PATTERNS.some((re) => re.test(p.passageText || ''))
+      );
+
+      if (!hasStrongEvidence) {
+        // Rule 1: no strong evidence → uncertain
+        comparisonResult = {
+          ...comparisonResult,
+          summary: `Insufficient approved-scope evidence to classify "${newClientRequest.title}" definitively.`,
+          reviewStatus: 'uncertain',
+          inScopeItems: [],
+          outOfScopeItems: [],
+          uncertainItems: [
+            {
+              item: newClientRequest.title,
+              question: 'Can the client clarify how this request relates to the approved project scope?',
+              missingEvidence:
+                'No sufficiently relevant passage in the approved baseline supports a definitive classification.',
+            },
+          ],
+          affectedDeliverables: [],
+          suggestedQuestions: [
+            'Which approved deliverable or acceptance criterion does this request relate to?',
+            'Does this request require technical discovery or a formal change-order estimate?',
+          ],
+        };
+      } else if (contradictoryPassage) {
+        // Rule 2: strong match but contradictory/exclusion passage found → needs_clarification
+        comparisonResult = {
+          ...comparisonResult,
+          summary: `Evidence conflict for "${newClientRequest.title}": a supporting passage exists but another passage signals exclusion or out-of-scope language. Human review required.`,
+          reviewStatus: 'needs_clarification',
+          inScopeItems: [],
+          uncertainItems: [
+            {
+              item: newClientRequest.title,
+              question:
+                'A retrieved scope passage contradicts or qualifies inclusion. Can the project manager confirm whether this is in scope?',
+              missingEvidence: `Contradictory passage: "${contradictoryPassage.sourceReference}: ${(contradictoryPassage.passageText || '').slice(0, 120)}..."`,
+            },
+          ],
+          suggestedQuestions: [
+            'Does the referenced exclusion clause apply to this specific request?',
+            'Was this capability deferred to a future phase or separate change order?',
+          ],
+        };
+      }
     }
 
     // ── STEP 4: Deterministic Effort & Schedule Tool Calculation ────────────

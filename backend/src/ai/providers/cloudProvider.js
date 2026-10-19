@@ -45,8 +45,11 @@ class CloudModelProvider extends BaseModelProvider {
 
   async _callGemini(context) {
     const { newClientRequest, retrievedPassages, approvedProposalVersion } = context;
+    // S3: model name configurable via GEMINI_MODEL env var (default: gemini-1.5-flash)
+    // Verify current model availability at: https://ai.google.dev/gemini-api/docs/models
+    const model = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
     // AUDIT FIX: API key in x-goog-api-key header, NOT in URL query string
-    const url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
     const prompt = `
 Analyze this client change request against approved baseline scope.
@@ -132,7 +135,9 @@ New Client Request: ${newClientRequest.title} - ${newClientRequest.description}
           Authorization: `Bearer ${this.apiKey}`,
         },
         body: JSON.stringify({
-          model: 'llama-3.1-8b-instant',
+          // S3: model name configurable via GROQ_MODEL env var (default: llama-3.1-8b-instant)
+          // Verify current model availability at: https://console.groq.com/docs/models
+          model: process.env.GROQ_MODEL || 'llama-3.1-8b-instant',
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userPrompt },
