@@ -24,6 +24,29 @@ export default function WorkspacePage() {
   const memberCount = members?.length ?? 4;
   const isLive = mode === 'live';
 
+  if (!workspace) {
+    return (
+      <div className={styles.page}>
+        <Notice variant={isLive ? 'info' : 'demo'}>
+          {isLive
+            ? 'LIVE WORKSPACE // Authenticated session connected to ScopePilot API'
+            : 'DEMO WORKSPACE // Local sample data only // No backend connected'}
+        </Notice>
+        <div className={styles.workspaceHeaderBlock}>
+          <h1 className={styles.workspaceMainTitle}>Welcome to ScopePilot</h1>
+          <p className={styles.workspaceDesc}>
+            You have successfully signed in. Create or connect to a workspace to begin managing projects.
+          </p>
+        </div>
+        <div style={{ marginTop: '20px' }}>
+          <Button as={Link} to="/projects" variant="primary" size="md">
+            View Projects →
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={styles.page}>
       <Notice variant={isLive ? 'info' : 'demo'}>

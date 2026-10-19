@@ -256,6 +256,26 @@ export async function fetchProjects(workspaceId) {
   return (projects || []).map(normalizeProject);
 }
 
+export async function createProject(data) {
+  if (!isLiveBackend) {
+    return demoStore.createProject(data);
+  }
+  let wsId = data.workspaceId || data.workspace;
+  if (!wsId || !isObjectId(wsId)) {
+    const ws = await fetchWorkspace();
+    wsId = ws?._id || ws?.id;
+  }
+  const payload = {
+    workspaceId: wsId,
+    title: data.title,
+    description: data.description || '',
+    status: data.status || 'active',
+  };
+  if (data.clientId) payload.clientId = data.clientId;
+  const created = await projectApi.createProject(payload);
+  return normalizeProject(created);
+}
+
 export async function fetchProject(projectId) {
   if (!isLiveBackend || !isObjectId(projectId)) {
     return demoStore.fetchProject(projectId);
@@ -336,6 +356,13 @@ export async function recordProposalDecision(proposalId, decision, comment) {
     return { success: true };
   }
   return proposalApi.recordProposalDecision(proposalId, { decision, comment });
+}
+
+export async function createProposalVersion(proposalId, versionData) {
+  if (!isLiveBackend || !isObjectId(proposalId)) {
+    return { success: true };
+  }
+  return proposalApi.createProposalVersion(proposalId, versionData);
 }
 
 function normalizeProposalVersion(v, parentProp = {}) {
