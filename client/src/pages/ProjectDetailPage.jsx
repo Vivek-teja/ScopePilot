@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAsync } from '../hooks/useAsync.js';
 import {
@@ -12,6 +12,7 @@ import {
 import styles from './ProjectDetailPage.module.css';
 import ProposalTab from './tabs/ProposalTab.jsx';
 import MilestonesTab from './tabs/MilestonesTab.jsx';
+import { useProjectTabs } from '../hooks/ProjectTabsContext.jsx';
 import ChangeRequestsTab from './tabs/ChangeRequestsTab.jsx';
 import ScopeChatTab from './tabs/ScopeChatTab.jsx';
 
@@ -26,7 +27,16 @@ const TABS = [
 export default function ProjectDetailPage() {
   const { projectId } = useParams();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('overview');
+  const { activeTab, setActiveTab, setIsProjectDetail } = useProjectTabs();
+
+  // Enable the concentric outer project arc in TopArchNav and clean up on unmount
+  useEffect(() => {
+    setIsProjectDetail(true);
+    return () => {
+      setIsProjectDetail(false);
+      setActiveTab('overview');
+    };
+  }, [setIsProjectDetail, setActiveTab]);
 
   const fetchFn = useCallback(() => fetchProject(projectId), [projectId]);
   const { data: project, loading, error } = useAsync(fetchFn, [projectId]);

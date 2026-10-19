@@ -84,10 +84,10 @@ router.post('/scope-chat', requireAuth, aiProviderRateLimit, aiController.scopeC
 // POST /change-agent — REQUIRES LOGIN + RATE LIMIT
 router.post('/change-agent', requireAuth, aiProviderRateLimit, aiController.changeAgent);
 
-// POST /scope-analysis-db — REQUIRES LOGIN (accesses private project data)
-router.post('/scope-analysis-db', requireAuth, aiController.analyzeProjectScopeDb);
+// POST /scope-analysis-db — REQUIRES LOGIN + RATE LIMIT (accesses private project data)
+router.post('/scope-analysis-db', requireAuth, aiProviderRateLimit, aiController.analyzeProjectScopeDb);
 
-// POST /rag/ingest — REQUIRES LOGIN (writes to vector store for a specific project)
-router.post('/rag/ingest', requireAuth, aiController.ingestScope);
+// POST /rag/ingest — REQUIRES LOGIN + RATE LIMIT (writes to vector store for a specific project)
+router.post('/rag/ingest', requireAuth, aiProviderRateLimit, aiController.ingestScope);
 
 module.exports = router;

@@ -676,4 +676,143 @@ describe('AI security and classification remediation', () => {
       expect(result.reviewStatus).toBe('in_scope');
     });
   });
+
+  describe('POST /api/ai/rag/ingest - Tenancy & IDOR Defense', () => {
+    it('rejects unauthenticated requests with 401', async () => {
+      const res = await request(app)
+        .post('/api/ai/rag/ingest')
+        .send({ projectId });
+
+      expect(res.status).toBe(401);
+      expect(res.body.success).toBe(false);
+    });
+
+    it('rejects malformed or invalid projectId with 400', async () => {
+      mockAuthenticatedUser();
+
+      const res = await request(app)
+        .post('/api/ai/rag/ingest')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ projectId: 'not-a-valid-hex-id' });
+
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toMatch(/valid persisted project ID is required/i);
+    });
+
+    it('rejects callers without access to the project with 404', async () => {
+      mockAuthenticatedUser();
+      const ApiError = require('../src/utils/apiError');
+      jest.spyOn(projectService, 'getProjectById').mockRejectedValue(
+        ApiError.notFound('Project not found')
+      );
+
+      const res = await request(app)
+        .post('/api/ai/rag/ingest')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ projectId });
+
+      expect(res.status).toBe(404);
+      expect(res.body.success).toBe(false);
+    });
+
+    it('ignores caller-supplied workspaceId and derives effectiveWorkspaceId strictly from project.workspace', async () => {
+      mockAuthenticatedUser();
+      const trustedWorkspaceId = '64a0000000000000000000aa';
+      const attackerWorkspaceId = '64a000000000000000000099';
+      const mockProject = {
+        _id: projectId,
+        workspace: trustedWorkspaceId,
+        freelancer: userId,
+        client: '64a0000000000000000000bb',
+      };
+      jest.spyOn(projectService, 'getProjectById').mockResolvedValue(mockProject);
+
+      const { defaultIngestionService } = require('../src/ai/rag/ingestion.service');
+      const ingestSpy = jest.spyOn(defaultIngestionService, 'ingestApprovedScope').mockResolvedValue({
+        projectId,
+        workspaceId: trustedWorkspaceId,
+        totalChunks: 3,
+        chunksIngested: 3,
+      });
+
+      const res = await request(app)
+        .post('/api/ai/rag/ingest')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          projectId,
+          workspaceId: attackerWorkspaceId,
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(ingestSpy).toHaveBeenCalledWith(
+        projectId,
+        trustedWorkspaceId,
+        expect.objectContaining({ _id: userId })
+      );
+    });
+  });
+
+  describe('AI Rate Limiting on Heavy AI Routes (aiProviderRateLimit)', () => {
+    it('rate limits excessive requests on POST /api/ai/rag/ingest', async () => {
+      const rateLimitUserId = '64a000000000000000000099';
+      const rateToken = generateToken({ id: rateLimitUserId });
+      jest.spyOn(User, 'findById').mockReturnValue({
+        select: jest.fn().mockResolvedValue({ _id: rateLimitUserId, role: 'freelancer' }),
+      });
+      jest.spyOn(projectService, 'getProjectById').mockResolvedValue({
+        _id: projectId,
+        workspace: '64a0000000000000000000aa',
+      });
+      const { defaultIngestionService } = require('../src/ai/rag/ingestion.service');
+      jest.spyOn(defaultIngestionService, 'ingestApprovedScope').mockResolvedValue({
+        totalChunks: 1,
+      });
+
+      let hitLimit = false;
+      for (let i = 0; i < 22; i++) {
+        const res = await request(app)
+          .post('/api/ai/rag/ingest')
+          .set('Authorization', `Bearer ${rateToken}`)
+          .send({ projectId });
+        if (res.status === 429) {
+          hitLimit = true;
+          expect(res.body.message).toMatch(/Too many.*requests/i);
+          break;
+        }
+      }
+      expect(hitLimit).toBe(true);
+    });
+
+    it('rate limits excessive requests on POST /api/ai/scope-analysis-db', async () => {
+      const rateLimitUserId = '64a000000000000000000088';
+      const rateToken = generateToken({ id: rateLimitUserId });
+      jest.spyOn(User, 'findById').mockReturnValue({
+        select: jest.fn().mockResolvedValue({ _id: rateLimitUserId, role: 'freelancer' }),
+      });
+
+      const { defaultScopeAnalysisDbService } = require('../src/ai/services/scopeAnalysisDb.service');
+      jest.spyOn(defaultScopeAnalysisDbService, 'analyzeProjectScope').mockResolvedValue({
+        reviewStatus: 'in_scope',
+      });
+
+      let hitLimit = false;
+      for (let i = 0; i < 22; i++) {
+        const res = await request(app)
+          .post('/api/ai/scope-analysis-db')
+          .set('Authorization', `Bearer ${rateToken}`)
+          .send({
+            projectId,
+            newClientRequest: { title: 'Test Request', description: 'Testing rate limit' },
+          });
+        if (res.status === 429) {
+          hitLimit = true;
+          expect(res.body.message).toMatch(/Too many.*requests/i);
+          break;
+        }
+      }
+      expect(hitLimit).toBe(true);
+    });
+  });
 });

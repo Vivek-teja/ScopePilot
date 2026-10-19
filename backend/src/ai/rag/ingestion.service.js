@@ -58,17 +58,32 @@ class IngestionService {
   /**
    * Ingest and vectorize the currently approved proposal version and deliverables for a project
    * @param {string} projectId
-   * @param {string} workspaceId
+   * @param {string} [workspaceId] - Deprecated caller-supplied workspace (ignored in favor of project.workspace)
+   * @param {object} [user] - Optional user context for direct service calls
    * @returns {Promise<Object>} Ingestion summary
    */
-  async ingestApprovedScope(projectId, workspaceId) {
+  async ingestApprovedScope(projectId, workspaceId = null, user = null) {
     // 1. Verify project exists and get approved proposal
     const project = await Project.findById(projectId);
     if (!project) {
       throw ApiError.notFound(`Project "${projectId}" not found`);
     }
 
-    const effectiveWorkspaceId = workspaceId || project.workspace;
+    // Tenancy authorization check if user provided
+    if (user && user._id) {
+      const userId = user._id.toString();
+      const freelancerId = project.freelancer?._id ? project.freelancer._id.toString() : project.freelancer?.toString();
+      const clientId = project.client?._id ? project.client._id.toString() : project.client?.toString();
+      const isFreelancer = Boolean(freelancerId && freelancerId === userId);
+      const isClient = Boolean(clientId && clientId === userId);
+      const isAdmin = user.role === 'admin';
+      if (!isFreelancer && !isClient && !isAdmin) {
+        throw ApiError.forbidden('Forbidden. You do not have permission to ingest scope for this project.');
+      }
+    }
+
+    // Invariant: Always derive effective workspace strictly from trusted project record
+    const effectiveWorkspaceId = project.workspace?._id || project.workspace;
 
     // 2. Load approved proposal version
     let approvedVersion = null;

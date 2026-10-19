@@ -202,6 +202,34 @@ describe('AI Model Providers Unit Tests (Mocked Adapters)', () => {
         /Gemini request failed: The operation was aborted/i
       );
     });
+
+    it('caps Gemini generationConfig maxOutputTokens to 2048 by default and accepts custom limits', async () => {
+      let capturedBody = null;
+
+      globalThis.fetch = jest.fn(async (_url, options) => {
+        capturedBody = JSON.parse(options.body);
+        return {
+          ok: true,
+          json: async () => ({
+            candidates: [
+              {
+                content: {
+                  parts: [{ text: JSON.stringify(validComparisonResponse) }],
+                },
+              },
+            ],
+          }),
+        };
+      });
+
+      const defaultProvider = new CloudModelProvider('gemini', { apiKey: geminiKey });
+      await defaultProvider.generateComparison(mockContext);
+      expect(capturedBody.generationConfig.maxOutputTokens).toBe(2048);
+
+      const customProvider = new CloudModelProvider('gemini', { apiKey: geminiKey, maxOutputTokens: 1024 });
+      await customProvider.generateComparison(mockContext);
+      expect(capturedBody.generationConfig.maxOutputTokens).toBe(1024);
+    });
   });
 
   // ── 2. Groq Cloud Provider Tests ────────────────────────────────────────────
@@ -304,6 +332,34 @@ describe('AI Model Providers Unit Tests (Mocked Adapters)', () => {
       await expect(provider.generateComparison(mockContext)).rejects.toThrow(
         /Groq request failed: The operation was aborted/i
       );
+    });
+
+    it('caps Groq payload max_tokens to 2048 by default and accepts custom limits', async () => {
+      let capturedBody = null;
+
+      globalThis.fetch = jest.fn(async (_url, options) => {
+        capturedBody = JSON.parse(options.body);
+        return {
+          ok: true,
+          json: async () => ({
+            choices: [
+              {
+                message: {
+                  content: JSON.stringify(validComparisonResponse),
+                },
+              },
+            ],
+          }),
+        };
+      });
+
+      const defaultProvider = new CloudModelProvider('groq', { apiKey: groqKey });
+      await defaultProvider.generateComparison(mockContext);
+      expect(capturedBody.max_tokens).toBe(2048);
+
+      const customProvider = new CloudModelProvider('groq', { apiKey: groqKey, maxOutputTokens: 512 });
+      await customProvider.generateComparison(mockContext);
+      expect(capturedBody.max_tokens).toBe(512);
     });
   });
 

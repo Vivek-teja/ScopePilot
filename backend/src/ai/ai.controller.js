@@ -372,11 +372,14 @@ class AIController {
    * POST /api/ai/rag/ingest
    */
   ingestScope = asyncHandler(async (req, res) => {
-    const { projectId, workspaceId } = req.body;
-    if (!projectId) {
-      throw ApiError.badRequest('projectId is required for scope ingestion');
+    const { projectId } = req.body;
+    if (!projectId || !/^[a-f\d]{24}$/i.test(projectId)) {
+      throw ApiError.badRequest('A valid persisted project ID is required for scope ingestion');
     }
-    const result = await defaultIngestionService.ingestApprovedScope(projectId, workspaceId);
+    // Step 1: Verify caller authorization on the project (freelancer, client, or workspace member)
+    const project = await projectService.getProjectById(projectId, req.user._id);
+    // Step 2: Ingest with trusted project workspace, ignoring any caller-supplied workspaceId
+    const result = await defaultIngestionService.ingestApprovedScope(projectId, project.workspace, req.user);
     return ApiResponse.success(res, 'Approved scope documents ingested into vector store', result);
   });
 }

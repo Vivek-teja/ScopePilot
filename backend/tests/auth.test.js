@@ -232,6 +232,21 @@ describe('Authentication & Authorization Module (Task 2)', () => {
       expect(res.body.success).toBe(false);
       expect(res.body.message).toBe('Validation failed');
     });
+
+    it('should return 400 Bad Request when attempting to self-register with role "admin"', async () => {
+      const res = await request(app)
+        .post('/api/auth/register')
+        .send({
+          name: 'Attacker Admin',
+          email: 'attacker@scopepilot.dev',
+          password: 'securePassword123',
+          role: ROLES.ADMIN,
+        });
+
+      expect(res.statusCode).toBe(400);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toBe('Validation failed');
+    });
   });
 
   // =========================================================================

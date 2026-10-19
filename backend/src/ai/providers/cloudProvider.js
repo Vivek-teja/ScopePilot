@@ -25,6 +25,7 @@ class CloudModelProvider extends BaseModelProvider {
       process.env[`${providerType.toUpperCase()}_API_KEY`] ||
       '';
     this.timeoutMs = options.timeoutMs || 5000;
+    this.maxOutputTokens = options.maxOutputTokens || 2048;
   }
 
   async isAvailable() {
@@ -84,7 +85,10 @@ Output ONLY valid JSON matching this schema:
         },
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { responseMimeType: 'application/json' },
+          generationConfig: {
+            responseMimeType: 'application/json',
+            maxOutputTokens: this.maxOutputTokens || 2048,
+          },
         }),
         signal: controller.signal,
       });
@@ -143,6 +147,7 @@ New Client Request: ${newClientRequest.title} - ${newClientRequest.description}
             { role: 'user', content: userPrompt },
           ],
           response_format: { type: 'json_object' },
+          max_tokens: this.maxOutputTokens || 2048,
         }),
         signal: controller.signal,
       });
