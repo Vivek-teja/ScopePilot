@@ -9,7 +9,11 @@
     "test": "jest --detectOpenHandles --runInBand",
     "lint": "oxlint",
     "seed": "node src/scripts/seed.js",
-    "mock:cases": "node src/ai/scripts/runMockCases.js"
+    "mock:cases": "node src/ai/scripts/runMockCases.js",
+    "rag:experiment": "node src/ai/scripts/runRetrievalExperiment.js",
+    "retrieval:cases": "node src/ai/scripts/runRetrievalExperiment.js",
+    "ai:agent": "node src/ai/scripts/runGroundedAgent.js",
+    "ai:benchmark": "node src/ai/scripts/runGroundedAgent.js"
   },
   "keywords": [
     "scopepilot",

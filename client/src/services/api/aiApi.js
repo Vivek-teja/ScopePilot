@@ -15,3 +15,41 @@ export async function runAllAiCases() {
 export async function runAiCase(caseId) {
   return apiClient.get(`/ai/cases/${caseId}/run`);
 }
+
+// ── Review 3: Semantic Retrieval & RAG Endpoints ─────────────────────────────
+
+export async function retrieveScopePassages(payload) {
+  return apiClient.post('/ai/rag/retrieve', payload);
+}
+
+export async function getScopeCorpus() {
+  return apiClient.get('/ai/rag/corpus');
+}
+
+export async function getRetrievalExperiments() {
+  return apiClient.get('/ai/rag/experiments');
+}
+
+export async function runRetrievalExperiments() {
+  return apiClient.get('/ai/rag/experiments/run');
+}
+
+// ── Review 4 & 5: Grounded Agent & Provider Endpoints ────────────────────────
+
+export async function runAgentAnalysis(payload) {
+  return apiClient.post('/ai/agent/analyze', payload);
+}
+
+export async function getAiProviders() {
+  return apiClient.get('/ai/agent/providers');
+}
+
+export async function selectAiProvider(provider) {
+  return apiClient.post('/ai/agent/providers/select', { provider });
+}
+
+export async function runAgentBenchmark() {
+  return apiClient.get('/ai/agent/benchmark');
+}
+
+
