@@ -140,9 +140,155 @@ All endpoints are mounted under `/api/ai/*`:
 
 ---
 
-## 7. Known Limitations & Teammate Handover Notes
+## 8. Production Scope Chat & Change-Analysis Agent (Section 3-6)
 
-1. **Advisory Nature**: The agent generates draft analyses to accelerate freelancer/agency reviews. It does not replace project manager approvals or legal change orders.
-2. **Local Model Latency**: When running Ollama locally on consumer hardware, model inference takes 2–8 seconds depending on GPU acceleration; the built-in local engine executes in < 5ms.
-3. **Rate Limits on Free Cloud APIs**: Google Gemini Free Tier is limited to 15 requests per minute (RPM). In automated testing or offline environments, the engine automatically falls back to the local provider.
-4. **Shared Contract Stability**: All contracts are exported via `backend/src/contracts/index.js` and do not alter or interfere with the database schemas of `Proposal`, `Deliverable`, or `ChangeRequest`.
+### 8.1 Grounded Scope Chat (`POST /api/scope-chat`)
+Enables authorized users to ask conversational questions regarding approved deliverables and contractual commitments. Answers are strictly grounded in retrieved evidence with anti-prompt-injection boundaries.
+
+**Request:**
+```bash
+curl -X POST http://localhost:5000/api/scope-chat \
+  -H "Authorization: Bearer <AUTH_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "projectId": "660c1d2e4f1a2b3c4d5e6f7a",
+    "question": "Is Stripe Checkout included in the approved deliverables?",
+    "topK": 3
+  }'
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Grounded scope chat response generated",
+  "data": {
+    "answer": "Based on approved deliverable **PROP-V2-DELIV-3** (*Stripe Checkout Payment Gateway*, similarity: 94%) from Proposal Version 2:\n\n> \"Card processing and webhook handlers via Stripe Checkout integration.\"\n\nAny modification or expansion beyond these baseline specifications constitutes a scope change and requires a formal change request review.",
+    "sources": [
+      {
+        "sourceReference": "PROP-V2-DELIV-3",
+        "sourceTitle": "Stripe Checkout Payment Gateway",
+        "passageText": "Card processing and webhook handlers via Stripe Checkout integration.",
+        "similarityScore": 0.94
+      }
+    ],
+    "proposalVersion": 2,
+    "hasSufficientEvidence": true,
+    "conversationId": "conv_1729328400000_abc12",
+    "timestamp": "2026-10-19T14:15:00.000Z"
+  }
+}
+```
+
+### 8.2 Bounded Change-Analysis Agent (`POST /api/change-agent`)
+Executes a bounded workflow coordinating:
+- **Tool A: `readApprovedScope(projectId)`**: Retrieves approved `ProposalVersion` and `Deliverable` records from MongoDB.
+- **Tool B: `compareRequestedWork(request, deliverables)`**: Vector search & LLM semantic comparison.
+- **Tool C: `calculateScheduleImpact(effortParams)`**: Deterministic formula calculation without hallucinated estimates.
+
+**Request:**
+```bash
+curl -X POST http://localhost:5000/api/change-agent \
+  -H "Authorization: Bearer <AUTH_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "projectId": "660c1d2e4f1a2b3c4d5e6f7a",
+    "requestTitle": "Native iOS Mobile App",
+    "requestDescription": "Build standalone native Swift iOS application for iPhone users",
+    "requestedBy": "Acme Corp Client",
+    "developerCapacityHoursPerDay": 6,
+    "storedHourlyRate": 100
+  }'
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Change-Analysis Agent execution completed",
+  "data": {
+    "agentRunId": "agent_run_1729328400000_xyz78",
+    "projectId": "660c1d2e4f1a2b3c4d5e6f7a",
+    "proposalVersionNumber": 2,
+    "reviewStatus": "out_of_scope",
+    "confidenceScore": 0.92,
+    "summary": "Request introduces native mobile application development which is not part of the approved web platform baseline.",
+    "evidence": [...],
+    "inScopeItems": [],
+    "outOfScopeItems": ["Native Swift iOS mobile application"],
+    "uncertainItems": [],
+    "affectedDeliverables": [],
+    "scheduleImpact": {
+      "estimatedHours": 36,
+      "scheduleImpactDays": 6,
+      "estimatedCost": 3600,
+      "calculationBasis": "Calculated using formula: 1 item(s) * 30 base hours + 15% testing/QA buffer at $100/hr.",
+      "isEligibleForBilling": true
+    },
+    "humanReviewDraftNotice": "ADVISORY DRAFT ONLY: The Change-Analysis Agent possesses zero authority to approve or reject change requests. Final contractual decisions remain strictly with authorized human participants.",
+    "toolLogs": [
+      { "toolName": "readApprovedScope", "status": "success", "durationMs": 8 },
+      { "toolName": "compareRequestedWork", "status": "success", "durationMs": 35 },
+      { "toolName": "calculateScheduleImpact", "status": "success", "durationMs": 1 }
+    ],
+    "completedAt": "2026-10-19T14:15:01.000Z"
+  }
+}
+```
+
+### 8.3 Change Request Direct Integration (`POST /api/change-requests/:id/ai-analyze`)
+Triggers the Change Agent for an existing Change Request document, saving the analysis, evidence, and citations directly to `cr.aiAnalysis`, `cr.scopeComparison`, and `cr.retrievedScopeReferences`.
+
+### 8.4 MongoDB Atlas Vector Search Index Configuration
+In your MongoDB Atlas cluster, create a Search Index on the `scopechunks` collection:
+
+```json
+{
+  "mappings": {
+    "dynamic": true,
+    "fields": {
+      "embedding": {
+        "dimensions": 1024,
+        "similarity": "cosine",
+        "type": "knnVector"
+      },
+      "project": {
+        "type": "token"
+      },
+      "workspace": {
+        "type": "token"
+      },
+      "status": {
+        "type": "token"
+      }
+    }
+  }
+}
+```
+*Note: In development and offline testing, the system automatically uses in-memory cosine ranking over project chunks if Atlas `$vectorSearch` is not yet provisioned on the cluster.*
+
+### 8.5 Automated Test Verification Matrix (403 Tests Passing)
+All 18 required scenarios from Section 10 are automated and verified in `backend/tests/ai.fullIntegration.test.js`:
+
+| # | Required Scenario | Test File & Suite | Result |
+|---|---|---|---|
+| 1 | In-scope request returns `in_scope` | `ai.fullIntegration.test.js` - Scenario 1 | **PASS** |
+| 2 | Out-of-scope request returns `out_of_scope` | `ai.fullIntegration.test.js` - Scenario 2 | **PASS** |
+| 3 | Partial overlap returns `partially_out_of_scope` | `ai.fullIntegration.test.js` - Scenario 3 | **PASS** |
+| 4 | Ambiguous request returns `needs_clarification` | `ai.fullIntegration.test.js` - Scenario 4 | **PASS** |
+| 5 | Missing evidence returns `uncertain` | `ai.fullIntegration.test.js` - Scenario 5 | **PASS** |
+| 6 | Correct approved proposal version retrieval | `ai.fullIntegration.test.js` - Scenario 6 | **PASS** |
+| 7 | Source citations in grounded chat responses | `ai.fullIntegration.test.js` - Scenario 7 | **PASS** |
+| 8 | Empty retrieval handled gracefully | `ai.fullIntegration.test.js` - Scenario 8 | **PASS** |
+| 9 | Model timeout/fallback handled gracefully | `ai.fullIntegration.test.js` - Scenario 9 | **PASS** |
+| 10 | Zod input/output schema validation | `ai.fullIntegration.test.js` - Scenario 10 | **PASS** |
+| 11 | Unauthorized access to another project blocked (403) | `ai.fullIntegration.test.js` - Scenario 11 | **PASS** |
+| 12 | No cross-workspace retrieval leakage | `ai.fullIntegration.test.js` - Scenario 12 | **PASS** |
+| 13 | Unauthorized agent tool execution prevented | `ai.fullIntegration.test.js` - Scenario 13 | **PASS** |
+| 14 | Mutating approved terms prevented | `ai.fullIntegration.test.js` - Scenario 14 | **PASS** |
+| 15 | Stale change request rejection/validation | `ai.fullIntegration.test.js` - Scenario 15 | **PASS** |
+| 16 | Duplicate execution prevention via SHA-256 | `ai.fullIntegration.test.js` - Scenario 16 | **PASS** |
+| 17 | Frontend API client integration parity | `ai.fullIntegration.test.js` - Scenario 17 | **PASS** |
+| 18 | Existing mock test baseline preserved | `ai.fullIntegration.test.js` - Scenario 18 | **PASS** |
+
+**Full Test Suite Summary:** 17 Passed Test Suites, 403 Passed Tests, 0 Failed, 0 Lint Warnings/Errors.

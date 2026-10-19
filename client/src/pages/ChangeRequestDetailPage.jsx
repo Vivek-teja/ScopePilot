@@ -9,6 +9,7 @@ import {
   fetchDeliverables,
   recordChangeRequestDecision,
   requestAiAnalysis,
+  analyzeChangeRequestAi,
 } from '../services/scopePilotService.js';
 import {
   Badge,
@@ -287,6 +288,39 @@ function AIAnalysisSection({ projectId, approvedProposal, deliverables, cr }) {
     }
   }
 
+  async function handleRunAgentAnalysis() {
+    setAnalyzing(true);
+    setError(null);
+    try {
+      const result = await analyzeChangeRequestAi(cr.id);
+      const normalized = {
+        reviewStatus: result.classification || 'uncertain',
+        confidenceScore: result.confidence ?? 0.85,
+        summary: result.summary,
+        outOfScopeItems: (result.additions || []).map((item) => ({
+          item,
+          reason: 'Identified as additional work beyond approved scope',
+        })),
+        uncertainItems: (result.uncertainty || []).map((u) => ({
+          item: 'Clarification Needed',
+          question: u,
+        })),
+        recommendations: [
+          result.recommendedAction,
+          result.effortEstimateHours ? `Estimated effort: ${result.effortEstimateHours} hours` : null,
+          result.scheduleImpactDays ? `Estimated schedule impact: ${result.scheduleImpactDays} days` : null,
+        ].filter(Boolean),
+        disclaimer: 'AI Change Agent analysis is an advisory draft grounded in MongoDB scope records. Human authorization required.',
+        executionMetrics: result.executionMetrics,
+      };
+      setAnalysis(normalized);
+    } catch (err) {
+      setError(err.message || 'Change Agent analysis failed.');
+    } finally {
+      setAnalyzing(false);
+    }
+  }
+
   return (
     <Card className={styles.aiCard}>
       <div className={styles.aiHeader}>
@@ -294,7 +328,7 @@ function AIAnalysisSection({ projectId, approvedProposal, deliverables, cr }) {
         <div>
           <h3 className={styles.aiTitle}>AI Scope Analysis (Advisory)</h3>
           <p className={styles.aiSubtitle}>
-            Deterministic mock analysis comparing request against approved scope baseline
+            LangChain Change Agent & Scope Retrieval comparing request against approved scope baseline
           </p>
         </div>
       </div>
@@ -306,11 +340,16 @@ function AIAnalysisSection({ projectId, approvedProposal, deliverables, cr }) {
           <div>
             <strong>Scope Analysis Available</strong>
             <p style={{ marginTop: 4, marginBottom: 12 }}>
-              Run the rule-based analysis engine to classify scope boundaries, detect out-of-scope work, and generate risk signals.
+              Run the LangChain Change Agent or rule-based engine to classify scope boundaries, retrieve evidence, and calculate impact.
             </p>
-            <Button variant="primary" size="sm" onClick={handleRunAnalysis}>
-              ⚡ Run Advisory AI Scope Analysis
-            </Button>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              <Button variant="primary" size="sm" onClick={handleRunAgentAnalysis}>
+                🤖 Run LangChain Change Agent
+              </Button>
+              <Button variant="secondary" size="sm" onClick={handleRunAnalysis}>
+                ⚡ Run Advisory Mock Analysis
+              </Button>
+            </div>
           </div>
         </div>
       )}
@@ -386,9 +425,14 @@ function AIAnalysisSection({ projectId, approvedProposal, deliverables, cr }) {
             {analysis.disclaimer || 'AI analysis is an advisory draft only. Human decision is required.'}
           </Notice>
 
-          <Button variant="ghost" size="sm" onClick={handleRunAnalysis} style={{ alignSelf: 'flex-start' }}>
-            ↻ Re-run Analysis
-          </Button>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignSelf: 'flex-start' }}>
+            <Button variant="secondary" size="sm" onClick={handleRunAgentAnalysis}>
+              ↻ Re-run Change Agent
+            </Button>
+            <Button variant="ghost" size="sm" onClick={handleRunAnalysis}>
+              ↻ Re-run Mock Analysis
+            </Button>
+          </div>
         </div>
       )}
     </Card>

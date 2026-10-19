@@ -8,6 +8,10 @@ const { defaultCorpusService } = require('./rag/corpus.service');
 const { RETRIEVAL_EXPERIMENT_CASES } = require('./fixtures/retrievalExperimentFixtures');
 const { defaultGroundedAgentService } = require('./agent/groundedAgent.service');
 const { defaultProviderFactory } = require('./providers/providerFactory');
+const { defaultScopeChatService } = require('./chat/scopeChat.service');
+const { defaultChangeAgentService } = require('./agent/changeAgent.service');
+const { defaultScopeAnalysisDbService } = require('./services/scopeAnalysisDb.service');
+const { defaultIngestionService } = require('./rag/ingestion.service');
 
 class AIController {
   /**
@@ -256,6 +260,51 @@ class AIController {
       totalExecuted: benchmarkResults.length,
       results: benchmarkResults,
     });
+  });
+
+  // ── Production Grounded Scope Chat & Change Agent (Sections 3, 4, 5, 6) ─────
+
+  /**
+   * Grounded Scope Chat over approved baseline scope
+   * POST /api/scope-chat or POST /api/ai/scope-chat
+   */
+  scopeChat = asyncHandler(async (req, res) => {
+    const chatResult = await defaultScopeChatService.chat(req.body, req.user);
+    return ApiResponse.success(res, 'Grounded scope chat response generated', chatResult);
+  });
+
+  /**
+   * Change-Analysis Agent bounded tool execution
+   * POST /api/change-agent or POST /api/ai/change-agent
+   */
+  changeAgent = asyncHandler(async (req, res) => {
+    const agentResult = await defaultChangeAgentService.runChangeAgent(req.body, req.user);
+    return ApiResponse.success(res, 'Change-Analysis Agent execution completed', agentResult);
+  });
+
+  /**
+   * Real database-backed scope analysis
+   * POST /api/ai/scope-analysis-db
+   */
+  analyzeProjectScopeDb = asyncHandler(async (req, res) => {
+    const analysis = await defaultScopeAnalysisDbService.analyzeProjectScope({
+      ...req.body,
+      userContext: { user: req.user },
+    });
+    return ApiResponse.success(res, 'Database-backed scope analysis completed', analysis);
+  });
+
+  /**
+   * Trigger approved-scope document and deliverable ingestion
+   * POST /api/ai/rag/ingest
+   */
+  ingestScope = asyncHandler(async (req, res) => {
+    const { projectId, workspaceId } = req.body;
+    if (!projectId) {
+      throw ApiError.badRequest('projectId is required for scope ingestion');
+    }
+    const result = await defaultIngestionService.ingestApprovedScope(projectId, workspaceId);
+    return ApiResponse.success(res, 'Approved scope documents ingested into vector store', result);
   });
 }
 

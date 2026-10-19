@@ -21,5 +21,10 @@ router.post(
   validate({ params: changeRequestIdParamSchema, body: changeRequestDecisionSchema }),
   changeRequestController.recordDecision
 );
+router.post(
+  '/:id/ai-analyze',
+  validate({ params: changeRequestIdParamSchema }),
+  changeRequestController.runAiAnalysis
+);
 
 module.exports = router;

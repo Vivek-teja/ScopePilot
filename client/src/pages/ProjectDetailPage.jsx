@@ -13,10 +13,12 @@ import styles from './ProjectDetailPage.module.css';
 import ProposalTab from './tabs/ProposalTab.jsx';
 import MilestonesTab from './tabs/MilestonesTab.jsx';
 import ChangeRequestsTab from './tabs/ChangeRequestsTab.jsx';
+import ScopeChatTab from './tabs/ScopeChatTab.jsx';
 
 const TABS = [
   { id: 'overview',   label: '📋 Overview' },
   { id: 'scope',      label: '📄 Approved Scope' },
+  { id: 'chat',       label: '💬 Scope Chat (AI)' },
   { id: 'milestones', label: '🏁 Milestones' },
   { id: 'changes',    label: '🔄 Change Requests' },
 ];
@@ -71,6 +73,7 @@ export default function ProjectDetailPage() {
       <div role="tabpanel">
         {activeTab === 'overview'   && <OverviewTab project={project} onSelectTab={setActiveTab} />}
         {activeTab === 'scope'      && <ProposalTab projectId={projectId} proposalId={project.approvedProposalId} />}
+        {activeTab === 'chat'       && <ScopeChatTab projectId={projectId} approvedProposalVersion={project.activeProposalVersion} />}
         {activeTab === 'milestones' && <MilestonesTab projectId={projectId} />}
         {activeTab === 'changes'    && (
           <ChangeRequestsTab
@@ -105,6 +108,7 @@ function OverviewTab({ project, onSelectTab }) {
         <Divider />
         <p className={styles.overviewHint}>Use the tabs above to navigate between sections.</p>
         <div className={styles.quickLinks}>
+          <QuickLink icon="💬" label="Chat with approved scope" desc="Ask AI questions grounded in agreed deliverables" onClick={() => onSelectTab?.('chat')} />
           <QuickLink icon="📄" label="View approved scope" desc="See agreed deliverables, price, and revisions" onClick={() => onSelectTab?.('scope')} />
           <QuickLink icon="🏁" label="Milestones & deliverables" desc="Track progress and evidence links" onClick={() => onSelectTab?.('milestones')} />
           <QuickLink icon="🔄" label="Change requests" desc="Review, create, and track scope changes" onClick={() => onSelectTab?.('changes')} />

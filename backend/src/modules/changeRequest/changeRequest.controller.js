@@ -22,9 +22,27 @@ const listChangeRequests = asyncHandler(async (req, res) => {
   return ApiResponse.success(res, 'Change requests retrieved successfully', result);
 });
 
+const runAiAnalysis = asyncHandler(async (req, res) => {
+  const { defaultChangeAgentService } = require('../../ai/agent/changeAgent.service');
+  const cr = await changeRequestService.getChangeRequestById(req.params.id, req.user._id, req.user);
+  const result = await defaultChangeAgentService.runChangeAgent(
+    {
+      projectId: cr.project.toString(),
+      changeRequestId: cr._id.toString(),
+      requestTitle: cr.title,
+      requestDescription: cr.description,
+      requestedBy: req.user.name || 'client',
+    },
+    req.user
+  );
+  return ApiResponse.success(res, 'Change request AI analysis generated and linked', result);
+});
+
 module.exports = {
   createChangeRequest,
   getChangeRequestById,
   recordDecision,
   listChangeRequests,
+  runAiAnalysis,
 };
+

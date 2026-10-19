@@ -52,4 +52,27 @@ export async function runAgentBenchmark() {
   return apiClient.get('/ai/agent/benchmark');
 }
 
+// ── Complete AI, RAG & Scope Chat Integration (Sections 3, 4, 5, 6, 8) ────────
+
+export async function sendScopeChat(payload) {
+  return apiClient.post('/scope-chat', payload);
+}
+
+export async function runChangeAgent(payload) {
+  return apiClient.post('/change-agent', payload);
+}
+
+export async function analyzeChangeRequestAi(crId) {
+  return apiClient.post(`/change-requests/${crId}/ai-analyze`);
+}
+
+export async function ingestScope(payload) {
+  return apiClient.post('/ai/rag/ingest', payload);
+}
+
+export async function analyzeScopeDb(payload) {
+  return apiClient.post('/ai/scope-analysis-db', payload);
+}
+
+
 

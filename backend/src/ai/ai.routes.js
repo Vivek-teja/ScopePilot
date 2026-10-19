@@ -47,5 +47,11 @@ router.get('/agent/providers', aiController.getProviders);
 router.post('/agent/providers/select', aiController.selectProvider);
 router.get('/agent/benchmark', aiController.runAgentBenchmark);
 
+// ── Complete AI, RAG & Scope Chat Integration ────────────────────────────────
+router.post('/scope-chat', aiController.scopeChat);
+router.post('/change-agent', aiController.changeAgent);
+router.post('/scope-analysis-db', aiController.analyzeProjectScopeDb);
+router.post('/rag/ingest', aiController.ingestScope);
+
 module.exports = router;
 

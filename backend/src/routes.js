@@ -7,6 +7,8 @@ const milestoneRoutes = require('./modules/milestone/milestone.routes');
 const deliverableRoutes = require('./modules/deliverable/deliverable.routes');
 const changeRequestRoutes = require('./modules/changeRequest/changeRequest.routes');
 const aiRoutes = require('./ai/ai.routes');
+const aiController = require('./ai/ai.controller');
+const { requireAuth } = require('./middleware/auth.middleware');
 
 const router = Router();
 
@@ -28,4 +30,9 @@ router.use('/deliverables', deliverableRoutes);
 router.use('/change-requests', changeRequestRoutes);
 router.use('/ai', aiRoutes);
 
+// Project 13 API Contract Direct Endpoints
+router.post('/scope-chat', requireAuth, aiController.scopeChat);
+router.post('/change-agent', requireAuth, aiController.changeAgent);
+
 module.exports = router;
+

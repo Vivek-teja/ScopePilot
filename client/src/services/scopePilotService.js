@@ -523,8 +523,29 @@ export async function runAgentBenchmark() {
   return aiApi.runAgentBenchmark();
 }
 
+export async function sendScopeChat(payload) {
+  return aiApi.sendScopeChat(payload);
+}
+
+export async function runChangeAgent(payload) {
+  return aiApi.runChangeAgent(payload);
+}
+
+export async function analyzeChangeRequestAi(crId) {
+  return aiApi.analyzeChangeRequestAi(crId);
+}
+
+export async function ingestScope(payload) {
+  return aiApi.ingestScope(payload);
+}
+
+export async function analyzeScopeDb(payload) {
+  return aiApi.analyzeScopeDb(payload);
+}
+
 export function resetDemoData() {
   demoStore.resetDemoData();
 }
+
 
 
