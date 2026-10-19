@@ -14,6 +14,29 @@ export default function WorkspacePage() {
   if (wsLoading) return <LoadingState message="Loading workspace…" />;
   if (wsError)   return <ErrorState message={wsError} onRetry={wsReload} />;
 
+  if (!workspace) {
+    return (
+      <div className={styles.page}>
+        <Notice variant={mode === 'live' ? 'info' : 'demo'}>
+          {mode === 'live'
+            ? 'Connected to live backend — viewing authenticated workspace and members from the ScopePilot API.'
+            : 'Demo workspace — all data is local sample data. No backend is connected.'}
+        </Notice>
+        <div className={styles.hero}>
+          <div className={styles.heroIcon}>🏢</div>
+          <div className={styles.heroText}>
+            <h1 className={styles.wsName}>Welcome to ScopePilot</h1>
+            <p className={styles.wsDesc}>You have successfully signed in. Connect to or create a workspace to begin managing projects.</p>
+          </div>
+        </div>
+        <div className={styles.actions}>
+          <Button as={Link} to="/projects" variant="primary" size="md">
+            View Projects →
+          </Button>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className={styles.page}>
       <Notice variant={mode === 'live' ? 'info' : 'demo'}>

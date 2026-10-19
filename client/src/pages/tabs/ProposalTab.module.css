@@ -86,3 +86,48 @@
   align-items: center;
 }
 
+/* ── Proposal Revision Form ── */
+.createRevisionBox {
+  margin-top: var(--space-4);
+  padding: 18px 22px;
+  background: var(--bg-surface-grey);
+  border: 1px solid var(--border-dim);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.formTitle {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  color: var(--text-white);
+  margin: 0;
+}
+
+.formLabel {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+
+.formInput, .formTextarea {
+  width: 100%;
+  padding: 8px 12px;
+  background: var(--bg-surface-dark);
+  border: 1px solid var(--border-dim);
+  color: var(--text-white);
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+}
+
+.formInput:focus, .formTextarea:focus {
+  border-color: var(--purple-vivid);
+  outline: none;
+}
+
+.formActions {
+  display: flex;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}

@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useAsync } from '../../hooks/useAsync.js';
-import { fetchChangeRequests, createChangeRequest } from '../../services/scopePilotService.js';
+import { fetchChangeRequests, createChangeRequest, getDataSourceMode } from '../../services/scopePilotService.js';
 import { useDemoSession } from '../../hooks/DemoContext.jsx';
 import {
   Badge, Card, Button, SectionHeader, LoadingState, ErrorState, EmptyState,
@@ -111,9 +111,24 @@ function CreateChangeRequestForm({ projectId, requestedBy, onCreated, onCancel }
 
   function validate() {
     const e = {};
-    if (!values.title.trim())   e.title   = 'Title is required.';
-    if (!values.summary.trim()) e.summary = 'Summary is required.';
-    if (!values.newWork.trim()) e.newWork  = 'Description of new work is required.';
+    if (!values.title.trim()) {
+      e.title = 'Title is required.';
+    } else if (values.title.trim().length < 2) {
+      e.title = 'Title must be at least 2 characters.';
+    }
+
+    if (!values.summary.trim()) {
+      e.summary = 'Summary is required.';
+    } else if (values.summary.trim().length < 5) {
+      e.summary = 'Summary must be at least 5 characters.';
+    }
+
+    if (!values.newWork.trim()) {
+      e.newWork = 'Description of new work is required.';
+    } else if (values.newWork.trim().length < 5) {
+      e.newWork = 'Description of new work must be at least 5 characters.';
+    }
+
     return e;
   }
 
@@ -136,20 +151,28 @@ function CreateChangeRequestForm({ projectId, requestedBy, onCreated, onCancel }
       });
       onCreated();
     } catch (err) {
-      // Preserve entered values on failure
-      setSubmitError(err.message ?? 'Submission failed. Please try again.');
+      const msg = err.errors?.length
+        ? `${err.message || 'Validation failed'}: ${err.errors.map((e) => (typeof e === 'string' ? e : e.message || e.field)).join(', ')}`
+        : (err.message ?? 'Submission failed. Please try again.');
+      setSubmitError(msg);
       setSubmitting(false);
     }
   }
 
+  const isLive = getDataSourceMode() === 'live';
+
   return (
     <Card className={styles.formCard}>
       <h3 className={styles.formTitle}>New Change Request</h3>
-      <Notice variant={mode === 'live' ? 'info' : 'demo'}>
-        {mode === 'live'
-          ? 'This request will be sent to the live ScopePilot backend API and saved in MongoDB.'
-          : 'This will be saved locally in your browser for this demo session.'}
-      </Notice>
+      {isLive ? (
+        <Notice variant="info">
+          Connected to live MongoDB Atlas backend. All project members will see this change request.
+        </Notice>
+      ) : (
+        <Notice variant="demo">
+          Saved locally in browser demo state. Sign in via Live Backend to persist across accounts.
+        </Notice>
+      )}
 
       <form onSubmit={handleSubmit} noValidate className={styles.form}>
         <FormField label="Title" htmlFor="cr-title" required error={errors.title}>

@@ -5,9 +5,11 @@ import { DEMO_USERS } from '../mocks/fixtures.js';
 import styles from './LoginPage.module.css';
 
 const SEEDED_ACCOUNTS = [
-  { role: 'freelancer', email: 'freelancer@scopepilot.dev', label: 'Alex Freelancer', avatar: 'AF' },
-  { role: 'client', email: 'client@scopepilot.dev', label: 'Sarah Client', avatar: 'SC' },
-  { role: 'admin', email: 'admin@scopepilot.dev', label: 'ScopePilot Admin', avatar: 'SA' },
+  { role: 'freelancer', email: 'demo1@scopepilot.dev', label: 'Demo 1 (Freelancer)' },
+  { role: 'client', email: 'demo2@scopepilot.dev', label: 'Demo 2 (Client)' },
+  { role: 'freelancer', email: 'demo3@scopepilot.dev', label: 'Demo 3 (Freelancer)' },
+  { role: 'client', email: 'demo4@scopepilot.dev', label: 'Demo 4 (Client)' },
+  { role: 'admin', email: 'demo5@scopepilot.dev', label: 'Demo 5 (Admin)' },
 ];
 
 export default function LoginPage() {
@@ -52,6 +54,7 @@ export default function LoginPage() {
 
   function handleQuickFill(acc) {
     setEmail(acc.email);
+    setPassword('password123');
     setIsRegister(false);
     setErrorMessage(null);
   }

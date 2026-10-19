@@ -187,6 +187,36 @@ export async function fetchProjects(workspaceId) {
   }
 }
 
+export async function createProject(data) {
+  if (!isLiveBackend) {
+    return {
+      id: `p-${Date.now()}`,
+      title: data.title,
+      name: data.title,
+      summary: data.description || '',
+      status: data.status || 'active',
+      startDate: new Date().toLocaleDateString(),
+      estimatedEndDate: 'TBD',
+      tags: ['scope'],
+      activeProposalVersion: 1,
+    };
+  }
+  let wsId = data.workspaceId || data.workspace;
+  if (!wsId || !isObjectId(wsId)) {
+    const ws = await fetchWorkspace();
+    wsId = ws?._id || ws?.id;
+  }
+  const payload = {
+    workspaceId: wsId,
+    title: data.title,
+    description: data.description || '',
+    status: data.status || 'active',
+  };
+  if (data.clientId) payload.clientId = data.clientId;
+  const created = await projectApi.createProject(payload);
+  return normalizeProject(created);
+}
+
 export async function fetchProject(projectId) {
   if (!isObjectId(projectId)) {
     return demoStore.fetchProject(projectId);
@@ -283,6 +313,13 @@ export async function recordProposalDecision(proposalId, decision, comment) {
     return { success: true };
   }
   return proposalApi.recordProposalDecision(proposalId, { decision, comment });
+}
+
+export async function createProposalVersion(proposalId, versionData) {
+  if (!isLiveBackend || !isObjectId(proposalId)) {
+    return { success: true };
+  }
+  return proposalApi.createProposalVersion(proposalId, versionData);
 }
 
 function normalizeProposalVersion(v, parentProp = {}) {

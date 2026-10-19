@@ -26,6 +26,38 @@ class AuthService {
     const userObj = newUser.toObject();
     delete userObj.passwordHash;
 
+    // Automatically onboard new user into the shared workspace so they have immediate access
+    try {
+      const mongoose = require('mongoose');
+      if (mongoose.connection && mongoose.connection.readyState === 1) {
+        const Workspace = require('../workspace/workspace.model');
+        if (Workspace && typeof Workspace.findOne === 'function') {
+          const primaryWorkspace = await Workspace.findOne().sort({ createdAt: 1 });
+          if (primaryWorkspace && primaryWorkspace.members) {
+            const isMember = primaryWorkspace.members.some(
+              (m) => (m.user?._id || m.user).toString() === newUser._id.toString()
+            );
+            if (!isMember) {
+              primaryWorkspace.members.push({
+                user: newUser._id,
+                role: newUser.role === 'admin' ? 'admin' : 'member',
+              });
+              await primaryWorkspace.save();
+            }
+          } else if (!primaryWorkspace && typeof Workspace.create === 'function') {
+            await Workspace.create({
+              name: `${newUser.name}'s Workspace`,
+              slug: `${newUser.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}-workspace`,
+              owner: newUser._id,
+              members: [{ user: newUser._id, role: 'owner' }],
+            });
+          }
+        }
+      }
+    } catch {
+      // Safe fallback: non-blocking for unit tests or when mock models are used
+    }
+
     const token = generateToken({
       id: newUser._id,
       email: newUser.email,

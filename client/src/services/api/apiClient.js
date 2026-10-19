@@ -123,7 +123,7 @@ async function request(endpoint, options = {}) {
   }
 
   if (!response.ok) {
-    const message =
+    let message =
       (payload && typeof payload === 'object' && payload.message) ||
       `HTTP Error ${response.status}: ${response.statusText}`;
     const errors =
@@ -133,6 +133,16 @@ async function request(endpoint, options = {}) {
     if (response.status === 401) {
       // Notify application of auth expiration if needed
       window.dispatchEvent(new CustomEvent('scopepilot:unauthorized'));
+    }
+
+    if (errors.length > 0) {
+      const details = errors
+        .map((e) => (typeof e === 'string' ? e : e.message || `${e.field}: invalid`))
+        .filter(Boolean)
+        .join(', ');
+      if (details) {
+        message = `${message}: ${details}`;
+      }
     }
 
     throw new ApiError(message, response.status, errors, payload);

@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useAsync } from '../../hooks/useAsync.js';
 import { useDemoSession } from '../../hooks/DemoContext.jsx';
-import { fetchProposals, recordProposalDecision } from '../../services/scopePilotService.js';
+import { fetchProposals, recordProposalDecision, createProposalVersion } from '../../services/scopePilotService.js';
 import {
   Badge, Card, Button, LoadingState, ErrorState, EmptyState,
   SectionHeader, KVRow, KVGrid, Divider, Notice,
@@ -10,6 +10,7 @@ import styles from './ProposalTab.module.css';
 
 export default function ProposalTab({ projectId, proposalId: _proposalId }) {
   const { session } = useDemoSession();
+  const [showRevisionForm, setShowRevisionForm] = useState(false);
   const fetchFn = useCallback(() => fetchProposals(projectId), [projectId]);
   const { data: proposals, loading, error, reload } = useAsync(fetchFn, [projectId]);
 
@@ -109,7 +110,31 @@ export default function ProposalTab({ projectId, proposalId: _proposalId }) {
         <Notice variant="warning">No approved proposal version found for this project.</Notice>
       ) : null}
 
-      {/* Other versions */}
+      {/* Draft New Revision Action (for Freelancers / Admins) */}
+      {approved && !pending && (session?.role === 'freelancer' || session?.role === 'admin') && (
+        <section className={styles.section}>
+          {!showRevisionForm ? (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setShowRevisionForm(true)}
+            >
+              + Draft Proposal Revision (v{approved.version + 1}) ◊
+            </Button>
+          ) : (
+            <CreateRevisionForm
+              approved={approved}
+              onCancel={() => setShowRevisionForm(false)}
+              onCreated={() => {
+                setShowRevisionForm(false);
+                reload();
+              }}
+            />
+          )}
+        </section>
+      )}
+
+      {/* Other Versions Section */}
       {others.length > 0 && (
         <section>
           <SectionHeader title="Other Versions" subtitle="For reference only — not the agreed scope" />
@@ -223,3 +248,106 @@ function PendingProposalSection({ proposal: p, session, onDecisionSuccess }) {
   );
 }
 
+function CreateRevisionForm({ approved, onCancel, onCreated }) {
+  const [title, setTitle] = useState(`${approved.title} - v${approved.version + 1}`);
+  const [scopeSummary, setScopeSummary] = useState('');
+  const [deliverablesText, setDeliverablesText] = useState(
+    (approved.agreedDeliverables || []).join('\n')
+  );
+  const [totalBudget, setTotalBudget] = useState(approved.agreedPrice || 15000);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState(null);
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    if (!scopeSummary.trim()) {
+      setError('Scope summary is required (min 5 characters).');
+      return;
+    }
+    setSubmitting(true);
+    setError(null);
+
+    const lines = deliverablesText
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean);
+
+    const items = lines.map((itemTitle) => ({
+      title: itemTitle,
+      description: itemTitle,
+      estimatedHours: 20,
+      price: Math.round(Number(totalBudget) / (lines.length || 1)),
+    }));
+
+    try {
+      await createProposalVersion(approved.proposalId, {
+        title: title.trim(),
+        scopeSummary: scopeSummary.trim(),
+        scopeItems: items,
+        totalBudget: Number(totalBudget),
+        currency: approved.currency || 'USD',
+      });
+      onCreated();
+    } catch (err) {
+      setError(err.message || 'Failed to submit proposal revision.');
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div className={styles.createRevisionBox}>
+      <h3 className={styles.formTitle}>Draft Proposal Revision (v{approved.version + 1})</h3>
+      {error && <Notice variant="warning">{error}</Notice>}
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div>
+          <label className={styles.formLabel}>Revision Title</label>
+          <input
+            className={styles.formInput}
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            disabled={submitting}
+          />
+        </div>
+        <div>
+          <label className={styles.formLabel}>Scope Summary / Revision Notes</label>
+          <textarea
+            className={styles.formTextarea}
+            rows={3}
+            placeholder="Describe what changed or why this revision is being submitted..."
+            value={scopeSummary}
+            onChange={(e) => setScopeSummary(e.target.value)}
+            disabled={submitting}
+          />
+        </div>
+        <div>
+          <label className={styles.formLabel}>Deliverables (One per line)</label>
+          <textarea
+            className={styles.formTextarea}
+            rows={4}
+            value={deliverablesText}
+            onChange={(e) => setDeliverablesText(e.target.value)}
+            disabled={submitting}
+          />
+        </div>
+        <div>
+          <label className={styles.formLabel}>Total Budget ($)</label>
+          <input
+            type="number"
+            className={styles.formInput}
+            value={totalBudget}
+            onChange={(e) => setTotalBudget(e.target.value)}
+            disabled={submitting}
+          />
+        </div>
+        <div className={styles.formActions}>
+          <Button type="submit" variant="primary" size="sm" loading={submitting}>
+            Submit Revision for Client Approval ◊
+          </Button>
+          <Button type="button" variant="ghost" size="sm" onClick={onCancel} disabled={submitting}>
+            Cancel
+          </Button>
+        </div>
+      </form>
+    </div>
+  );
+}
