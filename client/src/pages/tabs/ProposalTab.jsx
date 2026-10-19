@@ -4,7 +4,7 @@ import { useDemoSession } from '../../hooks/DemoContext.jsx';
 import { fetchProposals, recordProposalDecision } from '../../services/scopePilotService.js';
 import {
   Badge, Card, Button, LoadingState, ErrorState, EmptyState,
-  SectionHeader, KVRow, KVGrid, Divider, Notice,
+  KVRow, KVGrid, Divider, Notice,
 } from '../../components/ui.jsx';
 import styles from './ProposalTab.module.css';
 
@@ -13,9 +13,9 @@ export default function ProposalTab({ projectId, proposalId: _proposalId }) {
   const fetchFn = useCallback(() => fetchProposals(projectId), [projectId]);
   const { data: proposals, loading, error, reload } = useAsync(fetchFn, [projectId]);
 
-  if (loading) return <LoadingState message="Loading proposals…" />;
+  if (loading) return <LoadingState message="Loading proposals..." />;
   if (error)   return <ErrorState message={error} onRetry={reload} />;
-  if (!proposals?.length) return <EmptyState icon="📄" title="No proposals" message="No proposals found for this project." />;
+  if (!proposals?.length) return <EmptyState title="No proposals found" message="No proposals recorded for this project." />;
 
   const approved = proposals.find((p) => p.status === 'approved');
   const pending  = proposals.find((p) => p.status === 'pending_approval');
@@ -24,17 +24,18 @@ export default function ProposalTab({ projectId, proposalId: _proposalId }) {
   return (
     <div className={styles.container}>
       <Notice variant="info">
-        Only the <strong>approved</strong> version represents the agreed scope of work.
-        Draft and superseded versions are shown below for reference only.
+        Only the <strong>approved</strong> version represents the agreed contractual scope. Draft and superseded versions are maintained below for historical reference.
       </Notice>
 
       {/* Pending proposal awaiting decision */}
       {pending && (
-        <section>
-          <SectionHeader
-            title="Proposal Pending Review"
-            subtitle={`Version ${pending.version} is currently awaiting client sign-off`}
-          />
+        <section className={styles.section}>
+          <div className={styles.sectionHeadingLine}>
+            <h2 className={styles.sectionTitle}>
+              Proposal Pending Review <span className={styles.versionTag}>[ v{pending.version} ]</span>
+            </h2>
+            <div className={styles.purpleUnderline} />
+          </div>
           <PendingProposalSection
             proposal={pending}
             session={session}
@@ -43,11 +44,17 @@ export default function ProposalTab({ projectId, proposalId: _proposalId }) {
         </section>
       )}
 
-      {/* Approved proposal */}
+      {/* Approved Scope Card */}
       {approved ? (
-        <section>
-          <SectionHeader title="Approved Scope" subtitle={`Version ${approved.version} · Approved ${approved.approvedAt ?? '—'}`} />
-          <Card className={styles.approvedCard}>
+        <section className={styles.section}>
+          <div className={styles.sectionHeadingLine}>
+            <h2 className={styles.sectionTitle}>
+              Approved Scope <span className={styles.versionTag}>[ v{approved.version} ]</span>
+            </h2>
+            <div className={styles.purpleUnderline} />
+          </div>
+
+          <Card className={styles.approvedCard} surface="grey">
             <div className={styles.proposalHeader}>
               <div>
                 <h3 className={styles.proposalTitle}>{approved.title}</h3>
@@ -59,46 +66,48 @@ export default function ProposalTab({ projectId, proposalId: _proposalId }) {
             <Divider />
 
             <div className={styles.proposalBody}>
-              {/* Key values */}
+              {/* Key Values */}
               <div className={styles.kvSection}>
-                <h4 className={styles.subHeading}>Agreement Details</h4>
+                <h4 className={styles.subHeading}>AGREEMENT METRICS</h4>
                 <KVGrid>
-                  <KVRow label="Version"        value={`v${approved.version}`} />
-                  <KVRow label="Agreed price"   value={`${approved.agreedPrice.toLocaleString()} ${approved.currency}`} />
-                  <KVRow label="Revisions"      value={`${approved.revisionsUsed} used / ${approved.revisionLimit} allowed`} />
-                  <KVRow label="Start date"     value={approved.startDate} />
-                  <KVRow label="End date"       value={approved.endDate} />
-                  <KVRow label="Approved by"    value={approved.approvedBy ?? '—'} mono />
-                  <KVRow label="Approved on"    value={approved.approvedAt ?? '—'} />
+                  <KVRow label="VERSION"      value={`v${approved.version}`} />
+                  <KVRow label="AGREED PRICE" value={`${approved.agreedPrice.toLocaleString()} ${approved.currency}`} />
+                  <KVRow label="REVISIONS"    value={`${approved.revisionsUsed} used / ${approved.revisionLimit} allowed`} />
+                  <KVRow label="START DATE"   value={approved.startDate} />
+                  <KVRow label="END DATE"     value={approved.endDate} />
+                  <KVRow label="APPROVER"     value={approved.approvedBy ?? '—'} mono />
+                  <KVRow label="SIGN DATE"    value={approved.approvedAt ?? '—'} />
                 </KVGrid>
               </div>
 
-              {/* Deliverables */}
+              {/* Agreed Deliverables List */}
               <div className={styles.delivSection}>
-                <h4 className={styles.subHeading}>Agreed Deliverables</h4>
+                <h4 className={styles.subHeading}>AGREED DELIVERABLES</h4>
                 <ul className={styles.delivList}>
                   {approved.agreedDeliverables.map((d, i) => (
                     <li key={i} className={styles.delivItem}>
-                      <span className={styles.delivCheck} aria-hidden="true">✓</span>
-                      {d}
+                      <span className={styles.diamondCheck} aria-hidden="true">◊</span>
+                      <span className={styles.delivText}>{d}</span>
                     </li>
                   ))}
                 </ul>
 
-                {/* Revision progress */}
+                {/* Revision Limit Tracking with Diamonds */}
                 <div className={styles.revisionBar}>
-                  <span className={styles.revisionLabel}>Revisions used</span>
+                  <span className={styles.revisionLabel}>REVISIONS:</span>
                   <div className={styles.revisionDots}>
                     {Array.from({ length: approved.revisionLimit }).map((_, i) => (
                       <span
                         key={i}
-                        className={`${styles.revisionDot} ${i < approved.revisionsUsed ? styles.revisionDotUsed : ''}`}
+                        className={`${styles.revisionDiamond} ${i < approved.revisionsUsed ? styles.revisionDiamondUsed : ''}`}
                         title={i < approved.revisionsUsed ? 'Used' : 'Available'}
-                      />
+                      >
+                        ◊
+                      </span>
                     ))}
                   </div>
                   <span className={styles.revisionCount}>
-                    {approved.revisionsUsed}/{approved.revisionLimit}
+                    [ {approved.revisionsUsed} / {approved.revisionLimit} ]
                   </span>
                 </div>
               </div>
@@ -109,13 +118,17 @@ export default function ProposalTab({ projectId, proposalId: _proposalId }) {
         <Notice variant="warning">No approved proposal version found for this project.</Notice>
       ) : null}
 
-      {/* Other versions */}
+      {/* Other Versions Section */}
       {others.length > 0 && (
-        <section>
-          <SectionHeader title="Other Versions" subtitle="For reference only — not the agreed scope" />
+        <section className={styles.section}>
+          <div className={styles.sectionHeadingLine}>
+            <h2 className={styles.sectionTitle}>Archived / Previous Versions</h2>
+            <div className={styles.purpleUnderline} />
+          </div>
+
           <div className={styles.otherList}>
             {others.map((p) => (
-              <Card key={p.id} className={styles.otherCard}>
+              <Card key={p.id} className={styles.otherCard} surface="grey">
                 <div className={styles.otherHeader}>
                   <span className={styles.otherTitle}>{p.title}</span>
                   <Badge status={p.status} />
@@ -150,10 +163,10 @@ function PendingProposalSection({ proposal: p, session, onDecisionSuccess }) {
   }
 
   return (
-    <Card className={styles.pendingCard}>
+    <Card className={styles.pendingCard} surface="grey">
       <div className={styles.proposalHeader}>
         <div>
-          <h3 className={styles.proposalTitle}>{p.title} (v{p.version})</h3>
+          <h3 className={styles.proposalTitle}>{p.title} [ v{p.version} ]</h3>
           <p className={styles.proposalNotes}>{p.notes || 'Pending scope approval.'}</p>
         </div>
         <Badge status="pending_approval" label="Pending Review" />
@@ -163,20 +176,20 @@ function PendingProposalSection({ proposal: p, session, onDecisionSuccess }) {
 
       <div className={styles.proposalBody}>
         <div className={styles.kvSection}>
-          <h4 className={styles.subHeading}>Proposed Terms</h4>
+          <h4 className={styles.subHeading}>PROPOSED TERMS</h4>
           <KVGrid>
-            <KVRow label="Version" value={`v${p.version}`} />
-            <KVRow label="Proposed price" value={`${p.agreedPrice.toLocaleString()} ${p.currency}`} />
-            <KVRow label="Proposed date" value={p.startDate} />
+            <KVRow label="VERSION" value={`v${p.version}`} />
+            <KVRow label="PROPOSED PRICE" value={`${p.agreedPrice.toLocaleString()} ${p.currency}`} />
+            <KVRow label="PROPOSED DATE" value={p.startDate} />
           </KVGrid>
         </div>
         <div className={styles.delivSection}>
-          <h4 className={styles.subHeading}>Scope Deliverables</h4>
+          <h4 className={styles.subHeading}>SCOPE DELIVERABLES</h4>
           <ul className={styles.delivList}>
             {p.agreedDeliverables.map((d, i) => (
               <li key={i} className={styles.delivItem}>
-                <span className={styles.delivCheck} aria-hidden="true">•</span>
-                {d}
+                <span className={styles.diamondCheck} aria-hidden="true">◊</span>
+                <span className={styles.delivText}>{d}</span>
               </li>
             ))}
           </ul>
@@ -202,7 +215,7 @@ function PendingProposalSection({ proposal: p, session, onDecisionSuccess }) {
               loading={submitting}
               onClick={() => handleDecision('approve')}
             >
-              ✓ Approve Scope (v{p.version})
+              Approve Scope (v{p.version}) ◊
             </Button>
             <Button
               variant="danger"
@@ -210,7 +223,7 @@ function PendingProposalSection({ proposal: p, session, onDecisionSuccess }) {
               loading={submitting}
               onClick={() => handleDecision('reject')}
             >
-              ✕ Reject Scope
+              Reject Scope [ ! ]
             </Button>
           </div>
         </div>

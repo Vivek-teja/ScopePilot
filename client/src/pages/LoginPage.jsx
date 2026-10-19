@@ -2,14 +2,20 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDemoSession } from '../hooks/DemoContext.jsx';
 import { DEMO_USERS } from '../mocks/fixtures.js';
+import { DiamondProceedButton } from '../components/ui.jsx';
 import styles from './LoginPage.module.css';
 
 const SEEDED_ACCOUNTS = [
-  { role: 'freelancer', email: 'freelancer@scopepilot.dev', label: 'Alex Freelancer', avatar: 'AF' },
-  { role: 'client', email: 'client@scopepilot.dev', label: 'Sarah Client', avatar: 'SC' },
-  { role: 'admin', email: 'admin@scopepilot.dev', label: 'ScopePilot Admin', avatar: 'SA' },
+  { role: 'freelancer', email: 'freelancer@scopepilot.dev', label: 'Alex Freelancer' },
+  { role: 'client', email: 'client@scopepilot.dev', label: 'Sarah Client' },
+  { role: 'admin', email: 'admin@scopepilot.dev', label: 'Admin User' },
 ];
 
+/**
+ * LoginPage:
+ * Harmonizes Taran's cyber-geometric octagonal card and DiamondProceedButton
+ * with ScopePilot live JWT authentication, registration, and demo fixtures.
+ */
 export default function LoginPage() {
   const { login, loginWithCredentials, registerWithCredentials } = useDemoSession();
   const navigate = useNavigate();
@@ -29,7 +35,7 @@ export default function LoginPage() {
   const [selectedDemoUser, setSelectedDemoUser] = useState(DEMO_USERS[0].id);
 
   async function handleLiveSubmit(e) {
-    if (e) e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
     setLoading(true);
     setErrorMessage(null);
 
@@ -62,193 +68,224 @@ export default function LoginPage() {
   }
 
   return (
-    <div className={styles.page}>
-      <div className={styles.orb1} aria-hidden="true" />
-      <div className={styles.orb2} aria-hidden="true" />
+    <div className={styles.loginViewport}>
+      {/* ── Main Octagonal Card Container ── */}
+      <div className={styles.cardWrapper}>
 
-      <div className={styles.card}>
-        <div className={styles.logoRow}>
-          <span className={styles.logoIcon}>🧭</span>
-          <span className={styles.logoText}>ScopePilot</span>
+        {/* Four Corner Accents (Parallel diagonal lines & white/pastel-purple triangle gems) */}
+        <div className={`${styles.cornerAccent} ${styles.cornerTopLeft}`}>
+          <div className={styles.parallelLines} />
+          <svg className={styles.triangleSvg} width="28" height="28" viewBox="0 0 28 28">
+            <polygon points="2,2 26,2 2,26" fill="#ffffff" stroke="#ffffff" strokeWidth="1.5" />
+            <polygon points="6,6 20,6 6,20" fill="#c084fc" />
+          </svg>
         </div>
 
-        <h1 className={styles.headline}>Freelance scope &amp; change management</h1>
-        <p className={styles.sub}>
-          Review approved scope, track milestones, and manage change requests — all in one place.
-        </p>
-
-        {/* Tab switch between Live API and Demo Mode */}
-        <div className={styles.tabHeader} role="tablist">
-          <button
-            type="button"
-            className={`${styles.tabBtn} ${authTab === 'live' ? styles.tabBtnActive : ''}`}
-            onClick={() => { setAuthTab('live'); setErrorMessage(null); }}
-          >
-            🔌 Live Backend API
-          </button>
-          <button
-            type="button"
-            className={`${styles.tabBtn} ${authTab === 'demo' ? styles.tabBtnActive : ''}`}
-            onClick={() => { setAuthTab('demo'); setErrorMessage(null); }}
-          >
-            📦 Demo / Fixtures
-          </button>
+        <div className={`${styles.cornerAccent} ${styles.cornerTopRight}`}>
+          <div className={styles.parallelLines} />
+          <svg className={styles.triangleSvg} width="28" height="28" viewBox="0 0 28 28">
+            <polygon points="2,2 26,2 26,26" fill="#ffffff" stroke="#ffffff" strokeWidth="1.5" />
+            <polygon points="8,6 22,6 22,20" fill="#c084fc" />
+          </svg>
         </div>
 
-        {authTab === 'live' && (
-          <div className={styles.liveSection}>
-            <div className={styles.quickAccounts}>
-              <span className={styles.quickLabel}>Quick-fill development account email:</span>
-              <div className={styles.quickBtnGroup}>
-                {SEEDED_ACCOUNTS.map((acc) => (
-                  <button
-                    key={acc.email}
-                    type="button"
-                    className={`${styles.quickBtn} ${email === acc.email ? styles.quickBtnActive : ''}`}
-                    onClick={() => handleQuickFill(acc)}
-                  >
-                    <span className={styles.quickRoleBadge}>{acc.role}</span>
-                    <span>{acc.label}</span>
-                  </button>
-                ))}
-              </div>
+        <div className={`${styles.cornerAccent} ${styles.cornerBottomLeft}`}>
+          <div className={styles.parallelLines} />
+          <svg className={styles.triangleSvg} width="28" height="28" viewBox="0 0 28 28">
+            <polygon points="2,2 2,26 26,26" fill="#ffffff" stroke="#ffffff" strokeWidth="1.5" />
+            <polygon points="6,8 6,22 20,22" fill="#c084fc" />
+          </svg>
+        </div>
+
+        <div className={`${styles.cornerAccent} ${styles.cornerBottomRight}`}>
+          <div className={styles.parallelLines} />
+          <svg className={styles.triangleSvg} width="28" height="28" viewBox="0 0 28 28">
+            <polygon points="26,2 26,26 2,26" fill="#ffffff" stroke="#ffffff" strokeWidth="1.5" />
+            <polygon points="22,8 22,22 8,22" fill="#c084fc" />
+          </svg>
+        </div>
+
+        {/* Central Card Box with True Connected 8-Sided Octagonal Border */}
+        <div className={styles.octCard}>
+          <div className={styles.octCardInner}>
+            {/* Title with purple dot on 'i' */}
+            <div className={styles.titleRow}>
+              <span className={styles.titleLetter}>L</span>
+              <span className={styles.titleLetter}>o</span>
+              <span className={styles.titleLetter}>g</span>
+              <span className={styles.titleIWrapper}>
+                <span className={styles.purpleDot} />
+                <span className={styles.titleIBody}>ı</span>
+              </span>
+              <span className={styles.titleLetter}>n</span>
             </div>
 
-            <form onSubmit={handleLiveSubmit} className={styles.form}>
-              {errorMessage && (
-                <div className={styles.errorBox} role="alert">
-                  ⚠️ {errorMessage}
-                </div>
-              )}
+            <p className={styles.loginSubtitle}>
+              ScopePilot // Freelance Scope &amp; Change Control
+            </p>
 
-              {isRegister && (
-                <>
-                  <div className={styles.inputGroup}>
-                    <label className={styles.inputLabel} htmlFor="reg-name">Full Name</label>
-                    <input
-                      id="reg-name"
-                      type="text"
-                      className={styles.textInput}
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="e.g. Alex Developer"
-                      required
-                    />
-                  </div>
-                  <div className={styles.inputGroup}>
-                    <label className={styles.inputLabel} htmlFor="reg-role">Account Role</label>
-                    <select
-                      id="reg-role"
-                      className={styles.textInput}
-                      value={role}
-                      onChange={(e) => setRole(e.target.value)}
-                    >
-                      <option value="freelancer">Freelancer</option>
-                      <option value="client">Client</option>
-                      <option value="admin">Admin</option>
-                    </select>
-                  </div>
-                </>
-              )}
-
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel} htmlFor="auth-email">Email Address</label>
-                <input
-                  id="auth-email"
-                  type="email"
-                  className={styles.textInput}
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="name@example.com"
-                  required
-                />
-              </div>
-
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel} htmlFor="auth-password">Password</label>
-                <input
-                  id="auth-password"
-                  type="password"
-                  className={styles.textInput}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  required
-                />
-              </div>
-
+            {/* Mode Switcher Tabs */}
+            <div className={styles.authTabGroup} role="tablist">
               <button
-                type="submit"
-                className={styles.enterBtn}
-                disabled={loading}
+                type="button"
+                role="tab"
+                aria-selected={authTab === 'live'}
+                className={`${styles.authTabBtn} ${authTab === 'live' ? styles.authTabBtnActive : ''}`}
+                onClick={() => { setAuthTab('live'); setErrorMessage(null); }}
               >
-                {loading
-                  ? (isRegister ? 'Creating Account…' : 'Signing In…')
-                  : (isRegister ? 'Create Account & Sign In →' : 'Sign In with Live API →')}
+                [ 🟢 LIVE API ]
               </button>
-
-              <div className={styles.toggleRow}>
-                <button
-                  type="button"
-                  className={styles.toggleBtn}
-                  onClick={() => { setIsRegister(!isRegister); setErrorMessage(null); }}
-                >
-                  {isRegister
-                    ? 'Already have an account? Sign in here'
-                    : 'Need an account? Register here'}
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
-
-        {authTab === 'demo' && (
-          <div className={styles.demoSection}>
-            <div className={styles.demoBanner}>
-              <span className={styles.demoBadge}>DEMO MODE</span>
-              <p>
-                Browsing with local fixtures. No live network calls will be made.
-              </p>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={authTab === 'demo'}
+                className={`${styles.authTabBtn} ${authTab === 'demo' ? styles.authTabBtnActive : ''}`}
+                onClick={() => { setAuthTab('demo'); setErrorMessage(null); }}
+              >
+                [ 📦 DEMO PERSPECTIVE ]
+              </button>
             </div>
 
-            <fieldset className={styles.roleGroup}>
-              <legend className={styles.roleLegend}>Choose a demo perspective</legend>
-              {DEMO_USERS.map((u) => (
-                <label
-                  key={u.id}
-                  className={`${styles.roleCard} ${selectedDemoUser === u.id ? styles.roleCardSelected : ''}`}
-                >
+            {authTab === 'live' ? (
+              <form onSubmit={handleLiveSubmit} className={styles.fieldBlock}>
+                {/* Quick Account Fill Buttons */}
+                <div className={styles.quickAccountsRow}>
+                  <span className={styles.quickLabel}>QUICK-FILL SEEDED CREDENTIALS:</span>
+                  <div className={styles.quickBtnGroup}>
+                    {SEEDED_ACCOUNTS.map((acc) => (
+                      <button
+                        key={acc.email}
+                        type="button"
+                        className={`${styles.quickBtn} ${email === acc.email ? styles.quickBtnActive : ''}`}
+                        onClick={() => handleQuickFill(acc)}
+                      >
+                        {acc.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {errorMessage && (
+                  <div className={styles.errorBox} role="alert">
+                    [ ! ] {errorMessage}
+                  </div>
+                )}
+
+                {isRegister && (
+                  <>
+                    <div className={styles.fieldBlock}>
+                      <label className={styles.inputLabel} htmlFor="reg-name">FULL NAME:</label>
+                      <input
+                        id="reg-name"
+                        type="text"
+                        className={styles.whiteInput}
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="e.g. Alex Developer"
+                        required
+                      />
+                    </div>
+                    <div className={styles.fieldBlock}>
+                      <label className={styles.inputLabel} htmlFor="reg-role">ACCOUNT ROLE:</label>
+                      <select
+                        id="reg-role"
+                        className={styles.whiteSelect}
+                        value={role}
+                        onChange={(e) => setRole(e.target.value)}
+                      >
+                        <option value="freelancer">Freelancer</option>
+                        <option value="client">Client</option>
+                        <option value="admin">Admin</option>
+                      </select>
+                    </div>
+                  </>
+                )}
+
+                <div className={styles.fieldBlock}>
+                  <label className={styles.inputLabel} htmlFor="auth-email">EMAIL ADDRESS:</label>
                   <input
-                    type="radio"
-                    name="demoRole"
-                    value={u.id}
-                    checked={selectedDemoUser === u.id}
-                    onChange={() => setSelectedDemoUser(u.id)}
-                    className={styles.radioInput}
+                    id="auth-email"
+                    type="email"
+                    className={styles.whiteInput}
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="name@example.com"
+                    required
                   />
-                  <span className={styles.roleAvatar}>{u.avatar}</span>
-                  <span className={styles.roleInfo}>
-                    <span className={styles.roleName}>{u.name}</span>
-                    <span className={styles.roleTag}>{u.role}</span>
-                  </span>
-                  {selectedDemoUser === u.id && <span className={styles.roleCheck} aria-hidden="true">✓</span>}
-                </label>
-              ))}
-            </fieldset>
+                </div>
 
-            <button
-              type="button"
-              className={styles.enterBtn}
-              onClick={handleEnterDemo}
-            >
-              Enter Demo Mode →
-            </button>
+                <div className={styles.fieldBlock}>
+                  <label className={styles.inputLabel} htmlFor="auth-password">PASSWORD:</label>
+                  <input
+                    id="auth-password"
+                    type="password"
+                    className={styles.whiteInput}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    required
+                  />
+                </div>
+
+                {/* Diamond Proceed Button */}
+                <div className={styles.buttonContainer}>
+                  <DiamondProceedButton
+                    onClick={handleLiveSubmit}
+                    loading={loading}
+                    text={isRegister ? 'Register' : 'Sign In'}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'center' }}>
+                  <button
+                    type="button"
+                    className={styles.toggleBtn}
+                    onClick={() => { setIsRegister(!isRegister); setErrorMessage(null); }}
+                  >
+                    {isRegister
+                      ? 'Already have an account? Sign in here ◊'
+                      : 'Need an account? Register new account ◊'}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div className={styles.fieldBlock}>
+                {/* Demo User Selection Boxes */}
+                <div className={styles.demoSelectionSection}>
+                  <span className={styles.demoSelectionTitle}>SELECT DEMO PERSONA:</span>
+                  <div className={styles.demoBoxGroup}>
+                    {DEMO_USERS.map((u) => (
+                      <button
+                        key={u.id}
+                        type="button"
+                        className={`${styles.demoBox} ${selectedDemoUser === u.id ? styles.demoBoxActive : ''}`}
+                        onClick={() => setSelectedDemoUser(u.id)}
+                      >
+                        <span className={styles.demoBoxName}>{u.name}</span>
+                        <span className={styles.demoBoxRole}>[ {u.role} ]</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Diamond Proceed Button */}
+                <div className={styles.buttonContainer}>
+                  <DiamondProceedButton
+                    onClick={handleEnterDemo}
+                    loading={loading}
+                    text="Enter Demo"
+                  />
+                </div>
+              </div>
+            )}
+
+            <p className={styles.disclaimerNote}>
+              {authTab === 'live'
+                ? `Live API connected at ${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'}`
+                : 'Local sample data mode // No backend credentials required'}
+            </p>
           </div>
-        )}
-
-        <p className={styles.disclaimer}>
-          ScopePilot connects to Express backend running at <code>{import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'}</code>.
-        </p>
+        </div>
       </div>
     </div>
   );

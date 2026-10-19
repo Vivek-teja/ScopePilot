@@ -15,7 +15,26 @@ import * as changeRequestApi from './api/changeRequestApi.js';
 import * as aiApi from './api/aiApi.js';
 import * as demoStore from '../mocks/demoStore.js';
 
-let isLiveBackend = true;
+function determineInitialMode() {
+  try {
+    const savedMode = typeof localStorage !== 'undefined' ? localStorage.getItem('scopepilot:mode') : null;
+    if (savedMode === 'demo') return false;
+    if (savedMode === 'live') return true;
+  } catch {}
+
+  let hasLiveToken = false;
+  try {
+    hasLiveToken = Boolean(authApi.getStoredToken());
+  } catch {}
+  if (hasLiveToken) return true;
+
+  const hasDemo = Boolean(demoStore.getSession());
+  if (hasDemo) return false;
+
+  return true;
+}
+
+let isLiveBackend = determineInitialMode();
 
 export function getDataSourceMode() {
   return isLiveBackend ? 'live' : 'demo';
@@ -23,52 +42,119 @@ export function getDataSourceMode() {
 
 export function setDataSourceMode(mode) {
   isLiveBackend = mode === 'live';
+  try {
+    localStorage.setItem('scopepilot:mode', isLiveBackend ? 'live' : 'demo');
+  } catch {}
 }
 
 // ── Auth & Session ────────────────────────────────────────────────────────────
 
 export function getSession() {
-  const user = authApi.getCurrentSession();
-  if (user) {
-    return normalizeUser(user);
+  if (!isLiveBackend) {
+    const demoUser = demoStore.getSession();
+    if (demoUser) return demoUser;
+    return null;
   }
-  return demoStore.getSession();
+
+  if (authApi.getStoredToken()) {
+    const user = authApi.getCurrentSession();
+    if (user) {
+      return normalizeUser(user);
+    }
+    return null;
+  }
+
+  const demoUser = demoStore.getSession();
+  if (demoUser) {
+    isLiveBackend = false;
+    return demoUser;
+  }
+
+  return null;
 }
 
 export async function loginWithCredentials(email, password) {
   const result = await authApi.login({ email, password });
   isLiveBackend = true;
+  try {
+    localStorage.setItem('scopepilot:mode', 'live');
+  } catch {}
+  demoStore.logout();
   return normalizeUser(result.user);
 }
 
 export async function registerWithCredentials({ name, email, password, role }) {
   const result = await authApi.register({ name, email, password, role });
   isLiveBackend = true;
+  try {
+    localStorage.setItem('scopepilot:mode', 'live');
+  } catch {}
+  demoStore.logout();
   return normalizeUser(result.user);
 }
 
 export function loginAs(userId) {
-  // Demo perspective switcher fallback
   isLiveBackend = false;
+  try {
+    localStorage.setItem('scopepilot:mode', 'demo');
+  } catch {}
+  authApi.logout();
   return demoStore.loginAs(userId);
 }
 
 export function logout() {
   authApi.logout();
   demoStore.logout();
+  isLiveBackend = true;
+  try {
+    localStorage.removeItem('scopepilot:mode');
+  } catch {}
 }
 
 export async function restoreSession() {
-  try {
-    const user = await authApi.getMe();
-    if (user) {
-      isLiveBackend = true;
-      return normalizeUser(user);
+  const savedMode = typeof localStorage !== 'undefined' ? localStorage.getItem('scopepilot:mode') : null;
+  if (savedMode === 'demo' || (!savedMode && !isLiveBackend)) {
+    const demoSession = demoStore.getSession();
+    if (demoSession) {
+      isLiveBackend = false;
+      return demoSession;
     }
-  } catch {
-    // If backend fails, fallback to local demo session if present
   }
-  return demoStore.getSession();
+
+  const token = authApi.getStoredToken();
+  if (token) {
+    try {
+      const user = await authApi.getMe();
+      if (user) {
+        isLiveBackend = true;
+        try {
+          localStorage.setItem('scopepilot:mode', 'live');
+        } catch {}
+        return normalizeUser(user);
+      }
+      isLiveBackend = true;
+      try {
+        localStorage.removeItem('scopepilot:mode');
+      } catch {}
+      return null;
+    } catch (err) {
+      isLiveBackend = true;
+      const apiErr = new Error(`Live session restoration failed: ${err.message || 'API server unavailable.'}`);
+      apiErr.isLiveApiError = true;
+      throw apiErr;
+    }
+  }
+
+  const demoSession = demoStore.getSession();
+  if (demoSession) {
+    isLiveBackend = false;
+    try {
+      localStorage.setItem('scopepilot:mode', 'demo');
+    } catch {}
+    return demoSession;
+  }
+
+  return null;
 }
 
 function normalizeUser(u) {
@@ -95,39 +181,29 @@ function normalizeUser(u) {
 // ── Workspace ─────────────────────────────────────────────────────────────────
 
 export async function fetchWorkspace() {
-  try {
-    const workspaces = await workspaceApi.listWorkspaces();
-    if (Array.isArray(workspaces) && workspaces.length > 0) {
-      const ws = workspaces[0];
-      return normalizeWorkspace(ws);
-    }
-  } catch (err) {
-    if (!err.isUnauthorized) {
-      // Fallback only if running in demo mode
-      if (!isLiveBackend) return demoStore.fetchWorkspace();
-    }
-    throw err;
+  if (!isLiveBackend) {
+    return demoStore.fetchWorkspace();
   }
-
-  // If user has no workspaces yet, fallback to demo or return empty
-  if (!isLiveBackend) return demoStore.fetchWorkspace();
+  const workspaces = await workspaceApi.listWorkspaces();
+  if (Array.isArray(workspaces) && workspaces.length > 0) {
+    const ws = workspaces[0];
+    return normalizeWorkspace(ws);
+  }
   return null;
 }
 
 export async function fetchWorkspaceMembers(workspaceId) {
-  try {
-    if (workspaceId) {
-      const members = await workspaceApi.getWorkspaceMembers(workspaceId);
-      return (members || []).map(normalizeMember);
-    }
-    const workspaces = await workspaceApi.listWorkspaces();
-    if (workspaces && workspaces[0]) {
-      const members = await workspaceApi.getWorkspaceMembers(workspaces[0]._id);
-      return (members || []).map(normalizeMember);
-    }
-  } catch (err) {
-    if (!isLiveBackend) return demoStore.fetchWorkspaceMembers();
-    throw err;
+  if (!isLiveBackend) {
+    return demoStore.fetchWorkspaceMembers();
+  }
+  if (workspaceId) {
+    const members = await workspaceApi.getWorkspaceMembers(workspaceId);
+    return (members || []).map(normalizeMember);
+  }
+  const workspaces = await workspaceApi.listWorkspaces();
+  if (workspaces && workspaces[0]) {
+    const members = await workspaceApi.getWorkspaceMembers(workspaces[0]._id);
+    return (members || []).map(normalizeMember);
   }
   return [];
 }
@@ -169,35 +245,23 @@ const isObjectId = (id) => typeof id === 'string' && /^[0-9a-fA-F]{24}$/.test(id
 // ── Projects ──────────────────────────────────────────────────────────────────
 
 export async function fetchProjects(workspaceId) {
-  try {
-    const query = {};
-    if (workspaceId && isObjectId(workspaceId)) {
-      query.workspaceId = workspaceId;
-    }
-    const projects = await projectApi.listProjects(query);
-    if (Array.isArray(projects) && projects.length > 0) {
-      return projects.map(normalizeProject);
-    }
-    // If backend returns empty list and user is in demo mode, fallback to demo fixtures
-    if (!isLiveBackend) return demoStore.fetchProjects(workspaceId);
-    return (projects || []).map(normalizeProject);
-  } catch (err) {
-    if (!isLiveBackend) return demoStore.fetchProjects(workspaceId);
-    throw err;
+  if (!isLiveBackend) {
+    return demoStore.fetchProjects(workspaceId);
   }
+  const query = {};
+  if (workspaceId && isObjectId(workspaceId)) {
+    query.workspaceId = workspaceId;
+  }
+  const projects = await projectApi.listProjects(query);
+  return (projects || []).map(normalizeProject);
 }
 
 export async function fetchProject(projectId) {
-  if (!isObjectId(projectId)) {
+  if (!isLiveBackend || !isObjectId(projectId)) {
     return demoStore.fetchProject(projectId);
   }
-  try {
-    const project = await projectApi.getProject(projectId);
-    return normalizeProject(project);
-  } catch (err) {
-    if (!isLiveBackend) return demoStore.fetchProject(projectId);
-    throw err;
-  }
+  const project = await projectApi.getProject(projectId);
+  return normalizeProject(project);
 }
 
 function normalizeProject(p) {
@@ -234,52 +298,41 @@ function normalizeProject(p) {
 // ── Proposals ─────────────────────────────────────────────────────────────────
 
 export async function fetchProposals(projectId) {
-  if (!isObjectId(projectId)) {
+  if (!isLiveBackend || !isObjectId(projectId)) {
     return demoStore.fetchProposals(projectId);
   }
-  try {
-    const proposals = await proposalApi.listProposals(projectId);
-    const flattened = [];
-    (proposals || []).forEach((prop) => {
-      const versions = prop.versions || [];
-      if (versions.length > 0) {
-        versions.forEach((v) => {
-          flattened.push(normalizeProposalVersion(v, prop));
-        });
-      } else if (prop.activeVersion) {
-        flattened.push(normalizeProposalVersion(prop.activeVersion, prop));
-      }
-    });
-    return flattened;
-  } catch (err) {
-    if (!isLiveBackend) return demoStore.fetchProposals(projectId);
-    throw err;
-  }
+  const proposals = await proposalApi.listProposals(projectId);
+  const flattened = [];
+  (proposals || []).forEach((prop) => {
+    const versions = prop.versions || [];
+    if (versions.length > 0) {
+      versions.forEach((v) => {
+        flattened.push(normalizeProposalVersion(v, prop));
+      });
+    } else if (prop.activeVersion) {
+      flattened.push(normalizeProposalVersion(prop.activeVersion, prop));
+    }
+  });
+  return flattened;
 }
 
 export async function fetchApprovedProposal(proposalId) {
   if (!proposalId) return null;
-  if (!isObjectId(proposalId)) {
+  if (!isLiveBackend || !isObjectId(proposalId)) {
     return demoStore.fetchApprovedProposal(proposalId);
   }
-  try {
-    const result = await proposalApi.getProposal(proposalId);
-    const prop = result.proposal || result;
-    const versions = result.versions || [];
-    const approved = versions.find((v) => v.status === 'approved') || prop.activeVersion;
-    if (approved) {
-      return normalizeProposalVersion(approved, prop);
-    }
-  } catch (err) {
-    if (!isLiveBackend) return demoStore.fetchApprovedProposal(proposalId);
-    throw err;
+  const result = await proposalApi.getProposal(proposalId);
+  const prop = result.proposal || result;
+  const versions = result.versions || [];
+  const approved = versions.find((v) => v.status === 'approved') || prop.activeVersion;
+  if (approved) {
+    return normalizeProposalVersion(approved, prop);
   }
-  if (!isLiveBackend) return demoStore.fetchApprovedProposal(proposalId);
   return null;
 }
 
 export async function recordProposalDecision(proposalId, decision, comment) {
-  if (!isObjectId(proposalId)) {
+  if (!isLiveBackend || !isObjectId(proposalId)) {
     return { success: true };
   }
   return proposalApi.recordProposalDecision(proposalId, { decision, comment });
@@ -317,16 +370,11 @@ function normalizeProposalVersion(v, parentProp = {}) {
 // ── Milestones & Deliverables ─────────────────────────────────────────────────
 
 export async function fetchMilestones(projectId) {
-  if (!isObjectId(projectId)) {
+  if (!isLiveBackend || !isObjectId(projectId)) {
     return demoStore.fetchMilestones(projectId);
   }
-  try {
-    const milestones = await milestoneApi.listMilestones(projectId);
-    return (milestones || []).map(normalizeMilestone);
-  } catch (err) {
-    if (!isLiveBackend) return demoStore.fetchMilestones(projectId);
-    throw err;
-  }
+  const milestones = await milestoneApi.listMilestones(projectId);
+  return (milestones || []).map(normalizeMilestone);
 }
 
 function normalizeMilestone(ms) {
@@ -348,29 +396,19 @@ function normalizeMilestone(ms) {
 }
 
 export async function fetchDeliverables(projectId) {
-  if (!isObjectId(projectId)) {
+  if (!isLiveBackend || !isObjectId(projectId)) {
     return demoStore.fetchDeliverables(projectId);
   }
-  try {
-    const deliverables = await deliverableApi.listDeliverables({ projectId });
-    return (deliverables || []).map(normalizeDeliverable);
-  } catch (err) {
-    if (!isLiveBackend) return demoStore.fetchDeliverables(projectId);
-    throw err;
-  }
+  const deliverables = await deliverableApi.listDeliverables({ projectId });
+  return (deliverables || []).map(normalizeDeliverable);
 }
 
 export async function fetchDeliverablesForMilestone(milestoneId) {
-  if (!isObjectId(milestoneId)) {
+  if (!isLiveBackend || !isObjectId(milestoneId)) {
     return demoStore.fetchDeliverablesForMilestone(milestoneId);
   }
-  try {
-    const deliverables = await deliverableApi.listDeliverables({ milestoneId });
-    return (deliverables || []).map(normalizeDeliverable);
-  } catch (err) {
-    if (!isLiveBackend) return demoStore.fetchDeliverablesForMilestone(milestoneId);
-    throw err;
-  }
+  const deliverables = await deliverableApi.listDeliverables({ milestoneId });
+  return (deliverables || []).map(normalizeDeliverable);
 }
 
 function normalizeDeliverable(d) {
@@ -394,62 +432,42 @@ function normalizeDeliverable(d) {
 // ── Change Requests ───────────────────────────────────────────────────────────
 
 export async function fetchChangeRequests(projectId) {
-  if (!isObjectId(projectId)) {
+  if (!isLiveBackend || !isObjectId(projectId)) {
     return demoStore.fetchChangeRequests(projectId);
   }
-  try {
-    const list = await changeRequestApi.listChangeRequests(projectId);
-    return (list || []).map(normalizeChangeRequest);
-  } catch (err) {
-    if (!isLiveBackend) return demoStore.fetchChangeRequests(projectId);
-    throw err;
-  }
+  const list = await changeRequestApi.listChangeRequests(projectId);
+  return (list || []).map(normalizeChangeRequest);
 }
 
 export async function fetchChangeRequest(crId) {
-  if (!isObjectId(crId)) {
+  if (!isLiveBackend || !isObjectId(crId)) {
     return demoStore.fetchChangeRequest(crId);
   }
-  try {
-    const cr = await changeRequestApi.getChangeRequest(crId);
-    return normalizeChangeRequest(cr);
-  } catch (err) {
-    if (!isLiveBackend) return demoStore.fetchChangeRequest(crId);
-    throw err;
-  }
+  const cr = await changeRequestApi.getChangeRequest(crId);
+  return normalizeChangeRequest(cr);
 }
 
 export async function createChangeRequest(data) {
-  if (!isObjectId(data.projectId)) {
+  if (!isLiveBackend || !isObjectId(data?.projectId)) {
     return demoStore.createChangeRequest(data);
   }
-  try {
-    const payload = {
-      projectId: data.projectId,
-      title: data.title,
-      description: data.newWork || data.summary || data.description || '',
-      effortEstimate: Number(data.estimatedEffortHours) || 0,
-      priceAdjustment: Number(data.priceAdjustment) || 0,
-    };
-    const created = await changeRequestApi.createChangeRequest(payload);
-    return normalizeChangeRequest(created);
-  } catch (err) {
-    if (!isLiveBackend) return demoStore.createChangeRequest(data);
-    throw err;
-  }
+  const payload = {
+    projectId: data.projectId,
+    title: data.title,
+    description: data.newWork || data.summary || data.description || '',
+    effortEstimate: Number(data.estimatedEffortHours) || 0,
+    priceAdjustment: Number(data.priceAdjustment) || 0,
+  };
+  const created = await changeRequestApi.createChangeRequest(payload);
+  return normalizeChangeRequest(created);
 }
 
 export async function recordChangeRequestDecision(crId, decision, comment) {
-  if (!isObjectId(crId)) {
+  if (!isLiveBackend || !isObjectId(crId)) {
     return demoStore.simulateHumanDecision(crId, decision, comment);
   }
-  try {
-    const updated = await changeRequestApi.recordChangeRequestDecision(crId, { decision, comment });
-    return normalizeChangeRequest(updated);
-  } catch (err) {
-    if (!isLiveBackend) return demoStore.simulateHumanDecision(crId, decision, comment);
-    throw err;
-  }
+  const updated = await changeRequestApi.recordChangeRequestDecision(crId, { decision, comment });
+  return normalizeChangeRequest(updated);
 }
 
 export function simulateHumanDecision(crId, decision, note, _deciderId) {
@@ -496,6 +514,9 @@ function normalizeChangeRequest(cr) {
 // ── AI Scope Analysis ─────────────────────────────────────────────────────────
 
 export async function requestAiAnalysis(analysisInput) {
+  if (isLiveBackend) {
+    return aiApi.runAgentAnalysis(analysisInput);
+  }
   return aiApi.analyzeScopeMock(analysisInput);
 }
 

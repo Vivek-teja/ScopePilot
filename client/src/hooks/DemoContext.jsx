@@ -20,33 +20,66 @@ export function DemoProvider({ children }) {
   const [session, setSession] = useState(() => getSession());
   const [mode, setMode] = useState(() => getDataSourceMode());
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   // Restore authenticated session on initial mount
   useEffect(() => {
     let isMounted = true;
-    restoreSession().then((user) => {
-      if (isMounted) {
-        if (user) {
-          setSession(user);
-          setMode(getDataSourceMode());
+    restoreSession()
+      .then((user) => {
+        if (isMounted) {
+          if (user) {
+            setSession(user);
+            setMode(getDataSourceMode());
+          }
+          setError(null);
+          setLoading(false);
         }
-        setLoading(false);
-      }
-    });
+      })
+      .catch((err) => {
+        if (isMounted) {
+          setError(err.message || 'Failed to restore session');
+          setLoading(false);
+        }
+      });
 
     const handleUnauthorized = () => {
       serviceLogout();
       setSession(null);
+      setError(null);
     };
 
-    window.addEventListener('scopepilot:unauthorized', handleUnauthorized);
+    if (typeof window !== 'undefined') {
+      window.addEventListener('scopepilot:unauthorized', handleUnauthorized);
+    }
     return () => {
       isMounted = false;
-      window.removeEventListener('scopepilot:unauthorized', handleUnauthorized);
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('scopepilot:unauthorized', handleUnauthorized);
+      }
     };
   }, []);
 
+  const retryRestore = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const user = await restoreSession();
+      if (user) {
+        setSession(user);
+        setMode(getDataSourceMode());
+      }
+      setLoading(false);
+      return user;
+    } catch (err) {
+      setError(err.message || 'Failed to restore session');
+      setLoading(false);
+      throw err;
+    }
+  }, []);
+
   const loginWithCredentials = useCallback(async (email, password) => {
+    setError(null);
     const user = await serviceLoginWithCredentials(email, password);
     setSession(user);
     setMode('live');
@@ -54,6 +87,7 @@ export function DemoProvider({ children }) {
   }, []);
 
   const registerWithCredentials = useCallback(async (payload) => {
+    setError(null);
     const user = await serviceRegisterWithCredentials(payload);
     setSession(user);
     setMode('live');
@@ -61,6 +95,7 @@ export function DemoProvider({ children }) {
   }, []);
 
   const login = useCallback((userId) => {
+    setError(null);
     const user = serviceLoginAs(userId);
     setSession(user);
     setMode('demo');
@@ -68,11 +103,13 @@ export function DemoProvider({ children }) {
   }, []);
 
   const logout = useCallback(() => {
+    setError(null);
     serviceLogout();
     setSession(null);
   }, []);
 
   const switchRole = useCallback((userId) => {
+    setError(null);
     const user = serviceLoginAs(userId);
     setSession(user);
     setMode('demo');
@@ -89,6 +126,8 @@ export function DemoProvider({ children }) {
         session,
         mode,
         loading,
+        error,
+        retryRestore,
         login,
         loginWithCredentials,
         registerWithCredentials,

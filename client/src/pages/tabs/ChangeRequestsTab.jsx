@@ -3,7 +3,7 @@ import { useAsync } from '../../hooks/useAsync.js';
 import { fetchChangeRequests, createChangeRequest } from '../../services/scopePilotService.js';
 import { useDemoSession } from '../../hooks/DemoContext.jsx';
 import {
-  Badge, Card, Button, SectionHeader, LoadingState, ErrorState, EmptyState,
+  Badge, Card, Button, LoadingState, ErrorState, EmptyState,
   Notice, FormField, Input, Textarea, Select,
 } from '../../components/ui.jsx';
 import styles from './ChangeRequestsTab.module.css';
@@ -15,22 +15,24 @@ export default function ChangeRequestsTab({ projectId, onOpenRequest }) {
   const fetchFn = useCallback(() => fetchChangeRequests(projectId), [projectId]);
   const { data: requests, loading, error, reload } = useAsync(fetchFn, [projectId]);
 
-  if (loading) return <LoadingState message="Loading change requests…" />;
+  if (loading) return <LoadingState message="Loading change requests..." />;
   if (error)   return <ErrorState message={error} onRetry={reload} />;
 
   return (
     <div className={styles.container}>
-      <SectionHeader
-        title="Change Requests"
-        subtitle={`${requests?.length ?? 0} request${requests?.length !== 1 ? 's' : ''}`}
-        action={
-          !showForm && (
-            <Button variant="primary" size="sm" onClick={() => setShowForm(true)}>
-              + New request
-            </Button>
-          )
-        }
-      />
+      <div className={styles.tabHeader}>
+        <div>
+          <h2 className={styles.tabTitle}>
+            Change Requests <span className={styles.countBadge}>[ {requests?.length ?? 0} ]</span>
+          </h2>
+          <div className={styles.purpleUnderline} />
+        </div>
+        {!showForm && (
+          <Button variant="primary" size="sm" onClick={() => setShowForm(true)}>
+            + New Request ◊
+          </Button>
+        )}
+      </div>
 
       {/* Create form */}
       {showForm && (
@@ -45,7 +47,6 @@ export default function ChangeRequestsTab({ projectId, onOpenRequest }) {
       {/* List */}
       {!requests?.length && !showForm ? (
         <EmptyState
-          icon="🔄"
           title="No change requests"
           message="No scope changes have been requested for this project yet."
           action={<Button variant="secondary" onClick={() => setShowForm(true)}>Create first request</Button>}
@@ -66,10 +67,10 @@ export default function ChangeRequestsTab({ projectId, onOpenRequest }) {
 // ── Row ───────────────────────────────────────────────────────────────────────
 function ChangeRequestRow({ cr, onOpen }) {
   return (
-    <Card className={styles.crCard} onClick={onOpen}>
+    <Card className={styles.crCard} onClick={onOpen} surface="grey">
       <div className={styles.crHeader}>
         <div className={styles.crLeft}>
-          <span className={styles.crId}>{cr.id}</span>
+          <span className={styles.crId}>[ {cr.id} ]</span>
           <h3 className={styles.crTitle}>{cr.title}</h3>
         </div>
         <div className={styles.crBadges}>
@@ -79,11 +80,11 @@ function ChangeRequestRow({ cr, onOpen }) {
       </div>
       <p className={styles.crSummary}>{cr.summary}</p>
       <div className={styles.crMeta}>
-        <span>Created {new Date(cr.createdAt).toLocaleDateString()}</span>
+        <span>CREATED: {new Date(cr.createdAt).toLocaleDateString()}</span>
         {cr.estimatedEffortHours && (
-          <span>~{cr.estimatedEffortHours}h estimated</span>
+          <span>ESTIMATED: ~{cr.estimatedEffortHours}h</span>
         )}
-        <span className={styles.crOpen}>View details →</span>
+        <span className={styles.crOpen}>View details ◊</span>
       </div>
     </Card>
   );
@@ -93,7 +94,6 @@ function ChangeRequestRow({ cr, onOpen }) {
 const PRIORITIES = ['low', 'medium', 'high'];
 
 function CreateChangeRequestForm({ projectId, requestedBy, onCreated, onCancel }) {
-  const { mode } = useDemoSession();
   const [values, setValues] = useState({
     title: '',
     summary: '',
@@ -121,7 +121,7 @@ function CreateChangeRequestForm({ projectId, requestedBy, onCreated, onCancel }
     evt.preventDefault();
     const e = validate();
     if (Object.keys(e).length) { setErrors(e); return; }
-    if (submitting) return;  // prevent duplicate submission
+    if (submitting) return;
 
     setSubmitting(true);
     setSubmitError(null);
@@ -136,26 +136,23 @@ function CreateChangeRequestForm({ projectId, requestedBy, onCreated, onCancel }
       });
       onCreated();
     } catch (err) {
-      // Preserve entered values on failure
       setSubmitError(err.message ?? 'Submission failed. Please try again.');
       setSubmitting(false);
     }
   }
 
   return (
-    <Card className={styles.formCard}>
+    <Card className={styles.formCard} surface="grey">
       <h3 className={styles.formTitle}>New Change Request</h3>
-      <Notice variant={mode === 'live' ? 'info' : 'demo'}>
-        {mode === 'live'
-          ? 'This request will be sent to the live ScopePilot backend API and saved in MongoDB.'
-          : 'This will be saved locally in your browser for this demo session.'}
+      <Notice variant="demo">
+        Saved locally in browser demo state. No backend service is contacted.
       </Notice>
 
       <form onSubmit={handleSubmit} noValidate className={styles.form}>
-        <FormField label="Title" htmlFor="cr-title" required error={errors.title}>
+        <FormField label="TITLE" htmlFor="cr-title" required error={errors.title}>
           <Input
             id="cr-title"
-            placeholder="Brief title for the change request"
+            placeholder="Brief title for the scope change"
             value={values.title}
             onChange={(e) => set('title', e.target.value)}
             error={errors.title}
@@ -164,9 +161,9 @@ function CreateChangeRequestForm({ projectId, requestedBy, onCreated, onCancel }
         </FormField>
 
         <FormField
-          label="Priority"
+          label="PRIORITY"
           htmlFor="cr-priority"
-          hint="Indicative — final priority is agreed with all parties."
+          hint="Indicative priority for review"
         >
           <Select
             id="cr-priority"
@@ -175,16 +172,16 @@ function CreateChangeRequestForm({ projectId, requestedBy, onCreated, onCancel }
             disabled={submitting}
           >
             {PRIORITIES.map((p) => (
-              <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>
+              <option key={p} value={p}>{p.toUpperCase()}</option>
             ))}
           </Select>
         </FormField>
 
-        <FormField label="Summary" htmlFor="cr-summary" required error={errors.summary}
-          hint="One or two sentences explaining why this change is needed.">
+        <FormField label="SUMMARY" htmlFor="cr-summary" required error={errors.summary}
+          hint="Explain the rationale behind this change">
           <Textarea
             id="cr-summary"
-            placeholder="Why is this change needed?"
+            placeholder="Why is this scope change needed?"
             value={values.summary}
             onChange={(e) => set('summary', e.target.value)}
             error={errors.summary}
@@ -193,11 +190,11 @@ function CreateChangeRequestForm({ projectId, requestedBy, onCreated, onCancel }
           />
         </FormField>
 
-        <FormField label="Description of new work" htmlFor="cr-work" required error={errors.newWork}
-          hint="Describe what would need to be built or changed. Be specific.">
+        <FormField label="DESCRIPTION OF NEW WORK" htmlFor="cr-work" required error={errors.newWork}
+          hint="Specify deliverables and components to be created or modified">
           <Textarea
             id="cr-work"
-            placeholder="What specifically needs to be built or changed?"
+            placeholder="What specifically needs to be built?"
             value={values.newWork}
             onChange={(e) => set('newWork', e.target.value)}
             error={errors.newWork}
@@ -212,7 +209,7 @@ function CreateChangeRequestForm({ projectId, requestedBy, onCreated, onCancel }
 
         <div className={styles.formActions}>
           <Button type="submit" variant="primary" loading={submitting}>
-            {submitting ? 'Submitting…' : 'Submit request'}
+            {submitting ? 'Submitting...' : 'Submit Request ◊'}
           </Button>
           <Button type="button" variant="ghost" onClick={onCancel} disabled={submitting}>
             Cancel

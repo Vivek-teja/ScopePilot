@@ -371,11 +371,20 @@ function AIAnalysisSection({ projectId, approvedProposal, deliverables, cr }) {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Review Status: </span>
-              <strong style={{ textTransform: 'uppercase', color: 'var(--accent)' }}>
+              <strong style={{
+                textTransform: 'uppercase',
+                color: analysis.reviewStatus === 'in_scope'
+                  ? '#16a34a'
+                  : analysis.reviewStatus === 'out_of_scope'
+                  ? '#dc2626'
+                  : analysis.reviewStatus === 'partially_out_of_scope'
+                  ? '#ea580c'
+                  : '#d97706',
+              }}>
                 {analysis.reviewStatus?.replace(/_/g, ' ')}
               </strong>
             </div>
-            <span style={{ fontSize: '0.82rem', background: 'var(--accent-light)', padding: '2px 8px', borderRadius: 4, fontWeight: 700 }}>
+            <span style={{ fontSize: '0.82rem', background: 'var(--accent-light, #f1f5f9)', padding: '2px 8px', borderRadius: 4, fontWeight: 700 }}>
               Confidence: {Math.round((analysis.confidenceScore || 0) * 100)}%
             </span>
           </div>
@@ -383,6 +392,56 @@ function AIAnalysisSection({ projectId, approvedProposal, deliverables, cr }) {
           <p style={{ fontSize: '0.9rem', lineHeight: 1.5, margin: 0 }}>
             {analysis.summary}
           </p>
+
+          {analysis.effortCalculation && (
+            <div style={{ background: 'var(--surface-subtle, #f8fafc)', padding: 12, borderRadius: 6, border: '1px solid var(--border-subtle, #e2e8f0)' }}>
+              <strong style={{ fontSize: '0.85rem' }}>Estimated Scope & Schedule Impact:</strong>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, marginTop: 6, fontSize: '0.85rem' }}>
+                <div>
+                  <span style={{ color: 'var(--text-secondary)' }}>Hours: </span>
+                  <strong>
+                    {analysis.effortCalculation.estimatedHours !== null
+                      ? `${analysis.effortCalculation.estimatedHours}h`
+                      : 'Suppressed (clarification required)'}
+                  </strong>
+                </div>
+                <div>
+                  <span style={{ color: 'var(--text-secondary)' }}>Cost: </span>
+                  <strong>
+                    {analysis.effortCalculation.estimatedCost !== null && analysis.effortCalculation.isEligibleForBilling
+                      ? `$${analysis.effortCalculation.estimatedCost}`
+                      : (analysis.reviewStatus === 'uncertain' || analysis.reviewStatus === 'needs_clarification'
+                          ? 'Cost suppressed (scope clarification required)'
+                          : 'Cost suppressed (no trusted rate)')}
+                  </strong>
+                </div>
+                {analysis.effortCalculation.scheduleImpactDays !== null && (
+                  <div>
+                    <span style={{ color: 'var(--text-secondary)' }}>Schedule: </span>
+                    <strong>{analysis.effortCalculation.scheduleImpactDays} business days</strong>
+                  </div>
+                )}
+              </div>
+              {analysis.effortCalculation.calculationBasis && (
+                <p style={{ margin: '6px 0 0 0', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                  {analysis.effortCalculation.calculationBasis}
+                </p>
+              )}
+            </div>
+          )}
+
+          {analysis.retrievedEvidence?.length > 0 && (
+            <div>
+              <strong style={{ fontSize: '0.85rem' }}>Retrieved Scope Evidence:</strong>
+              <ul style={{ margin: '4px 0 0 16px', padding: 0, fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                {analysis.retrievedEvidence.map((ev, i) => (
+                  <li key={i}>
+                    <strong>[{ev.sourceReference}]</strong> {ev.sourceTitle} (Match: {Math.round((ev.similarityScore || 0) * 100)}%)
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {analysis.outOfScopeItems?.length > 0 && (
             <div style={{ background: '#fef2f2', padding: 12, borderRadius: 6, border: '1px solid #fecaca' }}>
@@ -410,19 +469,26 @@ function AIAnalysisSection({ projectId, approvedProposal, deliverables, cr }) {
             </div>
           )}
 
-          {analysis.recommendations?.length > 0 && (
+          {(analysis.suggestedQuestions?.length > 0 || analysis.recommendations?.length > 0) && (
             <div>
-              <strong style={{ fontSize: '0.85rem' }}>Recommendations:</strong>
+              <strong style={{ fontSize: '0.85rem' }}>Clarification Questions & Recommendations:</strong>
               <ul style={{ margin: '4px 0 0 16px', padding: 0, fontSize: '0.82rem' }}>
-                {analysis.recommendations.map((rec, i) => (
-                  <li key={i}>{rec}</li>
+                {(analysis.suggestedQuestions || analysis.recommendations || []).map((q, i) => (
+                  <li key={i}>{q}</li>
                 ))}
               </ul>
             </div>
           )}
 
+          {analysis.modelMetadata && (
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'flex', gap: 12 }}>
+              <span>Provider: <strong>{analysis.modelMetadata.provider}</strong>{analysis.modelMetadata.fallbackUsed ? ' (fallback)' : ''}</span>
+              <span>Execution Time: <strong>{analysis.modelMetadata.executionTimeMs}ms</strong></span>
+            </div>
+          )}
+
           <Notice variant="info" style={{ fontSize: '0.78rem', marginTop: 4 }}>
-            {analysis.disclaimer || 'AI analysis is an advisory draft only. Human decision is required.'}
+            {analysis.humanReviewDraftNotice || analysis.disclaimer || 'AI analysis is an advisory draft only. Human decision is required.'}
           </Notice>
 
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignSelf: 'flex-start' }}>

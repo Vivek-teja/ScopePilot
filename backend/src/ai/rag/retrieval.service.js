@@ -52,7 +52,7 @@ class RetrievalService {
     const input = RetrievalQueryInputSchema.parse(rawInput);
     const { query, topK, minThreshold } = input;
 
-    const passagesToSearch = customPassages || this.corpusService.getAllPassages();
+    const passagesToSearch = Array.isArray(customPassages) ? customPassages : this.corpusService.getAllPassages();
     const queryVector = this.embeddingService.embedText(query);
     const scoredPassages = [];
 

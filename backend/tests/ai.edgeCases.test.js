@@ -1,4 +1,4 @@
-﻿const { defaultRetrievalService, RetrievalService, STRONG_MATCH_THRESHOLD, MODERATE_MATCH_THRESHOLD } = require('../src/ai/rag/retrieval.service');
+const { defaultRetrievalService, RetrievalService, STRONG_MATCH_THRESHOLD, MODERATE_MATCH_THRESHOLD } = require('../src/ai/rag/retrieval.service');
 const { defaultEffortCalculator } = require('../src/ai/tools/effortCalculator.tool');
 const { defaultEmbeddingService } = require('../src/ai/embeddings/embedding.service');
 const { GroundedAgentService } = require('../src/ai/agent/groundedAgent.service');
@@ -6,8 +6,8 @@ const { ALL_CASES } = require('../src/ai/fixtures/changeAnalysisFixtures');
 const { RETRIEVAL_STATUS, RELEVANCE_CATEGORY } = require('../src/contracts/retrieval.contract');
 
 describe('AI Edge Cases, LLM Response Validation & Effort Calculation', () => {
-  // ΓöÇΓöÇ 1. External LLM Output Schema Validation & Fallback Guardrails (Task 1) ΓöÇ
-  describe('GroundedAgentService ΓÇö Provider Response Hardening', () => {
+  // ── 1. External LLM Output Schema Validation & Fallback Guardrails (Task 1) ─
+  describe('GroundedAgentService — Provider Response Hardening', () => {
     const baseInput = ALL_CASES[0].payload;
 
     it('falls back to localProvider when external provider returns malformed or non-object response', async () => {
@@ -187,7 +187,7 @@ describe('AI Edge Cases, LLM Response Validation & Effort Calculation', () => {
     });
   });
 
-  // ΓöÇΓöÇ 2. Retrieval Service Edge Cases (Task 3) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  // ── 2. Retrieval Service Edge Cases (Task 3) ────────────────────────────────
   describe('RetrievalService Edge Cases', () => {
     it('returns UNCERTAIN with empty retrievedPassages when customPassages array is empty', () => {
       const result = defaultRetrievalService.retrieve({ query: 'checkout phone verification' }, []);
@@ -276,7 +276,7 @@ describe('AI Edge Cases, LLM Response Validation & Effort Calculation', () => {
     });
   });
 
-  // ΓöÇΓöÇ 3. Effort Calculator Edge Cases & Billing Suppression (Task 3) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  // ── 3. Effort Calculator Edge Cases & Billing Suppression (Task 3) ───────────
   describe('EffortCalculatorTool Edge Cases', () => {
     it('suppresses cost and billing when options.suppressBilling is true', () => {
       const res = defaultEffortCalculator.calculate(

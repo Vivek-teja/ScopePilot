@@ -201,4 +201,157 @@ describe('AI Reviews 4 & 5: Grounded Agent, Multi-Provider & Handover Pipeline',
       expect(res.body.data.totalExecuted).toBe(5);
     });
   });
+
+  // ── 5. Project-Specific Dynamic Retrieval & Fallback Regression Tests ───────
+  describe('Project-Specific Scope Retrieval & Fallback Guardrails', () => {
+    const projectHealthcare = {
+      projectId: '65f1a2b3c4d5e6f7a8b9c0d1',
+      approvedProposalVersion: {
+        versionNumber: 2,
+        title: 'Hospital EHR Portal',
+        scopeSummary: 'Patient medical records, diagnostic lab results, and HIPAA audit logging.',
+        scopeItems: [
+          {
+            title: 'HIPAA Audit Trail',
+            description: 'Immutable cryptographic logging of patient health records access.',
+            estimatedHours: 40,
+            price: 4800,
+          },
+        ],
+      },
+      deliverables: [
+        {
+          id: 'del_hipaa_01',
+          title: 'HIPAA Compliance Audit Logging Engine',
+          scopeReference: 'DEL-HIPAA-01',
+          description: 'Cryptographic immutable logging of patient health records access with inspector verification.',
+          acceptanceCriteria: ['Audit trail generated on record access', 'Tamper-evident hash chaining'],
+        },
+      ],
+    };
+
+    it('searches Project A passages strictly and does NOT retrieve canonical e-commerce items', async () => {
+      const output = await defaultGroundedAgentService.analyze({
+        ...projectHealthcare,
+        newClientRequest: {
+          title: 'Export HIPAA audit log to compliance PDF',
+          description: 'Download cryptographically signed audit log for medical inspectors.',
+        },
+      });
+
+      expect(output.retrievedEvidence.length).toBeGreaterThan(0);
+      // Evidence must match Project A's HIPAA deliverable
+      expect(output.retrievedEvidence[0].sourceReference).toBe('DEL-HIPAA-01');
+      expect(output.retrievedEvidence[0].sourceTitle).toContain('HIPAA');
+
+      // Canonical e-commerce items must NEVER be present
+      const references = output.retrievedEvidence.map((e) => e.sourceReference);
+      expect(references).not.toContain('DEL-CHK-01');
+      expect(references).not.toContain('DEL-CAT-01');
+      expect(references).not.toContain('DEL-PAY-01');
+    });
+
+    it('unrelated e-commerce request against Healthcare project does not match canonical store scope', async () => {
+      const output = await defaultGroundedAgentService.analyze({
+        ...projectHealthcare,
+        newClientRequest: {
+          title: 'Add shopping cart checkout with Stripe payment',
+          description: 'Allow clients to purchase retail goods with multi-step cart.',
+        },
+      });
+
+      // Must NOT match DEL-CHK-01 from canonical corpus
+      const references = output.retrievedEvidence.map((e) => e.sourceReference);
+      expect(references).not.toContain('DEL-CHK-01');
+      expect(references).not.toContain('DEL-PAY-01');
+
+      // Since project only has HIPAA audit logging, similarity is low and classification cannot be in_scope
+      expect(output.reviewStatus).not.toBe('in_scope');
+      expect(output.reviewStatus).toBe('uncertain');
+      expect(output.effortCalculation.estimatedCost).toBeNull();
+      expect(output.effortCalculation.estimatedHours).toBeNull();
+    });
+
+    it('irrelevant project deliverables cannot produce confident in_scope decision with zero cost', async () => {
+      const irrelevantProject = {
+        projectId: '65f1a2b3c4d5e6f7a8b9c0d2',
+        approvedProposalVersion: {
+          versionNumber: 1,
+          title: 'Infrastructure Baseline Project',
+          scopeSummary: 'Server hardware deployment and operating system installation.',
+          scopeItems: [
+            {
+              title: 'Hardware Rack Mounting',
+              description: 'Physical server installation in data center.',
+              estimatedHours: 20,
+              price: 2000,
+            },
+          ],
+        },
+        deliverables: [
+          {
+            id: 'del_infra_01',
+            title: 'Server Hardware Deployment',
+            scopeReference: 'DEL-INFRA-01',
+            description: 'Physical server mounting and power cabling in server room.',
+            acceptanceCriteria: ['Server power verified'],
+          },
+        ],
+      };
+
+      const output = await defaultGroundedAgentService.analyze({
+        ...irrelevantProject,
+        newClientRequest: {
+          title: 'Add customer checkout portal with Stripe credit card processing',
+          description: 'Payment gateway integration with multi-currency support.',
+        },
+      });
+
+      expect(output.reviewStatus).toBe('uncertain');
+      expect(output.effortCalculation.estimatedCost).toBeNull();
+      expect(output.effortCalculation.estimatedHours).toBeNull();
+      expect(output.effortCalculation.isEligibleForBilling).toBe(false);
+    });
+
+    it('retrieval exception does not silently fall back to unrelated canonical evidence', async () => {
+      const mockRetrievalService = {
+        retrieve: jest.fn().mockImplementation(() => {
+          throw new Error('Vector database index connection failed');
+        }),
+      };
+
+      const agent = new GroundedAgentService({
+        retrievalService: mockRetrievalService,
+        providerFactory: defaultGroundedAgentService.providerFactory,
+        effortCalculator: defaultGroundedAgentService.effortCalculator,
+      });
+
+      const output = await agent.analyze({
+        ...projectHealthcare,
+        newClientRequest: {
+          title: 'Export HIPAA audit log to compliance PDF',
+          description: 'Generate compliance certificate.',
+        },
+      });
+
+      expect(mockRetrievalService.retrieve).toHaveBeenCalled();
+      // Must NOT have fallen back to canonical corpus!
+      expect(output.retrievedEvidence).toHaveLength(0);
+      expect(output.reviewStatus).toBe('uncertain');
+      expect(output.effortCalculation.estimatedCost).toBeNull();
+    });
+
+    it('direct standalone retrieval still retrieves canonical corpus where intended', () => {
+      const { defaultRetrievalService } = require('../src/ai/rag/retrieval.service');
+      const res = defaultRetrievalService.retrieve({
+        query: 'Checkout cart with Stripe payment',
+        topK: 3,
+        minThreshold: 0.35,
+      });
+
+      expect(res.retrievedPassages.length).toBeGreaterThan(0);
+      const references = res.retrievedPassages.map((p) => p.sourceReference);
+      expect(references.some((r) => r.startsWith('DEL-'))).toBe(true);
+    });
+  });
 });

@@ -4,7 +4,10 @@
  * Handles HTTP requests, JWT token injection, error envelopes, and base URL configuration.
  */
 
-const RAW_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
+const RAW_BASE_URL =
+  (typeof process !== 'undefined' && process.env?.VITE_API_BASE_URL) ||
+  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE_URL) ||
+  '/api';
 export const API_BASE_URL = RAW_BASE_URL.replace(/\/+$/, '');
 
 export const TOKEN_STORAGE_KEY = 'scopepilot_auth_token';
@@ -132,7 +135,9 @@ async function request(endpoint, options = {}) {
 
     if (response.status === 401) {
       // Notify application of auth expiration if needed
-      window.dispatchEvent(new CustomEvent('scopepilot:unauthorized'));
+      if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+        window.dispatchEvent(new CustomEvent('scopepilot:unauthorized'));
+      }
     }
 
     throw new ApiError(message, response.status, errors, payload);

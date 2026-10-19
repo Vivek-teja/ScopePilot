@@ -1,4 +1,4 @@
-﻿const { CloudModelProvider } = require('../src/ai/providers/cloudProvider');
+const { CloudModelProvider } = require('../src/ai/providers/cloudProvider');
 const { OllamaModelProvider } = require('../src/ai/providers/ollamaProvider');
 
 describe('AI Model Providers Unit Tests (Mocked Adapters)', () => {
@@ -57,7 +57,7 @@ describe('AI Model Providers Unit Tests (Mocked Adapters)', () => {
     jest.restoreAllMocks();
   });
 
-  // ΓöÇΓöÇ 1. Google Gemini Provider Tests ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  // ── 1. Google Gemini Provider Tests ─────────────────────────────────────────
   describe('CloudModelProvider (Gemini)', () => {
     const geminiKey = 'test-gemini-secret-api-key-12345';
 
@@ -204,7 +204,7 @@ describe('AI Model Providers Unit Tests (Mocked Adapters)', () => {
     });
   });
 
-  // ΓöÇΓöÇ 2. Groq Cloud Provider Tests ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  // ── 2. Groq Cloud Provider Tests ────────────────────────────────────────────
   describe('CloudModelProvider (Groq)', () => {
     const groqKey = 'gsk_test_groq_secret_api_key_67890';
 
@@ -307,7 +307,7 @@ describe('AI Model Providers Unit Tests (Mocked Adapters)', () => {
     });
   });
 
-  // ΓöÇΓöÇ 3. Ollama Local Daemon Provider Tests ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  // ── 3. Ollama Local Daemon Provider Tests ───────────────────────────────────
   describe('OllamaModelProvider', () => {
     it('isAvailable returns true when local /api/tags responds with 200', async () => {
       globalThis.fetch = jest.fn(async (url) => {

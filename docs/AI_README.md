@@ -121,9 +121,9 @@ npm run ai:agent
 All endpoints are mounted under `/api/ai/*`:
 
 ### Agent Endpoints (Reviews 4 & 5)
-- `POST /api/ai/agent/analyze`: Full grounded analysis pipeline on any custom change request.
+- `POST /api/ai/agent/analyze`: Requires a bearer token and a persisted `projectId` the caller can access. The current approved proposal version and deliverables are loaded from persisted project data; caller-supplied scope snapshots and hourly rates are not trusted. Cost is suppressed because the current Project model has no persisted hourly-rate field.
 - `GET /api/ai/agent/providers`: Enumerates available model providers (Local, Ollama, Gemini, Groq) with live availability status.
-- `POST /api/ai/agent/providers/select`: Switches the active provider at runtime (`{ "provider": "local" }`).
+- `POST /api/ai/agent/providers/select`: Requires a bearer token; supported values are `local`, `ollama`, `gemini`, and `groq` (`{ "provider": "local" }`).
 - `GET /api/ai/agent/benchmark`: Runs all 5 canonical cases and returns structured evaluation metrics.
 
 ### RAG & Retrieval Endpoints (Review 3)

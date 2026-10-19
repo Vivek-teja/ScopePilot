@@ -1,4 +1,4 @@
-﻿const request = require('supertest');
+const request = require('supertest');
 const app = require('../src/app');
 const { generateToken } = require('../src/utils/jwt');
 const User = require('../src/modules/auth/auth.model');

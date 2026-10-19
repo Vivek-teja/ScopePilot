@@ -1,5 +1,37 @@
-.page { display: flex; flex-direction: column; gap: var(--space-5); }
+/* ============================================================
+   ProjectsPage.module.css – Styling for Projects Screen
+   Matching Reference Drawing 3 & design.txt
+   ============================================================ */
 
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.pageHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  border-bottom: 1.5px solid var(--border-dim);
+  padding-bottom: var(--space-3);
+}
+
+.pageTitle {
+  font-family: var(--font-display);
+  font-size: 3rem;
+  color: #ffffff;
+  letter-spacing: 0.06em;
+  margin: 0;
+}
+
+.projectCountBadge {
+  font-family: var(--font-mono);
+  font-size: 1.15rem;
+  color: var(--purple-light);
+}
+
+/* ── Toolbar: White Search Bar + Diamond Filters (Ref Image 3) ── */
 .toolbar {
   display: flex;
   gap: var(--space-4);
@@ -7,71 +39,191 @@
   flex-wrap: wrap;
 }
 
-.searchWrap {
-  position: relative;
+.searchContainer {
   flex: 1;
-  min-width: 220px;
+  min-width: 280px;
 }
-.searchIcon {
-  position: absolute;
-  left: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 0.85rem;
-  pointer-events: none;
-}
-.searchInput {
+
+.whiteSearchInput {
   width: 100%;
-  padding: 9px 13px 9px 36px;
-  border: 1.5px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  color: var(--text-heading);
+  height: 52px;
+  padding: 10px 18px;
+  background-color: #ffffff;
+  color: #000000;
+  border: 2px solid #ffffff;
+  font-family: var(--font-sans);
+  font-size: 1.2rem;
+  font-weight: 600;
+  border-radius: 0;
+  transition: box-shadow 0.15s ease;
+}
+
+.whiteSearchInput:focus {
+  outline: none;
+  box-shadow: 0 0 16px var(--purple-glow);
+}
+
+/* ── Filter Buttons in Wide Diamond / Octagon Shapes ─────────── */
+.filterGroup {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.filterDiamondBtn {
+  position: relative;
+  height: 38px;
+  padding: 0 18px;
+  background: transparent !important;
+  border: none !important;
+  font-family: var(--font-display);
   font-size: 0.88rem;
-  transition: border-color 0.15s;
-}
-.searchInput:focus { outline: none; border-color: var(--border-focus); }
-
-.filterGroup { display: flex; gap: var(--space-1); flex-wrap: wrap; }
-.filterBtn {
-  padding: 6px 14px;
-  border: 1.5px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  color: var(--text-secondary);
-  font-size: 0.82rem;
-  font-weight: 500;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   cursor: pointer;
-  transition: all 0.15s;
-}
-.filterBtn:hover { border-color: var(--accent); color: var(--accent); }
-.filterBtnActive {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--text-on-accent);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
 }
 
+.filterDiamondBtn:hover .filterHexPolygon {
+  stroke: var(--purple-light);
+  filter: drop-shadow(0 0 6px var(--purple-glow));
+}
+
+.filterHexSvg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.filterHexPolygon {
+  fill: var(--bg-surface-dark);
+  stroke: #ffffff;
+  stroke-width: 0.75px;
+  stroke-linejoin: miter;
+  transition: all 0.15s ease;
+}
+
+.filterBtnText {
+  position: relative;
+  z-index: 1;
+  color: #ffffff;
+  transition: color 0.15s ease;
+}
+
+/* Specific status filter colors (design.txt lines 32 & 48) */
+.filter_all.filterActive .filterHexPolygon {
+  fill: #ffffff !important;
+  stroke: #ffffff !important;
+  stroke-width: 0.75px !important;
+}
+.filter_all.filterActive .filterBtnText {
+  color: #000000 !important;
+}
+
+.filter_active.filterActive .filterHexPolygon {
+  fill: #d8b4fe !important;
+  stroke: #d8b4fe !important;
+  stroke-width: 0.75px !important;
+}
+.filter_active.filterActive .filterBtnText {
+  color: #000000 !important;
+}
+
+.filter_paused.filterActive .filterHexPolygon {
+  fill: #ffffff !important;
+  stroke: #ffffff !important;
+  stroke-width: 0.75px !important;
+}
+.filter_paused.filterActive .filterBtnText {
+  color: #000000 !important;
+}
+
+.filter_completed.filterActive .filterHexPolygon {
+  fill: #000000 !important;
+  stroke: #ffffff !important;
+  stroke-width: 0.8px !important;
+}
+.filter_completed.filterActive .filterBtnText {
+  color: #ffffff !important;
+}
+
+/* ── Projects Grid ───────────────────────────────────────────── */
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: var(--space-5);
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px;
 }
 
-.projectCard { display: flex; flex-direction: column; gap: var(--space-3); }
-.cardHeader { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3); }
-.projectName { margin: 0; font-size: 1rem; }
-.projectSummary { color: var(--text-secondary); font-size: 0.85rem; line-height: 1.5; flex: 1; }
+.projectOctCard {
+  gap: 8px;
+  padding: 12px 14px;
+}
 
-.cardMeta { display: flex; gap: var(--space-4); flex-wrap: wrap; }
-.metaItem { font-size: 0.78rem; color: var(--text-muted); display: flex; align-items: center; gap: var(--space-1); }
-.metaIcon { font-size: 0.8rem; }
+.cardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
 
-.tagRow { display: flex; gap: var(--space-1); flex-wrap: wrap; }
-.tag {
+.projectName {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  color: #ffffff;
+  letter-spacing: 0.05em;
+  line-height: 1.25;
+}
+
+/* Descriptive stuff in curated purple shades */
+.projectSummary {
+  color: var(--text-purple-1);
+  font-size: 0.85rem;
+  line-height: 1.45;
+  flex: 1;
+}
+
+.cardMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.78rem;
+  padding: 6px 0;
+  border-top: 1px solid var(--border-dim);
+  border-bottom: 1px solid var(--border-dim);
+}
+
+.metaItem {
+  color: var(--text-purple-2);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.metaLabel {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  font-weight: 700;
+}
+
+.tagRow {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.tagPill {
+  font-family: var(--font-mono);
   font-size: 0.72rem;
-  background: var(--gray-bg);
-  color: var(--gray);
-  padding: 2px 8px;
-  border-radius: 999px;
-  font-weight: 500;
+  background: var(--purple-subtle-bg);
+  color: var(--purple-light);
+  border: 1px solid rgba(216, 180, 254, 0.4);
+  padding: 2px 6px;
 }

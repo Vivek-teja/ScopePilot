@@ -1,85 +1,234 @@
-.container { display: flex; flex-direction: column; gap: var(--space-6); }
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
 
-.approvedCard { display: flex; flex-direction: column; gap: var(--space-4); border-color: var(--green); }
-.proposalHeader { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-4); flex-wrap: wrap; }
-.proposalTitle { margin: 0; font-size: 1rem; }
-.proposalNotes { font-size: 0.83rem; color: var(--text-secondary); margin: var(--space-1) 0 0; }
+/* ── Section & Heading Styling ── */
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.sectionHeadingLine {
+  display: inline-block;
+}
+
+.sectionTitle {
+  font-family: var(--font-display);
+  font-size: 2.2rem;
+  color: var(--text-white);
+  letter-spacing: 0.05em;
+  margin: 0;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.versionTag {
+  font-family: var(--font-mono);
+  font-size: 1.2rem;
+  color: var(--purple-light);
+}
+
+.purpleUnderline {
+  height: 3px;
+  background: var(--purple-vivid);
+  box-shadow: 0 0 10px var(--purple-glow);
+  width: 100%;
+  max-width: 360px;
+  margin-top: 8px;
+}
+
+/* ── Approved Scope Card ── */
+.approvedCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: 18px 24px;
+}
+
+.proposalHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.proposalTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  color: var(--text-white);
+}
+
+.proposalNotes {
+  font-size: 0.88rem;
+  color: var(--text-purple-1);
+  margin: var(--space-1) 0 0;
+}
 
 .proposalBody {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--space-6);
 }
-@media (max-width: 680px) { .proposalBody { grid-template-columns: 1fr; } }
+@media (max-width: 680px) {
+  .proposalBody { grid-template-columns: 1fr; }
+}
 
-.kvSection, .delivSection { display: flex; flex-direction: column; gap: var(--space-3); }
-.subHeading { font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin: 0; }
+.kvSection, .delivSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
 
-.delivList { display: flex; flex-direction: column; gap: var(--space-2); padding: 0; }
+.subHeading {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  margin: 0;
+}
+
+.delivList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: 0;
+}
+
 .delivItem {
   display: flex;
   align-items: flex-start;
   gap: var(--space-2);
-  font-size: 0.88rem;
-  color: var(--text);
-  line-height: 1.45;
+  font-size: 0.9rem;
+  line-height: 1.5;
 }
-.delivCheck { color: var(--green); font-weight: 700; flex-shrink: 0; margin-top: 1px; }
 
-/* Revision dots */
-.revisionBar { display: flex; align-items: center; gap: var(--space-3); margin-top: var(--space-2); }
-.revisionLabel { font-size: 0.78rem; color: var(--text-muted); }
-.revisionDots { display: flex; gap: var(--space-1); }
-.revisionDot {
-  width: 14px; height: 14px;
-  border-radius: 50%;
-  border: 2px solid var(--border);
-  background: transparent;
+.diamondCheck {
+  color: var(--purple-light);
+  font-weight: 700;
+  flex-shrink: 0;
+  line-height: 1.3;
 }
-.revisionDotUsed { background: var(--accent); border-color: var(--accent); }
-.revisionCount { font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); }
 
-/* Other versions */
-.otherList { display: flex; flex-direction: column; gap: var(--space-3); }
-.otherCard { display: flex; flex-direction: column; gap: var(--space-2); opacity: 0.8; }
-.otherHeader { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
-.otherTitle { font-weight: 600; font-size: 0.9rem; color: var(--text-heading); }
-.otherNotes { font-size: 0.82rem; color: var(--text-secondary); margin: 0; }
+.delivText {
+  color: var(--text-white);
+}
 
-/* Pending review card */
+/* ── Revision Diamond Meter ── */
+.revisionBar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+
+.revisionLabel {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--text-dim);
+}
+
+.revisionDots {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.revisionDiamond {
+  font-size: 0.95rem;
+  color: var(--border-dim);
+  transition: color 0.15s;
+}
+
+.revisionDiamondUsed {
+  color: var(--purple-light);
+  filter: drop-shadow(0 0 6px var(--purple-glow));
+}
+
+.revisionCount {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--purple-light);
+}
+
+/* ── Other versions ── */
+.otherList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.otherCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: 14px 20px;
+}
+
+.otherHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.otherTitle {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  color: var(--text-white);
+}
+
+.otherNotes {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+/* ── Pending review card ── */
 .pendingCard {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
-  border-color: var(--yellow, #f59e0b);
-  background: var(--surface);
+  padding: 18px 24px;
 }
+
 .pendingDecisionSection {
   margin-top: var(--space-3);
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
   padding: var(--space-4);
-  background: var(--surface-secondary, #1a1d24);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border);
+  background: var(--bg-surface-dark);
+  border: 1px solid var(--border-dim);
 }
+
 .decisionLabel {
-  font-size: 0.84rem;
-  font-weight: 600;
-  color: var(--text-heading);
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  color: var(--purple-light);
 }
+
 .commentInput {
   width: 100%;
-  padding: 8px 12px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  color: var(--text);
-  font-family: inherit;
-  font-size: 0.88rem;
+  padding: 10px 14px;
+  background: var(--bg-surface-grey);
+  border: 1px solid var(--border-dim);
+  color: var(--text-white);
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
   resize: vertical;
 }
+
+.commentInput:focus {
+  border-color: var(--purple-vivid);
+  outline: none;
+  box-shadow: 0 0 8px var(--purple-glow);
+}
+
 .decisionButtonGroup {
   display: flex;
   gap: var(--space-3);
