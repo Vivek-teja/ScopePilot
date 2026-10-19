@@ -16,7 +16,9 @@ const { defaultProviderFactory } = require('../providers/providerFactory');
 const {
   GroundedAgentInputSchema,
   GroundedAgentOutputSchema,
+  ProviderComparisonOutputSchema,
 } = require('../../contracts/agentAnalysis.contract');
+const { STRONG_MATCH_THRESHOLD } = require('../rag/retrieval.service');
 
 class GroundedAgentService {
   constructor(options = {}) {
@@ -30,7 +32,7 @@ class GroundedAgentService {
    * @param {Object} input - GroundedAgentInput
    * @returns {Promise<Object>} GroundedAgentOutput validated by Zod
    */
-  async analyze(input) {
+  async analyze(input, options = {}) {
     const startTime = process.hrtime.bigint();
     const validatedInput = GroundedAgentInputSchema.parse(input);
 
@@ -46,33 +48,33 @@ class GroundedAgentService {
     } = validatedInput;
 
     // ── STEP 1 & 2: Dynamic Semantic Retrieval (RAG) ────────────────────────
-    // Build dynamic corpus from runtime deliverables & proposal if provided
+    // Build dynamic passages strictly from this project's runtime deliverables & proposal
     let retrievedPassages = [];
+    let retrievalFailed = false;
     try {
       const dynamicCorpus = new CorpusService([]);
-      const passages = dynamicCorpus.buildPassagesFromProposalAndDeliverables(
+      const projectPassages = dynamicCorpus.buildPassagesFromProposalAndDeliverables(
         approvedProposalVersion,
         deliverables
       );
-      dynamicCorpus.indexPassages(passages);
 
-      // Search using query
-      const query = `${newClientRequest.title} ${newClientRequest.description}`;
-      const searchRes = this.retrievalService.retrieve({
-        query,
-        topK,
-        minThreshold: minRetrievalThreshold,
-      });
+      // Search natural language query strictly against project-specific passages
+      const query = `${newClientRequest.title} ${newClientRequest.description}`.trim();
+      const searchRes = this.retrievalService.retrieve(
+        {
+          query,
+          topK,
+          minThreshold: minRetrievalThreshold,
+        },
+        projectPassages
+      );
 
       retrievedPassages = searchRes.retrievedPassages || [];
     } catch {
-      // Fallback to static baseline retrieval
-      const searchRes = this.retrievalService.retrieve({
-        query: newClientRequest.title,
-        topK,
-        minThreshold: minRetrievalThreshold,
-      });
-      retrievedPassages = searchRes.retrievedPassages || [];
+      // Safe fallback: on retrieval failure, return empty evidence and explicit uncertain outcome.
+      // NEVER silently substitute unrelated canonical scope evidence.
+      retrievalFailed = true;
+      retrievedPassages = [];
     }
 
     // ── STEP 3: Model Comparison via Provider Interface ─────────────────────
@@ -82,22 +84,73 @@ class GroundedAgentService {
     let comparisonResult;
     let fallbackUsed = initialFallback;
 
-    try {
-      comparisonResult = await provider.generateComparison({
-        newClientRequest,
-        retrievedPassages,
-        approvedProposalVersion,
-        deliverables,
-      });
-    } catch {
-      // Graceful fallback to local reasoner if external model fails
-      fallbackUsed = true;
-      comparisonResult = await this.providerFactory.localProvider.generateComparison({
-        newClientRequest,
-        retrievedPassages,
-        approvedProposalVersion,
-        deliverables,
-      });
+    if (retrievalFailed) {
+      comparisonResult = {
+        summary: `Project scope retrieval failed for "${newClientRequest.title}". Human clarification required.`,
+        reviewStatus: 'uncertain',
+        confidenceScore: 0.5,
+        inScopeItems: [],
+        outOfScopeItems: [],
+        uncertainItems: [
+          {
+            item: newClientRequest.title,
+            question: 'Can the client or project manager clarify how this request maps to project deliverables?',
+            missingEvidence: 'Retrieval failure: project scope evidence could not be retrieved from baseline.',
+          },
+        ],
+        affectedDeliverables: [],
+        suggestedQuestions: [
+          'Which approved deliverable does this request relate to?',
+        ],
+      };
+    } else {
+      try {
+        const rawComparison = await provider.generateComparison({
+          newClientRequest,
+          retrievedPassages,
+          approvedProposalVersion,
+          deliverables,
+        });
+        comparisonResult = ProviderComparisonOutputSchema.parse(rawComparison);
+      } catch {
+        // Graceful fallback to local reasoner if external model fails, times out, or returns invalid schema
+        fallbackUsed = true;
+        const rawLocal = await this.providerFactory.localProvider.generateComparison({
+          newClientRequest,
+          retrievedPassages,
+          approvedProposalVersion,
+          deliverables,
+        });
+        comparisonResult = ProviderComparisonOutputSchema.parse(rawLocal);
+      }
+    }
+
+    const topEvidenceScore = retrievedPassages[0]?.similarityScore || 0;
+    const hasStrongEvidence = topEvidenceScore >= STRONG_MATCH_THRESHOLD;
+
+    if (
+      comparisonResult.reviewStatus === 'in_scope' &&
+      !hasStrongEvidence
+    ) {
+      comparisonResult = {
+        ...comparisonResult,
+        summary: `Insufficient approved-scope evidence to classify "${newClientRequest.title}" definitively.`,
+        reviewStatus: 'uncertain',
+        inScopeItems: [],
+        outOfScopeItems: [],
+        uncertainItems: [
+          {
+            item: newClientRequest.title,
+            question: 'Can the client clarify how this request relates to the approved project scope?',
+            missingEvidence: 'No sufficiently relevant passage in the approved baseline supports a definitive classification.',
+          },
+        ],
+        affectedDeliverables: [],
+        suggestedQuestions: [
+          'Which approved deliverable or acceptance criterion does this request relate to?',
+          'Does this request require technical discovery or a formal change-order estimate?',
+        ],
+      };
     }
 
     // ── STEP 4: Deterministic Effort & Schedule Tool Calculation ────────────
@@ -106,7 +159,7 @@ class GroundedAgentService {
       outOfScopeItemsCount: (comparisonResult.outOfScopeItems || []).length,
       affectedDeliverablesCount: (comparisonResult.affectedDeliverables || []).length,
       storedHourlyRate,
-    });
+    }, options);
 
     // ── STEP 5: Assemble & Validate Grounded Output ─────────────────────────
     const endTime = process.hrtime.bigint();

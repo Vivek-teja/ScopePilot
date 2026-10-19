@@ -7,7 +7,11 @@ const { defaultRetrievalService } = require('./rag/retrieval.service');
 const { defaultCorpusService } = require('./rag/corpus.service');
 const { RETRIEVAL_EXPERIMENT_CASES } = require('./fixtures/retrievalExperimentFixtures');
 const { defaultGroundedAgentService } = require('./agent/groundedAgent.service');
-const { defaultProviderFactory } = require('./providers/providerFactory');
+const { defaultProviderFactory, SUPPORTED_PROVIDERS } = require('./providers/providerFactory');
+const projectService = require('../modules/project/project.service');
+const Deliverable = require('../modules/deliverable/deliverable.model');
+const { ProposalVersion } = require('../modules/proposal/proposal.model');
+const { PROPOSAL_STATUS } = require('../modules/proposal/proposal.constants');
 
 class AIController {
   /**
@@ -198,7 +202,54 @@ class AIController {
    * POST /api/ai/agent/analyze
    */
   analyzeAgent = asyncHandler(async (req, res) => {
-    const analysis = await defaultGroundedAgentService.analyze(req.body);
+    const { projectId } = req.body;
+    if (!/^[a-f\d]{24}$/i.test(projectId)) {
+      throw ApiError.badRequest('A valid persisted project ID is required');
+    }
+
+    const project = await projectService.getProjectById(projectId, req.user._id);
+    const proposalVersionId =
+      project.currentApprovedProposal?._id || project.currentApprovedProposal;
+    if (!proposalVersionId) {
+      throw ApiError.conflict('Project has no current approved proposal version');
+    }
+
+    const approvedProposalVersion = await ProposalVersion.findOne({
+      _id: proposalVersionId,
+      project: project._id,
+      status: PROPOSAL_STATUS.APPROVED,
+    });
+
+    if (!approvedProposalVersion) {
+      throw ApiError.conflict('Project has no current approved proposal version');
+    }
+
+    const deliverables = await Deliverable.find({ project: project._id });
+    if (deliverables.length === 0) {
+      throw ApiError.conflict('Project has no persisted deliverables for scope analysis');
+    }
+
+    const analysis = await defaultGroundedAgentService.analyze(
+      {
+        ...req.body,
+        preferredProvider:
+          req.body.preferredProvider || defaultProviderFactory.getUserProvider(req.user?._id),
+        approvedProposalVersion: {
+          versionNumber: approvedProposalVersion.versionNumber,
+          title: approvedProposalVersion.title,
+          scopeSummary: approvedProposalVersion.scopeSummary,
+          scopeItems: approvedProposalVersion.scopeItems,
+        },
+        deliverables: deliverables.map((deliverable) => ({
+          id: deliverable._id.toString(),
+          title: deliverable.title,
+          scopeReference: deliverable.scopeReference,
+          description: deliverable.description,
+          acceptanceCriteria: deliverable.acceptanceCriteria,
+        })),
+      },
+      { suppressBilling: true }
+    );
     return ApiResponse.success(res, 'Grounded AI scope change analysis generated successfully', analysis);
   });
 
@@ -207,7 +258,7 @@ class AIController {
    * GET /api/ai/agent/providers
    */
   getProviders = asyncHandler(async (req, res) => {
-    const status = await defaultProviderFactory.getProvidersStatus();
+    const status = await defaultProviderFactory.getProvidersStatus(req.user?._id);
     return ApiResponse.success(res, 'AI model providers status retrieved', status);
   });
 
@@ -217,10 +268,12 @@ class AIController {
    */
   selectProvider = asyncHandler(async (req, res) => {
     const { provider } = req.body;
-    if (!provider) {
-      throw ApiError.badRequest('Field "provider" is required');
+    if (!SUPPORTED_PROVIDERS.includes(provider)) {
+      throw ApiError.badRequest(
+        `Field "provider" must be one of: ${SUPPORTED_PROVIDERS.join(', ')}`
+      );
     }
-    const active = defaultProviderFactory.setActiveProvider(provider);
+    const active = defaultProviderFactory.setActiveProvider(provider, req.user?._id);
     return ApiResponse.success(res, `Active AI provider switched to "${active}"`, {
       activeProvider: active,
     });
@@ -260,4 +313,3 @@ class AIController {
 }
 
 module.exports = new AIController();
-

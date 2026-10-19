@@ -6,6 +6,7 @@
  */
 
 const { BaseModelProvider } = require('./modelInterface');
+const { STRONG_MATCH_THRESHOLD } = require('../rag/retrieval.service');
 
 class LocalModelProvider extends BaseModelProvider {
   constructor() {
@@ -26,30 +27,34 @@ class LocalModelProvider extends BaseModelProvider {
     const topMatch = (retrievedPassages && retrievedPassages[0]) || null;
     const topScore = topMatch ? topMatch.similarityScore : 0.0;
 
+    const uncertainResult = (missingEvidence) => ({
+      summary: `Insufficient approved-scope evidence to classify "${newClientRequest.title}" definitively.`,
+      reviewStatus: 'uncertain',
+      confidenceScore: 0.92,
+      inScopeItems: [],
+      outOfScopeItems: [],
+      uncertainItems: [
+        {
+          item: newClientRequest.title,
+          question: 'Can the client clarify how this request relates to the approved project scope?',
+          missingEvidence,
+        },
+      ],
+      affectedDeliverables: [],
+      suggestedQuestions: [
+        'Which approved deliverable or acceptance criterion does this request relate to?',
+        'Does this request require technical discovery or a formal change-order estimate?',
+      ],
+    });
+
     // ── 1. Unknown External Systems / Missing Evidence (Case 5: Insufficient Evidence) ──
     const missingEvidenceTerms = ['sap', 'erp', 'as400', 'proprietary', 'vpn tunnel', 'warehouse connector'];
     const isMissingEvidence = missingEvidenceTerms.some((term) => reqText.includes(term));
 
     if (isMissingEvidence) {
-      return {
-        summary: `Zero candidate passages in the approved scope baseline met confidence thresholds for "${newClientRequest.title}".`,
-        reviewStatus: 'uncertain',
-        confidenceScore: 0.92,
-        inScopeItems: [],
-        outOfScopeItems: [],
-        uncertainItems: [
-          {
-            item: newClientRequest.title,
-            question: 'Has this requirement been discussed in prior proposal versions or architectural reviews?',
-            missingEvidence: 'The approved proposal and deliverables contain no documentation or architectural specifications for this capability.',
-          },
-        ],
-        affectedDeliverables: [],
-        suggestedQuestions: [
-          'Could the client clarify if this capability was discussed during initial discovery?',
-          'Does this request require technical discovery or a formal change-order estimate?',
-        ],
-      };
+      return uncertainResult(
+        'The approved proposal and deliverables contain no documentation or architectural specifications for this capability.'
+      );
     }
 
     // ── 2. Subjective Ambiguity without Measurable Criteria (Case 4: Ambiguous Request) ──
@@ -156,6 +161,12 @@ class LocalModelProvider extends BaseModelProvider {
           'Should failed batch records halt the import or be reported as a downloadable error log?',
         ],
       };
+    }
+
+    if (!topMatch || topScore < STRONG_MATCH_THRESHOLD) {
+      return uncertainResult(
+        'No strongly relevant passage in the approved proposal and deliverables establishes that the requested capability is approved.'
+      );
     }
 
     // ── 5. Clearly In Scope (Case 1: Clearly In Scope) ──

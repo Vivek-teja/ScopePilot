@@ -514,6 +514,9 @@ function normalizeChangeRequest(cr) {
 // ── AI Scope Analysis ─────────────────────────────────────────────────────────
 
 export async function requestAiAnalysis(analysisInput) {
+  if (isLiveBackend) {
+    return aiApi.runAgentAnalysis(analysisInput);
+  }
   return aiApi.analyzeScopeMock(analysisInput);
 }
 
