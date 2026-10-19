@@ -5,6 +5,8 @@ const { defaultEffortCalculator } = require('../src/ai/tools/effortCalculator.to
 const { defaultProviderFactory } = require('../src/ai/providers/providerFactory');
 const { ALL_CASES } = require('../src/ai/fixtures/changeAnalysisFixtures');
 const { GroundedAgentOutputSchema } = require('../src/contracts/agentAnalysis.contract');
+const { generateToken } = require('../src/utils/jwt');
+const User = require('../src/modules/auth/auth.model');
 
 describe('AI Reviews 4 & 5: Grounded Agent, Multi-Provider & Handover Pipeline', () => {
   // ── 1. Effort Calculator Tool Tests ─────────────────────────────────────────
@@ -149,23 +151,26 @@ describe('AI Reviews 4 & 5: Grounded Agent, Multi-Provider & Handover Pipeline',
     });
   });
 
-  // ── 4. REST Endpoints Integration Tests (/api/ai/agent/*) ───────────────────
+  // ── 4. REST Endpoints Integration Tests (/api/ai/agent/*) ──────────────────
   describe('REST Endpoints (/api/ai/agent/*)', () => {
-    it('POST /api/ai/agent/analyze should validate schema and return 200 with analysis', async () => {
+    it('POST /api/ai/agent/analyze should require authentication', async () => {
       const res = await request(app)
         .post('/api/ai/agent/analyze')
         .send(ALL_CASES[0].payload);
 
-      expect(res.status).toBe(200);
-      expect(res.body.success).toBe(true);
-      expect(res.body.data.reviewStatus).toBe('in_scope');
-      expect(res.body.data.retrievedEvidence.length).toBeGreaterThan(0);
-      expect(res.body.data.effortCalculation).toBeDefined();
+      expect(res.status).toBe(401);
+      expect(res.body.success).toBe(false);
     });
 
-    it('POST /api/ai/agent/analyze should reject invalid payload with 400', async () => {
+    it('POST /api/ai/agent/analyze should reject an invalid authenticated payload with 400', async () => {
+      const userId = '64a000000000000000000005';
+      jest.spyOn(User, 'findById').mockReturnValue({
+        select: jest.fn().mockResolvedValue({ _id: userId, role: 'freelancer' }),
+      });
+
       const res = await request(app)
         .post('/api/ai/agent/analyze')
+        .set('Authorization', `Bearer ${generateToken({ id: userId })}`)
         .send({ invalid: 'payload' });
 
       expect(res.status).toBe(400);
@@ -179,14 +184,13 @@ describe('AI Reviews 4 & 5: Grounded Agent, Multi-Provider & Handover Pipeline',
       expect(res.body.data.providers.length).toBe(4);
     });
 
-    it('POST /api/ai/agent/providers/select should switch active provider', async () => {
+    it('POST /api/ai/agent/providers/select should require authentication', async () => {
       const res = await request(app)
         .post('/api/ai/agent/providers/select')
         .send({ provider: 'local' });
 
-      expect(res.status).toBe(200);
-      expect(res.body.success).toBe(true);
-      expect(res.body.data.activeProvider).toBe('local');
+      expect(res.status).toBe(401);
+      expect(res.body.success).toBe(false);
     });
 
     it('GET /api/ai/agent/benchmark should run all 5 canonical cases and return 200', async () => {

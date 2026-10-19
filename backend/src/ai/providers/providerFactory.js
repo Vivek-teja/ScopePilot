@@ -4,11 +4,14 @@
  * Implements Review 4 multi-provider architecture:
  * - Abstracts local Ollama, Cloud Free APIs (Gemini, Groq), and Local Heuristic engine.
  * - Handles provider health checks, runtime switching, and automatic fallback.
+ * - Per-user provider preferences: one user's selection does not mutate the global default.
  */
 
 const { LocalModelProvider } = require('./localProvider');
 const { OllamaModelProvider } = require('./ollamaProvider');
 const { CloudModelProvider } = require('./cloudProvider');
+
+const SUPPORTED_PROVIDERS = ['local', 'ollama', 'gemini', 'groq'];
 
 class ProviderFactory {
   constructor() {
@@ -18,20 +21,27 @@ class ProviderFactory {
     this.groqProvider = new CloudModelProvider('groq');
 
     this.activeProviderName = process.env.AI_PROVIDER || 'local';
+    // Per-user provider preferences: userId (string) -> providerName
+    this.userPreferences = new Map();
   }
 
   /**
    * Get list of all providers with their live availability status
+   * @param {string} [userId] - Optional user ID to retrieve user-specific active provider
    */
-  async getProvidersStatus() {
+  async getProvidersStatus(userId = null) {
     const [ollamaOk, geminiOk, groqOk] = await Promise.all([
       this.ollamaProvider.isAvailable(),
       this.geminiProvider.isAvailable(),
       this.groqProvider.isAvailable(),
     ]);
 
+    const active = userId && this.userPreferences.has(userId.toString())
+      ? this.userPreferences.get(userId.toString())
+      : this.activeProviderName;
+
     return {
-      activeProvider: this.activeProviderName,
+      activeProvider: active,
       providers: [
         {
           name: 'local',
@@ -67,22 +77,41 @@ class ProviderFactory {
   }
 
   /**
-   * Switch the active provider
+   * Switch the active provider. When userId is supplied, the selection is scoped to that
+   * user so one user's choice does not mutate the server-wide default for other users.
+   * @param {string} providerName - Supported provider name
+   * @param {string} [userId] - User ID initiating the change
    */
-  setActiveProvider(providerName) {
-    const valid = ['local', 'ollama', 'gemini', 'groq'];
-    if (!valid.includes(providerName)) {
-      throw new Error(`Invalid provider "${providerName}". Supported: ${valid.join(', ')}`);
+  setActiveProvider(providerName, userId = null) {
+    if (!SUPPORTED_PROVIDERS.includes(providerName)) {
+      throw new Error(`Invalid provider "${providerName}". Supported: ${SUPPORTED_PROVIDERS.join(', ')}`);
+    }
+    if (userId) {
+      this.userPreferences.set(userId.toString(), providerName);
+      return providerName;
     }
     this.activeProviderName = providerName;
     return this.activeProviderName;
   }
 
   /**
-   * Resolve appropriate provider with automatic fallback protection
+   * Get active provider name for a user (or default server provider)
+   * @param {string} [userId] - User ID
    */
-  async getProvider(preferredName) {
-    const target = preferredName || this.activeProviderName;
+  getUserProvider(userId = null) {
+    if (userId && this.userPreferences.has(userId.toString())) {
+      return this.userPreferences.get(userId.toString());
+    }
+    return this.activeProviderName;
+  }
+
+  /**
+   * Resolve appropriate provider with automatic fallback protection
+   * @param {string} [preferredName] - Preferred provider name
+   * @param {string} [userId] - User ID for per-user preferences
+   */
+  async getProvider(preferredName, userId = null) {
+    const target = preferredName || this.getUserProvider(userId);
 
     if (target === 'ollama') {
       const ok = await this.ollamaProvider.isAvailable();
@@ -108,4 +137,5 @@ const defaultProviderFactory = new ProviderFactory();
 module.exports = {
   ProviderFactory,
   defaultProviderFactory,
+  SUPPORTED_PROVIDERS,
 };

@@ -7,11 +7,16 @@ const { defaultRetrievalService } = require('./rag/retrieval.service');
 const { defaultCorpusService } = require('./rag/corpus.service');
 const { RETRIEVAL_EXPERIMENT_CASES } = require('./fixtures/retrievalExperimentFixtures');
 const { defaultGroundedAgentService } = require('./agent/groundedAgent.service');
-const { defaultProviderFactory } = require('./providers/providerFactory');
+const { defaultProviderFactory, SUPPORTED_PROVIDERS } = require('./providers/providerFactory');
 const { defaultScopeChatService } = require('./chat/scopeChat.service');
 const { defaultChangeAgentService } = require('./agent/changeAgent.service');
 const { defaultScopeAnalysisDbService } = require('./services/scopeAnalysisDb.service');
 const { defaultIngestionService } = require('./rag/ingestion.service');
+// Project-specific trusted context — used to fetch persisted scope instead of trusting caller snapshots
+const projectService = require('../modules/project/project.service');
+const Deliverable = require('../modules/deliverable/deliverable.model');
+const { ProposalVersion } = require('../modules/proposal/proposal.model');
+const { PROPOSAL_STATUS } = require('../modules/proposal/proposal.constants');
 
 class AIController {
   /**
@@ -198,11 +203,75 @@ class AIController {
   // ── Review 4 & 5: Grounded Agent & Provider Endpoints ───────────────────────
 
   /**
-   * Run full grounded agent scope change analysis
+   * Run full grounded agent scope change analysis (REQUIRES AUTHENTICATION)
+   *
+   * Security: Fetches persisted project data from the database using the authenticated
+   * user's identity. Caller-supplied approvedProposalVersion, deliverables, and
+   * storedHourlyRate snapshots are intentionally discarded and replaced with
+   * trusted database values to prevent scope injection attacks.
+   *
    * POST /api/ai/agent/analyze
    */
   analyzeAgent = asyncHandler(async (req, res) => {
-    const analysis = await defaultGroundedAgentService.analyze(req.body);
+    const { projectId } = req.body;
+
+    // Validate projectId is a valid MongoDB ObjectId to prevent injection
+    if (!/^[a-f\d]{24}$/i.test(projectId)) {
+      throw ApiError.badRequest('A valid persisted project ID is required');
+    }
+
+    // Step 1: Fetch project, verifying authenticated user has access
+    const project = await projectService.getProjectById(projectId, req.user._id);
+
+    // Step 2: Resolve the current approved proposal version ID
+    const proposalVersionId =
+      project.currentApprovedProposal?._id || project.currentApprovedProposal;
+    if (!proposalVersionId) {
+      throw ApiError.conflict('Project has no current approved proposal version');
+    }
+
+    // Step 3: Load approved proposal version from DB (trusted source only)
+    const approvedProposalVersion = await ProposalVersion.findOne({
+      _id: proposalVersionId,
+      project: project._id,
+      status: PROPOSAL_STATUS.APPROVED,
+    });
+
+    if (!approvedProposalVersion) {
+      throw ApiError.conflict('Project has no current approved proposal version');
+    }
+
+    // Step 4: Load project deliverables from DB (trusted source)
+    const deliverables = await Deliverable.find({ project: project._id });
+    if (deliverables.length === 0) {
+      throw ApiError.conflict('Project has no persisted deliverables for scope analysis');
+    }
+
+    // Step 5: Run grounded analysis using ONLY trusted DB data (ignore caller snapshots)
+    const analysis = await defaultGroundedAgentService.analyze(
+      {
+        ...req.body,
+        // Per-user provider selection (overrides body.preferredProvider if user has a saved preference)
+        preferredProvider:
+          req.body.preferredProvider || defaultProviderFactory.getUserProvider(req.user?._id),
+        // Trusted scope from DB — discards caller-supplied snapshots
+        approvedProposalVersion: {
+          versionNumber: approvedProposalVersion.versionNumber,
+          title: approvedProposalVersion.title,
+          scopeSummary: approvedProposalVersion.scopeSummary,
+          scopeItems: approvedProposalVersion.scopeItems,
+        },
+        deliverables: deliverables.map((deliverable) => ({
+          id: deliverable._id.toString(),
+          title: deliverable.title,
+          scopeReference: deliverable.scopeReference,
+          description: deliverable.description,
+          acceptanceCriteria: deliverable.acceptanceCriteria,
+        })),
+      },
+      { suppressBilling: true }
+    );
+
     return ApiResponse.success(res, 'Grounded AI scope change analysis generated successfully', analysis);
   });
 
@@ -211,20 +280,24 @@ class AIController {
    * GET /api/ai/agent/providers
    */
   getProviders = asyncHandler(async (req, res) => {
-    const status = await defaultProviderFactory.getProvidersStatus();
+    // Pass authenticated user ID so response reflects per-user active provider
+    const status = await defaultProviderFactory.getProvidersStatus(req.user?._id);
     return ApiResponse.success(res, 'AI model providers status retrieved', status);
   });
 
   /**
-   * Switch the active AI provider
+   * Switch the active AI provider (scoped to authenticated user)
    * POST /api/ai/agent/providers/select
    */
   selectProvider = asyncHandler(async (req, res) => {
     const { provider } = req.body;
-    if (!provider) {
-      throw ApiError.badRequest('Field "provider" is required');
+    if (!SUPPORTED_PROVIDERS.includes(provider)) {
+      throw ApiError.badRequest(
+        `Field "provider" must be one of: ${SUPPORTED_PROVIDERS.join(', ')}`
+      );
     }
-    const active = defaultProviderFactory.setActiveProvider(provider);
+    // Scope to authenticated user — does not mutate global server default
+    const active = defaultProviderFactory.setActiveProvider(provider, req.user?._id);
     return ApiResponse.success(res, `Active AI provider switched to "${active}"`, {
       activeProvider: active,
     });
@@ -309,4 +382,3 @@ class AIController {
 }
 
 module.exports = new AIController();
-

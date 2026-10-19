@@ -3,6 +3,11 @@
  *
  * Connects to local Ollama daemon (e.g. llama3.2, mistral) via REST API.
  * Uses structured JSON mode and validates responses against Zod schemas.
+ *
+ * AUDIT FIXES:
+ * - isAvailable: clearTimeout moved to finally block.
+ * - generateComparison: explicit null/type check for response string before JSON.parse.
+ * - clearTimeout moved to finally block so it always fires.
  */
 
 const { BaseModelProvider } = require('./modelInterface');
@@ -16,14 +21,16 @@ class OllamaModelProvider extends BaseModelProvider {
   }
 
   async isAvailable() {
+    let timeoutId;
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 800);
+      timeoutId = setTimeout(() => controller.abort(), 800);
       const res = await fetch(`${this.baseUrl}/api/tags`, { signal: controller.signal });
-      clearTimeout(timeoutId);
       return res.ok;
     } catch {
       return false;
+    } finally {
+      clearTimeout(timeoutId);
     }
   }
 
@@ -86,17 +93,21 @@ INSTRUCTIONS:
         signal: controller.signal,
       });
 
-      clearTimeout(timeoutId);
-
       if (!response.ok) {
         throw new Error(`Ollama HTTP Error: ${response.status} ${response.statusText}`);
       }
 
       const json = await response.json();
+      // AUDIT FIX: Explicit null/type check before JSON.parse
+      if (!json || typeof json.response !== 'string') {
+        throw new Error('Ollama response did not contain a valid response string');
+      }
       return JSON.parse(json.response);
     } catch (err) {
-      clearTimeout(timeoutId);
       throw new Error(`Ollama execution failed: ${err.message}`);
+    } finally {
+      // AUDIT FIX: clearTimeout in finally block so it always fires
+      clearTimeout(timeoutId);
     }
   }
 }

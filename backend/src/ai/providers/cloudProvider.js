@@ -3,6 +3,15 @@
  *
  * Supports Google Gemini Free Tier, Groq Free Cloud, and Hugging Face.
  * Implements native fetch with timeout guards and JSON structured output.
+ *
+ * AUDIT FIXES:
+ * - Gemini: API key moved from URL query parameter (?key=) to x-goog-api-key header
+ *   to prevent key leakage in proxy logs and server-side request logs.
+ * - Both providers: credential redaction in error messages ([REDACTED]) so API keys
+ *   are never exposed in exception messages or log files.
+ * - Both providers: explicit null/undefined content checks with descriptive errors
+ *   before JSON.parse to avoid opaque "undefined is not valid JSON" errors.
+ * - Timeout: clearTimeout moved to finally block so it always fires regardless of branch.
  */
 
 const { BaseModelProvider } = require('./modelInterface');
@@ -36,7 +45,8 @@ class CloudModelProvider extends BaseModelProvider {
 
   async _callGemini(context) {
     const { newClientRequest, retrievedPassages, approvedProposalVersion } = context;
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${this.apiKey}`;
+    // AUDIT FIX: API key in x-goog-api-key header, NOT in URL query string
+    const url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
 
     const prompt = `
 Analyze this client change request against approved baseline scope.
@@ -64,7 +74,11 @@ Output ONLY valid JSON matching this schema:
     try {
       const response = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          // AUDIT FIX: API key in x-goog-api-key header (not URL query parameter)
+          'x-goog-api-key': this.apiKey,
+        },
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
           generationConfig: { responseMimeType: 'application/json' },
@@ -72,18 +86,24 @@ Output ONLY valid JSON matching this schema:
         signal: controller.signal,
       });
 
-      clearTimeout(timeoutId);
-
       if (!response.ok) {
         throw new Error(`Gemini API Error: ${response.status}`);
       }
 
       const data = await response.json();
       const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      // AUDIT FIX: Explicit null check with descriptive error before JSON.parse
+      if (!rawText) {
+        throw new Error('Gemini response contained no candidate text parts');
+      }
       return JSON.parse(rawText);
     } catch (err) {
+      // AUDIT FIX: Redact API key if it appears in error messages
+      const safeMessage = this.apiKey ? err.message.replaceAll(this.apiKey, '[REDACTED]') : err.message;
+      throw new Error(`Gemini request failed: ${safeMessage}`);
+    } finally {
+      // AUDIT FIX: clearTimeout in finally block so it always fires
       clearTimeout(timeoutId);
-      throw new Error(`Gemini request failed: ${err.message}`);
     }
   }
 
@@ -122,17 +142,24 @@ New Client Request: ${newClientRequest.title} - ${newClientRequest.description}
         signal: controller.signal,
       });
 
-      clearTimeout(timeoutId);
-
       if (!response.ok) {
         throw new Error(`Groq API Error: ${response.status}`);
       }
 
       const data = await response.json();
-      return JSON.parse(data.choices?.[0]?.message?.content);
+      const content = data.choices?.[0]?.message?.content;
+      // AUDIT FIX: Explicit null check with descriptive error before JSON.parse
+      if (!content) {
+        throw new Error('Groq response contained no message content');
+      }
+      return JSON.parse(content);
     } catch (err) {
+      // AUDIT FIX: Redact API key if it appears in error messages
+      const safeMessage = this.apiKey ? err.message.replaceAll(this.apiKey, '[REDACTED]') : err.message;
+      throw new Error(`Groq request failed: ${safeMessage}`);
+    } finally {
+      // AUDIT FIX: clearTimeout in finally block so it always fires
       clearTimeout(timeoutId);
-      throw new Error(`Groq request failed: ${err.message}`);
     }
   }
 }

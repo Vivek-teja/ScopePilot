@@ -51,17 +51,23 @@ class EffortCalculatorTool {
   /**
    * Deterministically calculate effort, budget impact, and schedule delta
    * @param {Object} input - EffortCalculationInput
+   * @param {Object} [options] - Runtime options
+   * @param {boolean} [options.suppressBilling] - When true, suppresses cost/rate (used when no
+   *   trusted project rate is available from the database)
    * @returns {Object} EffortCalculationResult
    */
-  calculate(input) {
+  calculate(input, options = {}) {
     const validated = EffortCalculationInputSchema.parse(input);
+    // Suppress billing if explicitly requested (e.g. analyzeAgent controller sets this
+    // when no trusted project hourly rate can be retrieved from the database)
+    const hourlyRate = options.suppressBilling ? null : validated.storedHourlyRate;
     const now = new Date().toISOString();
 
     // 1. If in-scope: Zero marginal cost or delay
     if (validated.reviewStatus === 'in_scope') {
       return EffortCalculationResultSchema.parse({
         estimatedHours: 0,
-        hourlyRate: validated.storedHourlyRate,
+        hourlyRate,
         estimatedCost: 0,
         scheduleImpactDays: 0,
         currency: 'USD',
@@ -79,7 +85,7 @@ class EffortCalculatorTool {
     ) {
       return EffortCalculationResultSchema.parse({
         estimatedHours: null,
-        hourlyRate: validated.storedHourlyRate,
+        hourlyRate,
         estimatedCost: null,
         scheduleImpactDays: null,
         currency: 'USD',
@@ -102,23 +108,24 @@ class EffortCalculatorTool {
 
     // Apply standard 15% QA and integration margin
     const totalHours = Math.round(rawHours * 1.15);
-    const totalCost = totalHours * validated.storedHourlyRate;
+    const totalCost = hourlyRate === null ? null : totalHours * hourlyRate;
     // Assuming 6 productive development hours per working business day
     const scheduleDays = Math.ceil(totalHours / 6);
 
-    const calculationBasis =
-      `Calculated using formula: Base (${baseHours}h for ${validated.complexityLevel} complexity) ` +
-      `* item multiplier (${itemMultiplier.toFixed(1)}) + 15% QA/integration margin = ${totalHours}h ` +
-      `at stored project rate of $${validated.storedHourlyRate}/hr = $${totalCost} (${scheduleDays} business days).`;
+    const calculationBasis = hourlyRate === null
+      ? `Estimated ${totalHours}h using the deterministic effort formula, but cost is suppressed because no trusted stored project hourly rate is available.`
+      : `Calculated using formula: Base (${baseHours}h for ${validated.complexityLevel} complexity) ` +
+        `* item multiplier (${itemMultiplier.toFixed(1)}) + 15% QA/integration margin = ${totalHours}h ` +
+        `at stored project rate of $${hourlyRate}/hr = $${totalCost} (${scheduleDays} business days).`;
 
     return EffortCalculationResultSchema.parse({
       estimatedHours: totalHours,
-      hourlyRate: validated.storedHourlyRate,
+      hourlyRate,
       estimatedCost: totalCost,
       scheduleImpactDays: scheduleDays,
       currency: 'USD',
       calculationBasis,
-      isEligibleForBilling: true,
+      isEligibleForBilling: hourlyRate !== null,
       calculatedAt: now,
     });
   }
