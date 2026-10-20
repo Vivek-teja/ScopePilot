@@ -6,9 +6,11 @@ import { DiamondProceedButton } from '../components/ui.jsx';
 import styles from './LoginPage.module.css';
 
 const SEEDED_ACCOUNTS = [
-  { role: 'freelancer', email: 'freelancer@scopepilot.dev', label: 'Alex Freelancer' },
-  { role: 'client', email: 'client@scopepilot.dev', label: 'Sarah Client' },
-  { role: 'admin', email: 'admin@scopepilot.dev', label: 'Admin User' },
+  { role: 'freelancer', email: 'demo1@scopepilot.dev', label: 'Demo 1 (Freelancer)' },
+  { role: 'client', email: 'demo2@scopepilot.dev', label: 'Demo 2 (Client)' },
+  { role: 'freelancer', email: 'demo3@scopepilot.dev', label: 'Demo 3 (Freelancer)' },
+  { role: 'client', email: 'demo4@scopepilot.dev', label: 'Demo 4 (Client)' },
+  { role: 'admin', email: 'demo5@scopepilot.dev', label: 'Demo 5 (Admin)' },
 ];
 
 /**
