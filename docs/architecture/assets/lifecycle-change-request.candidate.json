@@ -1,0 +1,117 @@
+{
+  "schema_version": 3,
+  "diagram_type": "lifecycle",
+  "meta": {
+    "title": "ScopePilot Change Request Lifecycle (Actual vs Incomplete)",
+    "output": "docs/architecture/assets/lifecycle-change-request.html",
+    "animation": "none",
+    "quality_profile": "standard"
+  },
+  "mainPath": [
+    "draft",
+    "pending_estimate",
+    "approved"
+  ],
+  "states": [
+    {
+      "id": "draft",
+      "type": "start",
+      "label": "Draft",
+      "sublabel": "created with status: draft",
+      "tag": "implemented",
+      "step": "01"
+    },
+    {
+      "id": "pending_estimate",
+      "type": "active",
+      "label": "Pending Estimate",
+      "sublabel": "default creation status",
+      "tag": "implemented",
+      "step": "02"
+    },
+    {
+      "id": "pending_approval",
+      "type": "waiting",
+      "label": "Pending Approval",
+      "sublabel": "enum only; no endpoint",
+      "tag": "unconnected"
+    },
+    {
+      "id": "approved",
+      "type": "success",
+      "label": "Approved",
+      "sublabel": "client decision: approve",
+      "tag": "terminal",
+      "step": "03"
+    },
+    {
+      "id": "rejected",
+      "type": "failure",
+      "label": "Rejected",
+      "sublabel": "client decision: reject",
+      "tag": "terminal"
+    },
+    {
+      "id": "implemented",
+      "type": "success",
+      "label": "Implemented",
+      "sublabel": "enum only; no endpoint",
+      "tag": "unconnected"
+    }
+  ],
+  "transitions": [
+    {
+      "id": "create-pending",
+      "from": "draft",
+      "to": "pending_estimate",
+      "label": "created as pending_estimate"
+    },
+    {
+      "id": "estimate-approve",
+      "from": "pending_estimate",
+      "to": "approved",
+      "label": "client decision: approve"
+    },
+    {
+      "id": "estimate-reject",
+      "from": "pending_estimate",
+      "to": "rejected",
+      "label": "client decision: reject",
+      "variant": "security"
+    },
+    {
+      "id": "approval-approve",
+      "from": "pending_approval",
+      "to": "approved",
+      "label": "decision if in pending_approval",
+      "variant": "dashed"
+    },
+    {
+      "id": "approval-reject",
+      "from": "pending_approval",
+      "to": "rejected",
+      "label": "decision if in pending_approval",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Verified Implemented Transitions",
+      "items": [
+        "POST /change-requests sets status to 'draft' or 'pending_estimate'.",
+        "POST /change-requests/:id/decision by client transitions to 'approved' or 'rejected'.",
+        "Decisions on 'draft' requests throw 400 Bad Request; decisions on finalized requests throw 409 Conflict."
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Incomplete / Unconnected Schema Enums",
+      "items": [
+        "'pending_approval' and 'implemented' exist in CHANGE_REQUEST_STATUS enums, but have zero transition endpoints.",
+        "Hypothetical statuses 'ai_analyzed', 'under_review', and 'submitted' DO NOT EXIST in the schema enum.",
+        "AI Analysis updates aiAnalysis subdocuments but leaves request status unchanged."
+      ]
+    }
+  ]
+}

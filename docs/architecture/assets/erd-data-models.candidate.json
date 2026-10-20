@@ -1,0 +1,272 @@
+{
+  "schema_version": 1,
+  "diagram_type": "erd",
+  "meta": {
+    "title": "ScopePilot Domain Data Model (Mongoose)",
+    "output": "docs/architecture/assets/erd-data-models.html",
+    "quality_profile": "standard"
+  },
+  "layout": {
+    "mode": "grid",
+    "gapY": 50,
+    "gapX": 90
+  },
+  "entities": [
+    {
+      "id": "user",
+      "label": "user",
+      "tag": "iam",
+      "row": 0,
+      "col": 0,
+      "width": 260,
+      "attributes": [
+        { "name": "_id", "type": "ObjectId", "key": "pk" },
+        { "name": "name", "type": "string" },
+        { "name": "email", "type": "string", "key": "uk" },
+        { "name": "password", "type": "string" },
+        { "name": "role", "type": "enum" },
+        { "name": "avatar", "type": "string" },
+        { "name": "timestamps", "type": "Date" }
+      ]
+    },
+    {
+      "id": "workspace",
+      "label": "workspace",
+      "tag": "iam",
+      "row": 1,
+      "col": 0,
+      "width": 260,
+      "attributes": [
+        { "name": "_id", "type": "ObjectId", "key": "pk" },
+        { "name": "name", "type": "string" },
+        { "name": "slug", "type": "string", "key": "uk" },
+        { "name": "owner", "type": "ObjectId", "key": "fk", "references": "user._id" },
+        { "name": "members", "type": "MemberSubdocs" },
+        { "name": "invitations", "type": "InviteSubdocs" },
+        { "name": "timestamps", "type": "Date" }
+      ]
+    },
+    {
+      "id": "scope_chunk",
+      "label": "scope_chunk",
+      "tag": "vectors",
+      "row": 2,
+      "col": 0,
+      "width": 260,
+      "attributes": [
+        { "name": "_id", "type": "ObjectId", "key": "pk" },
+        { "name": "project", "type": "ObjectId", "key": "fk", "references": "project._id" },
+        { "name": "workspace", "type": "ObjectId", "key": "fk", "references": "workspace._id" },
+        { "name": "proposalVersion", "type": "number" },
+        { "name": "sectionReference", "type": "string" },
+        { "name": "content", "type": "string" },
+        { "name": "embedding", "type": "Float[1024]" },
+        { "name": "status", "type": "enum" }
+      ]
+    },
+    {
+      "id": "project",
+      "label": "project",
+      "tag": "core",
+      "row": 0,
+      "col": 1,
+      "width": 270,
+      "attributes": [
+        { "name": "_id", "type": "ObjectId", "key": "pk" },
+        { "name": "workspace", "type": "ObjectId", "key": "fk", "references": "workspace._id" },
+        { "name": "freelancer", "type": "ObjectId", "key": "fk", "references": "user._id" },
+        { "name": "client", "type": "ObjectId", "key": "fk", "references": "user._id" },
+        { "name": "currentApprovedProposal", "type": "ObjectId", "key": "fk", "references": "proposal_version._id" },
+        { "name": "title", "type": "string" },
+        { "name": "status", "type": "enum" },
+        { "name": "timestamps", "type": "Date" }
+      ]
+    },
+    {
+      "id": "proposal",
+      "label": "proposal",
+      "tag": "commercials",
+      "row": 1,
+      "col": 1,
+      "width": 270,
+      "attributes": [
+        { "name": "_id", "type": "ObjectId", "key": "pk" },
+        { "name": "project", "type": "ObjectId", "key": "fk", "references": "project._id" },
+        { "name": "freelancer", "type": "ObjectId", "key": "fk", "references": "user._id" },
+        { "name": "client", "type": "ObjectId", "key": "fk", "references": "user._id" },
+        { "name": "title", "type": "string" },
+        { "name": "status", "type": "enum" },
+        { "name": "activeVersion", "type": "ObjectId", "key": "fk", "references": "proposal_version._id" },
+        { "name": "versions", "type": "ObjectId[]", "references": "proposal_version._id" }
+      ]
+    },
+    {
+      "id": "proposal_version",
+      "label": "proposal_version",
+      "tag": "commercials",
+      "row": 2,
+      "col": 1,
+      "width": 270,
+      "attributes": [
+        { "name": "_id", "type": "ObjectId", "key": "pk" },
+        { "name": "proposal", "type": "ObjectId", "key": "fk", "references": "proposal._id" },
+        { "name": "project", "type": "ObjectId", "key": "fk", "references": "project._id" },
+        { "name": "versionNumber", "type": "number" },
+        { "name": "scopeItems", "type": "ScopeItemSubdocs" },
+        { "name": "totalBudget", "type": "number" },
+        { "name": "contentHash", "type": "string" },
+        { "name": "status", "type": "enum" },
+        { "name": "decidedBy", "type": "ObjectId", "key": "fk", "references": "user._id" }
+      ]
+    },
+    {
+      "id": "milestone",
+      "label": "milestone",
+      "tag": "execution",
+      "row": 0,
+      "col": 2,
+      "width": 260,
+      "attributes": [
+        { "name": "_id", "type": "ObjectId", "key": "pk" },
+        { "name": "project", "type": "ObjectId", "key": "fk", "references": "project._id" },
+        { "name": "proposalVersion", "type": "ObjectId", "key": "fk", "references": "proposal_version._id" },
+        { "name": "title", "type": "string" },
+        { "name": "order", "type": "number" },
+        { "name": "status", "type": "enum" },
+        { "name": "amount", "type": "number" },
+        { "name": "deliverables", "type": "ObjectId[]", "references": "deliverable._id" },
+        { "name": "evidence", "type": "EvidenceSubdocs" }
+      ]
+    },
+    {
+      "id": "deliverable",
+      "label": "deliverable",
+      "tag": "execution",
+      "row": 1,
+      "col": 2,
+      "width": 260,
+      "attributes": [
+        { "name": "_id", "type": "ObjectId", "key": "pk" },
+        { "name": "project", "type": "ObjectId", "key": "fk", "references": "project._id" },
+        { "name": "milestone", "type": "ObjectId", "key": "fk", "references": "milestone._id" },
+        { "name": "title", "type": "string" },
+        { "name": "scopeReference", "type": "string" },
+        { "name": "status", "type": "enum" },
+        { "name": "acceptanceCriteria", "type": "string[]" }
+      ]
+    },
+    {
+      "id": "change_request",
+      "label": "change_request",
+      "tag": "change",
+      "row": 2,
+      "col": 2,
+      "width": 260,
+      "attributes": [
+        { "name": "_id", "type": "ObjectId", "key": "pk" },
+        { "name": "project", "type": "ObjectId", "key": "fk", "references": "project._id" },
+        { "name": "requestedBy", "type": "ObjectId", "key": "fk", "references": "user._id" },
+        { "name": "title", "type": "string" },
+        { "name": "status", "type": "enum" },
+        { "name": "affectedMilestones", "type": "ObjectId[]", "references": "milestone._id" },
+        { "name": "relatedDeliverables", "type": "ObjectId[]", "references": "deliverable._id" },
+        { "name": "effortEstimate", "type": "number" },
+        { "name": "aiAnalysis", "type": "AiAnalysisSubdoc" },
+        { "name": "clientDecision", "type": "DecisionSubdoc" }
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "id": "rel_workspace_owner",
+      "from": "workspace",
+      "to": "user",
+      "label": "owned by",
+      "fromCardinality": "many",
+      "toCardinality": "one"
+    },
+    {
+      "id": "rel_project_workspace",
+      "from": "project",
+      "to": "workspace",
+      "label": "in workspace",
+      "fromCardinality": "many",
+      "toCardinality": "one",
+      "labelDy": 122
+    },
+    {
+      "id": "rel_project_freelancer",
+      "from": "project",
+      "to": "user",
+      "label": "freelancer",
+      "fromCardinality": "many",
+      "toCardinality": "one"
+    },
+    {
+      "id": "rel_proposal_project",
+      "from": "proposal",
+      "to": "project",
+      "label": "scoped for",
+      "fromCardinality": "many",
+      "toCardinality": "one"
+    },
+    {
+      "id": "rel_propver_proposal",
+      "from": "proposal_version",
+      "to": "proposal",
+      "label": "version of",
+      "fromCardinality": "many",
+      "toCardinality": "one"
+    },
+    {
+      "id": "rel_milestone_project",
+      "from": "milestone",
+      "to": "project",
+      "label": "milestone of",
+      "fromCardinality": "many",
+      "toCardinality": "one"
+    },
+    {
+      "id": "rel_deliv_milestone",
+      "from": "deliverable",
+      "to": "milestone",
+      "label": "part of",
+      "fromCardinality": "many",
+      "toCardinality": "one"
+    },
+    {
+      "id": "rel_cr_project",
+      "from": "change_request",
+      "to": "project",
+      "label": "request for",
+      "fromCardinality": "many",
+      "toCardinality": "one"
+    },
+    {
+      "id": "rel_chunk_project",
+      "from": "scope_chunk",
+      "to": "project",
+      "label": "vectors of",
+      "fromCardinality": "many",
+      "toCardinality": "one"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Mongoose References vs Embedded Subdocuments",
+      "items": [
+        "Core business entities (User, Workspace, Project, Proposal, Milestone, Deliverable, ChangeRequest, ScopeChunk) are standalone Mongoose models with ObjectId references.",
+        "Fine-grained auditing and child collections (Workspace.members, ProposalVersion.scopeItems, Milestone.evidence, ChangeRequest.clientDecision) are stored as embedded subdocument arrays."
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Version Immutability & Compound Indexes",
+      "items": [
+        "ProposalVersion implements an immutable version snapshot with compound index { proposal: 1, versionNumber: 1 }.",
+        "ScopeChunk maintains { project: 1, proposalVersion: 1, chunkIndex: 1 } to allow complete atomic replacement when a new proposal version is approved."
+      ]
+    }
+  ]
+}

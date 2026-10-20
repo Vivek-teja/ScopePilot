@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "ScopePilot System Architecture & Tiers",
+    "output": "docs/architecture/assets/arch-system-overview.html",
+    "quality_profile": "standard"
+  },
+  "components": [
+    { "id": "users", "type": "external", "label": "Users", "sublabel": "Freelancer / Client", "pos": [40, 240], "size": [130, 60] },
+    { "id": "spa", "type": "frontend", "label": "React 19 SPA", "sublabel": "Vite 8 / React Router", "pos": [220, 240], "size": [150, 60], "tag": "Dual-Mode (Live/Demo)" },
+    { "id": "demostore", "type": "frontend", "label": "DemoStore (Mock)", "sublabel": "localStorage / fixtures", "pos": [220, 390], "size": [150, 60], "tag": "In-Browser" },
+    { "id": "api", "type": "backend", "label": "Express REST API", "sublabel": "Node.js :5000 /api", "pos": [450, 240], "size": [150, 60], "tag": "JWT & Zod Guarded" },
+    { "id": "ratelimiter", "type": "security", "label": "AI Rate Limiter", "sublabel": "20 rpm / 5 r-5min", "pos": [450, 80], "size": [150, 60], "tag": "In-Memory Defense" },
+    { "id": "mongodb", "type": "database", "label": "MongoDB Database", "sublabel": "Mongoose 8 ODM", "pos": [720, 240], "size": [160, 60], "tag": "Persistent Store" },
+    { "id": "local_engine", "type": "backend", "label": "Local Grounded Engine", "sublabel": "Deterministic Rules & TF-IDF", "pos": [720, 390], "size": [160, 60], "tag": "Default Operational" },
+    { "id": "cloud_llm", "type": "cloud", "label": "External LLMs", "sublabel": "Gemini / Groq / Ollama", "pos": [720, 80], "size": [160, 60], "tag": "Unconfigured / Fallback" }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "Client Tier (Browser)", "wraps": ["spa", "demostore"] },
+    { "kind": "security-group", "label": "Backend Application Tier (Node.js)", "wraps": ["api", "ratelimiter"] },
+    { "kind": "region", "label": "Data & Inference Tier", "wraps": ["mongodb", "local_engine", "cloud_llm"] }
+  ],
+  "connections": [
+    { "id": "users-to-spa", "from": "users", "to": "spa", "label": "UI Interaction", "variant": "emphasis" },
+    { "id": "spa-to-demo", "from": "spa", "to": "demostore", "label": "demo mode", "variant": "dashed", "labelDy": 30 },
+    { "id": "spa-to-api", "from": "spa", "to": "api", "label": "REST / Bearer JWT", "variant": "emphasis" },
+    { "id": "api-to-rate", "from": "api", "to": "ratelimiter", "label": "protect AI routes", "variant": "security", "labelDy": -25 },
+    { "id": "api-to-db", "from": "api", "to": "mongodb", "label": "CRUD models", "variant": "emphasis" },
+    { "id": "api-to-local", "from": "api", "to": "local_engine", "label": "active inference", "variant": "emphasis" },
+    { "id": "api-to-cloud", "from": "api", "to": "cloud_llm", "label": "external API (unconfigured)", "variant": "dashed" },
+    { "id": "local-to-db", "from": "local_engine", "to": "mongodb", "label": "cosine vector rank", "variant": "dashed" }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "Dual-Mode Architecture", "items": ["React client switches between DemoStore and live Express backend based on localStorage", "Live mode injects Authorization Bearer JWT on all requests"] },
+    { "dot": "emerald", "title": "Zero-Dependency Operational Inference", "items": ["Local heuristic engine and in-memory cosine ranking provide full functionality without external APIs", "ProviderFactory automatically routes traffic to LocalModelProvider if cloud keys are unset"] },
+    { "dot": "amber", "title": "Defect & Fallback Behavior", "items": ["Atlas Vector Search has missing mongoose import at line 84, catching ReferenceError and falling back to in-memory cosine ranking", "Rate limiter guards AI endpoints against abuse in memory"] }
+  ]
+}
