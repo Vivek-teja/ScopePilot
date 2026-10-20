@@ -101,12 +101,41 @@ class WorkspaceService {
       throw ApiError.forbidden('Workspace admins cannot invite users with the client role. Only workspace owners can invite clients.');
     }
 
+    // Validate email syntax and ensure domain is not a disposable or fake domain
+    const { validateRealEmail } = require('../../utils/emailValidator');
+    const emailCheck = await validateRealEmail(email);
+    if (!emailCheck.valid) {
+      throw ApiError.badRequest(emailCheck.reason);
+    }
+
     // Check if invitation already exists
     const existingInvite = workspace.invitations.find(
       (inv) => inv.email.toLowerCase() === email.toLowerCase() && inv.status === 'pending'
     );
     if (existingInvite) {
       throw ApiError.conflict('A pending invitation for this email already exists.');
+    }
+
+    // Hybrid auto-link: If DB is connected and user already exists in the system, automatically add to workspace members
+    const mongoose = require('mongoose');
+    if (mongoose.connection.readyState === 1) {
+      const User = require('../auth/auth.model');
+      const existingUser = await User.findOne({ email: email.toLowerCase() });
+      if (existingUser) {
+        const alreadyMember =
+          workspace.members &&
+          workspace.members.some((m) => {
+            const memberUserId = m.user?._id || m.user;
+            return memberUserId && memberUserId.toString() === existingUser._id.toString();
+          });
+        if (!alreadyMember) {
+          workspace.members.push({
+            user: existingUser._id,
+            role,
+            joinedAt: new Date(),
+          });
+        }
+      }
     }
 
     workspace.invitations.push({
@@ -146,6 +175,15 @@ class WorkspaceService {
       );
 
     if (!invite) {
+      const alreadyMember =
+        workspace.members &&
+        workspace.members.some((m) => {
+          const memberUserId = m.user?._id || m.user;
+          return memberUserId && memberUserId.toString() === userId.toString();
+        });
+      if (alreadyMember) {
+        return workspace;
+      }
       throw ApiError.badRequest('No pending invitation found for your email address');
     }
 

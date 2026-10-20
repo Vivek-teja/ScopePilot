@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { fetchProjects, createProject } from '../services/scopePilotService.js';
+import { fetchProjects, createProject, fetchWorkspaceMembers } from '../services/scopePilotService.js';
 import { WORKSPACE } from '../mocks/fixtures.js';
 import { useAsync } from '../hooks/useAsync.js';
 import {
@@ -30,11 +30,13 @@ export default function ProjectsPage() {
   const [newTitle, setNewTitle] = useState('');
   const [newDescription, setNewDescription] = useState('');
   const [newStatus, setNewStatus] = useState('active');
+  const [selectedClient, setSelectedClient] = useState('');
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState(null);
 
   const fetchFn = useCallback(() => fetchProjects(WORKSPACE.id), []);
   const { data: projects, loading, error, reload } = useAsync(fetchFn, []);
+  const { data: members } = useAsync(fetchWorkspaceMembers, []);
 
   async function handleCreateProject(e) {
     if (e && e.preventDefault) e.preventDefault();
@@ -50,14 +52,19 @@ export default function ProjectsPage() {
     setCreating(true);
     setCreateError(null);
     try {
-      await createProject({
+      const payload = {
         workspaceId: WORKSPACE.id,
         title: newTitle.trim(),
         description: newDescription.trim(),
         status: newStatus,
-      });
+      };
+      if (selectedClient) {
+        payload.clientId = selectedClient;
+      }
+      await createProject(payload);
       setNewTitle('');
       setNewDescription('');
+      setSelectedClient('');
       setShowCreateForm(false);
       reload();
     } catch (err) {
@@ -135,6 +142,21 @@ export default function ProjectsPage() {
                 disabled={creating}
                 rows={3}
               />
+            </FormField>
+            <FormField label="CLIENT (PROJECT SPONSOR)" htmlFor="proj-client">
+              <Select
+                id="proj-client"
+                value={selectedClient}
+                onChange={(e) => setSelectedClient(e.target.value)}
+                disabled={creating}
+              >
+                <option value="">— Unassigned (Or Select Workspace Member) —</option>
+                {members?.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name} [{m.role}] {m.email ? `(${m.email})` : ''}
+                  </option>
+                ))}
+              </Select>
             </FormField>
             <FormField label="INITIAL STATUS" htmlFor="proj-status">
               <Select

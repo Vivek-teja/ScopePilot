@@ -222,6 +222,28 @@ export async function fetchWorkspaceMembers(workspaceId) {
   return [];
 }
 
+export async function inviteWorkspaceMember(workspaceId, data) {
+  if (!isLiveBackend) {
+    return {
+      email: data.email,
+      role: data.role || 'client',
+      status: 'pending',
+    };
+  }
+  return workspaceApi.inviteMember(workspaceId, data);
+}
+
+function normalizeInvitation(inv) {
+  if (!inv) return null;
+  return {
+    id: (inv._id || inv.id || Math.random().toString()).toString(),
+    email: inv.email,
+    role: inv.role || 'client',
+    status: inv.status || 'pending',
+    createdAt: inv.createdAt ? new Date(inv.createdAt).toLocaleDateString() : 'Recent',
+  };
+}
+
 function normalizeWorkspace(ws) {
   if (!ws) return null;
   return {
@@ -233,6 +255,7 @@ function normalizeWorkspace(ws) {
     createdAt: ws.createdAt ? new Date(ws.createdAt).toLocaleDateString() : 'Recent',
     owner: ws.owner,
     members: (ws.members || []).map(normalizeMember),
+    invitations: (ws.invitations || []).map(normalizeInvitation),
   };
 }
 

@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAsync } from '../hooks/useAsync.js';
 import { useDemoSession } from '../hooks/DemoContext.jsx';
-import { fetchWorkspace, fetchWorkspaceMembers, createWorkspace } from '../services/scopePilotService.js';
-import { Avatar, Badge, Card, LoadingState, ErrorState, Notice, Button, FormField, Input } from '../components/ui.jsx';
+import { fetchWorkspace, fetchWorkspaceMembers, createWorkspace, inviteWorkspaceMember } from '../services/scopePilotService.js';
+import { Avatar, Badge, Card, LoadingState, ErrorState, Notice, Button, FormField, Input, Select } from '../components/ui.jsx';
 import styles from './WorkspacePage.module.css';
 
 /**
@@ -23,6 +23,40 @@ export default function WorkspacePage() {
   const [wsName, setWsName] = useState('');
   const [creatingWs, setCreatingWs] = useState(false);
   const [createWsError, setCreateWsError] = useState(null);
+
+  // Invite member state
+  const [showInvite, setShowInvite] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteRole, setInviteRole] = useState('client');
+  const [inviting, setInviting] = useState(false);
+  const [inviteError, setInviteError] = useState(null);
+  const [inviteSuccess, setInviteSuccess] = useState(null);
+
+  async function handleInviteMember(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    if (!inviteEmail.trim()) {
+      setInviteError('Email address is required.');
+      return;
+    }
+    setInviting(true);
+    setInviteError(null);
+    setInviteSuccess(null);
+    try {
+      await inviteWorkspaceMember(workspace.id, {
+        email: inviteEmail.trim().toLowerCase(),
+        role: inviteRole,
+      });
+      setInviteSuccess(`Invitation sent to ${inviteEmail.trim()} with role [${inviteRole}]!`);
+      setInviteEmail('');
+      setTimeout(() => {
+        wsReload();
+      }, 1200);
+    } catch (err) {
+      setInviteError(err.message || 'Failed to send workspace invitation.');
+    } finally {
+      setInviting(false);
+    }
+  }
 
   async function handleCreateWorkspace(e) {
     if (e && e.preventDefault) e.preventDefault();
@@ -168,12 +202,65 @@ export default function WorkspacePage() {
 
       {/* Section: Workspace members <4> */}
       <section className={styles.membersSection}>
-        <div className={styles.membersHeaderLine}>
-          <h2 className={styles.membersTitle}>
-            Workspace members <span className={styles.diamondCount}>&lt;{memberCount}&gt;</span>
-          </h2>
-          <div className={styles.purpleUnderline} />
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+          <div className={styles.membersHeaderLine} style={{ flex: 1, margin: 0 }}>
+            <h2 className={styles.membersTitle}>
+              Workspace members <span className={styles.diamondCount}>&lt;{memberCount}&gt;</span>
+            </h2>
+            <div className={styles.purpleUnderline} />
+          </div>
+          {!showInvite && (
+            <Button variant="secondary" size="sm" onClick={() => setShowInvite(true)}>
+              + Invite Member / Client ◊
+            </Button>
+          )}
         </div>
+
+        {/* Invite Member Inline Form */}
+        {showInvite && (
+          <Card surface="grey" style={{ padding: '20px', maxWidth: '550px', marginBottom: '20px' }}>
+            <h3 style={{ margin: '0 0 12px 0', color: 'var(--text-white)', fontFamily: 'var(--font-display)', fontSize: '1.1rem' }}>
+              Invite Client or Collaborator
+            </h3>
+            <p style={{ margin: '0 0 14px 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+              Enter a real email address. If they already have an account, they are linked immediately. Otherwise, an invitation awaits their first sign-in.
+            </p>
+            {inviteError && <Notice variant="warning">{inviteError}</Notice>}
+            {inviteSuccess && <Notice variant="info">{inviteSuccess}</Notice>}
+            <form onSubmit={handleInviteMember} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <FormField label="EMAIL ADDRESS" htmlFor="invite-email" required>
+                <Input
+                  id="invite-email"
+                  type="email"
+                  placeholder="e.g. client@acmecorp.com or partner@agency.dev"
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                  disabled={inviting}
+                />
+              </FormField>
+              <FormField label="WORKSPACE ROLE" htmlFor="invite-role" required>
+                <Select
+                  id="invite-role"
+                  value={inviteRole}
+                  onChange={(e) => setInviteRole(e.target.value)}
+                  disabled={inviting}
+                >
+                  <option value="client">Client (Project Reviewer & Scope Approver)</option>
+                  <option value="member">Member (Freelancer / Collaborator)</option>
+                  <option value="admin">Workspace Admin</option>
+                </Select>
+              </FormField>
+              <div style={{ display: 'flex', gap: '12px', marginTop: '4px' }}>
+                <Button type="submit" variant="primary" loading={inviting}>
+                  {inviting ? 'Verifying & Inviting...' : 'Send Invitation ◊'}
+                </Button>
+                <Button type="button" variant="ghost" onClick={() => { setShowInvite(false); setInviteError(null); setInviteSuccess(null); }} disabled={inviting}>
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          </Card>
+        )}
 
         {memLoading ? (
           <LoadingState message="Loading members..." />
@@ -195,6 +282,43 @@ export default function WorkspacePage() {
                 </div>
               </Card>
             ))}
+          </div>
+        )}
+
+        {/* Pending & Sent Invitations List */}
+        {workspace?.invitations?.length > 0 && (
+          <div style={{ marginTop: '24px' }}>
+            <h4 style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '10px' }}>
+              Pending & Sent Invitations ({workspace.invitations.length})
+            </h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {workspace.invitations.map((inv, idx) => (
+                <div
+                  key={inv.id || idx}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    background: 'var(--surface-subtle, #1a1a24)',
+                    padding: '10px 16px',
+                    borderRadius: 6,
+                    border: '1px solid var(--border-subtle, #2a2a38)',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ color: 'var(--purple-light)' }}>✉</span>
+                    <strong style={{ color: 'var(--text-white)', fontSize: '0.9rem' }}>{inv.email}</strong>
+                    <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                      [Role: <strong style={{ color: 'var(--purple-light)' }}>{inv.role}</strong>]
+                    </span>
+                  </div>
+                  <Badge
+                    status={inv.status === 'accepted' ? 'completed' : 'pending'}
+                    label={inv.status === 'accepted' ? 'Accepted' : 'Pending Sign-In'}
+                  />
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </section>
