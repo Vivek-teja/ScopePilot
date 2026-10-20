@@ -180,13 +180,35 @@ function normalizeUser(u) {
 
 // ── Workspace ─────────────────────────────────────────────────────────────────
 
-export async function fetchWorkspace() {
+export async function listUserWorkspaces() {
+  if (!isLiveBackend) {
+    const ws = demoStore.fetchWorkspace();
+    return ws ? [normalizeWorkspace(ws)] : [];
+  }
+  const workspaces = await workspaceApi.listWorkspaces();
+  return (workspaces || []).map(normalizeWorkspace);
+}
+
+export function setActiveWorkspaceId(wsId) {
+  if (wsId) {
+    localStorage.setItem('scopepilot:activeWorkspaceId', wsId.toString());
+  } else {
+    localStorage.removeItem('scopepilot:activeWorkspaceId');
+  }
+}
+
+export async function fetchWorkspace(targetWsId) {
   if (!isLiveBackend) {
     return demoStore.fetchWorkspace();
   }
   const workspaces = await workspaceApi.listWorkspaces();
   if (Array.isArray(workspaces) && workspaces.length > 0) {
-    const ws = workspaces[0];
+    let ws = workspaces[0];
+    const preferredId = targetWsId || localStorage.getItem('scopepilot:activeWorkspaceId');
+    if (preferredId) {
+      const found = workspaces.find((w) => (w._id || w.id).toString() === preferredId.toString());
+      if (found) ws = found;
+    }
     return normalizeWorkspace(ws);
   }
   return null;

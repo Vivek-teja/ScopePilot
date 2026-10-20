@@ -222,6 +222,50 @@ class WorkspaceService {
    * List all workspaces accessible by the user (owned or member)
    */
   async listWorkspaces(userId) {
+    // If DB is connected, auto-fulfill any pending invitations for this user's email
+    const mongoose = require('mongoose');
+    if (mongoose.connection.readyState === 1) {
+      try {
+        const User = require('../auth/auth.model');
+        const user = await User.findById(userId);
+        if (user && user.email) {
+          const emailLower = user.email.toLowerCase();
+          const pendingWorkspaces = await Workspace.find({
+            'invitations.email': emailLower,
+            'invitations.status': 'pending',
+          });
+
+          for (const ws of pendingWorkspaces) {
+            let changed = false;
+            for (const inv of ws.invitations) {
+              if (inv.email && inv.email.toLowerCase() === emailLower && inv.status === 'pending') {
+                inv.status = 'accepted';
+                changed = true;
+                const alreadyMember =
+                  ws.members &&
+                  ws.members.some((m) => {
+                    const mId = m.user?._id || m.user;
+                    return mId && mId.toString() === userId.toString();
+                  });
+                if (!alreadyMember) {
+                  ws.members.push({
+                    user: userId,
+                    role: inv.role || 'client',
+                    joinedAt: new Date(),
+                  });
+                }
+              }
+            }
+            if (changed) {
+              await ws.save();
+            }
+          }
+        }
+      } catch {
+        // Non-blocking
+      }
+    }
+
     const workspaces = await Workspace.find({
       $or: [{ owner: userId }, { 'members.user': userId }],
     })

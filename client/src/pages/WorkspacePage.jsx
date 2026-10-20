@@ -2,7 +2,14 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAsync } from '../hooks/useAsync.js';
 import { useDemoSession } from '../hooks/DemoContext.jsx';
-import { fetchWorkspace, fetchWorkspaceMembers, createWorkspace, inviteWorkspaceMember } from '../services/scopePilotService.js';
+import {
+  fetchWorkspace,
+  fetchWorkspaceMembers,
+  createWorkspace,
+  inviteWorkspaceMember,
+  listUserWorkspaces,
+  setActiveWorkspaceId,
+} from '../services/scopePilotService.js';
 import { Avatar, Badge, Card, LoadingState, ErrorState, Notice, Button, FormField, Input, Select } from '../components/ui.jsx';
 import styles from './WorkspacePage.module.css';
 
@@ -17,7 +24,8 @@ import styles from './WorkspacePage.module.css';
 export default function WorkspacePage() {
   const { session, mode } = useDemoSession();
   const { data: workspace, loading: wsLoading, error: wsError, reload: wsReload } = useAsync(fetchWorkspace, []);
-  const { data: members, loading: memLoading } = useAsync(fetchWorkspaceMembers, []);
+  const { data: members, loading: memLoading, reload: memReload } = useAsync(fetchWorkspaceMembers, []);
+  const { data: allWorkspaces, reload: allWsReload } = useAsync(listUserWorkspaces, []);
 
   const [showCreateWs, setShowCreateWs] = useState(false);
   const [wsName, setWsName] = useState('');
@@ -31,6 +39,14 @@ export default function WorkspacePage() {
   const [inviting, setInviting] = useState(false);
   const [inviteError, setInviteError] = useState(null);
   const [inviteSuccess, setInviteSuccess] = useState(null);
+  const [copiedLink, setCopiedLink] = useState(false);
+
+  function handleCopyJoinLink() {
+    const url = window.location.origin + '/workspace';
+    navigator.clipboard.writeText(url);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2500);
+  }
 
   async function handleInviteMember(e) {
     if (e && e.preventDefault) e.preventDefault();
@@ -50,7 +66,9 @@ export default function WorkspacePage() {
       setInviteEmail('');
       setTimeout(() => {
         wsReload();
-      }, 1200);
+        memReload();
+        allWsReload();
+      }, 1000);
     } catch (err) {
       setInviteError(err.message || 'Failed to send workspace invitation.');
     } finally {
@@ -168,6 +186,26 @@ export default function WorkspacePage() {
             <Button variant="secondary" size="sm" onClick={() => setShowCreateWs(true)}>
               + New Workspace ◊
             </Button>
+          )}
+          {allWorkspaces && allWorkspaces.length > 1 && (
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', marginLeft: 'auto' }}>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>WORKSPACE:</span>
+              <Select
+                style={{ width: 'auto', minWidth: '180px', padding: '4px 8px', fontSize: '0.85rem' }}
+                value={workspace.id}
+                onChange={(e) => {
+                  setActiveWorkspaceId(e.target.value);
+                  wsReload();
+                  memReload();
+                }}
+              >
+                {allWorkspaces.map((w) => (
+                  <option key={w.id} value={w.id}>
+                    {w.name} {w.owner?.toString() === session?.id ? '(Owner)' : ''}
+                  </option>
+                ))}
+              </Select>
+            </div>
           )}
         </div>
       </div>
@@ -312,13 +350,27 @@ export default function WorkspacePage() {
                       [Role: <strong style={{ color: 'var(--purple-light)' }}>{inv.role}</strong>]
                     </span>
                   </div>
-                  <Badge
-                    status={inv.status === 'accepted' ? 'completed' : 'pending'}
-                    label={inv.status === 'accepted' ? 'Accepted' : 'Pending Sign-In'}
-                  />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Badge
+                      status={inv.status === 'accepted' ? 'completed' : 'pending'}
+                      label={inv.status === 'accepted' ? 'Accepted' : 'Pending Sign-In'}
+                    />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleCopyJoinLink}
+                      style={{ fontSize: '0.75rem', padding: '2px 8px', color: 'var(--purple-light)' }}
+                      title="Copy workspace link to send directly to this person"
+                    >
+                      {copiedLink ? '✓ Copied!' : '🔗 Copy Link'}
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
+            <p style={{ margin: '12px 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+              ℹ <strong>How it works:</strong> ScopePilot uses in-app account linking (no external email is sent to their Gmail). Once the invited user signs up or logs into ScopePilot with their email, they will automatically be joined to this workspace! You can also click <em>"Copy Link"</em> above to send them the direct link.
+            </p>
           </div>
         )}
       </section>
