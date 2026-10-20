@@ -146,6 +146,29 @@ class WorkspaceService {
     });
 
     await workspace.save();
+
+    // Asynchronously dispatch the invitation email directly to the recipient
+    try {
+      const { sendWorkspaceInvitationEmail } = require('../../utils/emailService');
+      const User = require('../auth/auth.model');
+      const inviter = await User.findById(invitedByUserId);
+      const clientUrl = process.env.CLIENT_URL || 'https://scope-pilot-rosy.vercel.app';
+
+      sendWorkspaceInvitationEmail({
+        to: email,
+        workspaceName: workspace.name,
+        workspaceId: workspace._id.toString(),
+        inviterName: inviter ? inviter.name : 'A team member',
+        inviterEmail: inviter ? inviter.email : '',
+        role,
+        joinUrl: `${clientUrl}/workspace`,
+      }).catch((mailErr) => {
+        console.warn('[EmailService] Background email send notice:', mailErr.message);
+      });
+    } catch {
+      // Non-blocking
+    }
+
     return workspace.invitations[workspace.invitations.length - 1];
   }
 
