@@ -6,11 +6,11 @@ import { DiamondProceedButton } from '../components/ui.jsx';
 import styles from './LoginPage.module.css';
 
 const SEEDED_ACCOUNTS = [
-  { role: 'freelancer', email: 'demo1@scopepilot.dev', label: 'Demo 1 (Freelancer)' },
-  { role: 'client', email: 'demo2@scopepilot.dev', label: 'Demo 2 (Client)' },
-  { role: 'freelancer', email: 'demo3@scopepilot.dev', label: 'Demo 3 (Freelancer)' },
-  { role: 'client', email: 'demo4@scopepilot.dev', label: 'Demo 4 (Client)' },
-  { role: 'admin', email: 'demo5@scopepilot.dev', label: 'Demo 5 (Admin)' },
+  { role: 'freelancer', email: 'freelancer@scopepilot.dev', password: 'password123', demoId: 'usr-001', label: '⚡ Freelancer (Alex)' },
+  { role: 'client', email: 'client@scopepilot.dev', password: 'password123', demoId: 'usr-003', label: '⚡ Client (Sarah)' },
+  { role: 'admin', email: 'admin@scopepilot.dev', password: 'password123', demoId: 'usr-001', label: '⚡ Admin' },
+  { role: 'freelancer', email: 'demo1@scopepilot.dev', password: 'password123', demoId: 'usr-001', label: '⚡ Demo 1' },
+  { role: 'client', email: 'demo2@scopepilot.dev', password: 'password123', demoId: 'usr-003', label: '⚡ Demo 2' },
 ];
 
 /**
@@ -59,10 +59,40 @@ export default function LoginPage() {
     }
   }
 
-  function handleQuickFill(acc) {
+  async function handleInstantDemoLogin(acc) {
     setEmail(acc.email);
+    setPassword(acc.password || 'password123');
     setIsRegister(false);
+    setLoading(true);
     setErrorMessage(null);
+
+    try {
+      if (authTab === 'live') {
+        try {
+          await loginWithCredentials(acc.email, acc.password || 'password123');
+          navigate('/workspace');
+          return;
+        } catch {
+          // If live API credentials fail, seamlessly fall back to local demo session
+          login(acc.demoId || 'usr-001');
+          navigate('/workspace');
+          return;
+        }
+      } else {
+        login(acc.demoId || 'usr-001');
+        navigate('/workspace');
+      }
+    } catch (err) {
+      setErrorMessage(err.message || 'Direct login failed.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function handleDirectDemoLogin(userId) {
+    setSelectedDemoUser(userId);
+    login(userId);
+    navigate('/workspace');
   }
 
   function handleEnterDemo() {
@@ -151,16 +181,17 @@ export default function LoginPage() {
 
             {authTab === 'live' ? (
               <form onSubmit={handleLiveSubmit} className={styles.fieldBlock}>
-                {/* Quick Account Fill Buttons */}
+                {/* 1-Click Instant Demo Login Buttons */}
                 <div className={styles.quickAccountsRow}>
-                  <span className={styles.quickLabel}>QUICK-FILL SEEDED CREDENTIALS:</span>
+                  <span className={styles.quickLabel}>1-CLICK INSTANT DEMO LOGIN (NO PASSWORD NEEDED):</span>
                   <div className={styles.quickBtnGroup}>
                     {SEEDED_ACCOUNTS.map((acc) => (
                       <button
                         key={acc.email}
                         type="button"
                         className={`${styles.quickBtn} ${email === acc.email ? styles.quickBtnActive : ''}`}
-                        onClick={() => handleQuickFill(acc)}
+                        onClick={() => handleInstantDemoLogin(acc)}
+                        title={`Click to log in immediately as ${acc.label}`}
                       >
                         {acc.label}
                       </button>
@@ -266,16 +297,17 @@ export default function LoginPage() {
               <div className={styles.fieldBlock}>
                 {/* Demo User Selection Boxes */}
                 <div className={styles.demoSelectionSection}>
-                  <span className={styles.demoSelectionTitle}>SELECT DEMO PERSONA:</span>
+                  <span className={styles.demoSelectionTitle}>CLICK ANY DEMO PERSONA TO ENTER INSTANTLY:</span>
                   <div className={styles.demoBoxGroup}>
                     {DEMO_USERS.map((u) => (
                       <button
                         key={u.id}
                         type="button"
                         className={`${styles.demoBox} ${selectedDemoUser === u.id ? styles.demoBoxActive : ''}`}
-                        onClick={() => setSelectedDemoUser(u.id)}
+                        onClick={() => handleDirectDemoLogin(u.id)}
+                        title={`Click to enter workspace directly as ${u.name}`}
                       >
-                        <span className={styles.demoBoxName}>{u.name}</span>
+                        <span className={styles.demoBoxName}>⚡ {u.name}</span>
                         <span className={styles.demoBoxRole}>[ {u.role} ]</span>
                       </button>
                     ))}
