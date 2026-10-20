@@ -28,6 +28,7 @@ export default function LoginPage() {
   // Live credentials state
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [name, setName] = useState('');
   const [role, setRole] = useState('freelancer');
   const [loading, setLoading] = useState(false);
@@ -218,15 +219,26 @@ export default function LoginPage() {
 
                 <div className={styles.fieldBlock}>
                   <label className={styles.inputLabel} htmlFor="auth-password">PASSWORD:</label>
-                  <input
-                    id="auth-password"
-                    type="password"
-                    className={styles.whiteInput}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    required
-                  />
+                  <div className={styles.passwordWrapper}>
+                    <input
+                      id="auth-password"
+                      type={showPassword ? 'text' : 'password'}
+                      className={styles.passwordInput}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                      required
+                    />
+                    <button
+                      type="button"
+                      className={styles.showPasswordBtn}
+                      onClick={() => setShowPassword((prev) => !prev)}
+                      title={showPassword ? 'Hide password' : 'Show password'}
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showPassword ? 'HIDE ◊' : 'SHOW ◊'}
+                    </button>
+                  </div>
                 </div>
 
                 {/* Diamond Proceed Button */}
