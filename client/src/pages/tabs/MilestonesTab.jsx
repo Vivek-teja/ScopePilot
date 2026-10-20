@@ -1,9 +1,9 @@
-import { useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useAsync } from '../../hooks/useAsync.js';
-import { fetchMilestones, fetchDeliverables } from '../../services/scopePilotService.js';
+import { fetchMilestones, fetchDeliverables, createMilestone } from '../../services/scopePilotService.js';
 import {
   Badge, Card, LoadingState, ErrorState, EmptyState,
-  CircularProgress, Notice, Divider,
+  CircularProgress, Notice, Divider, Button, FormField, Input, Textarea,
 } from '../../components/ui.jsx';
 import styles from './MilestonesTab.module.css';
 
@@ -18,6 +18,7 @@ import styles from './MilestonesTab.module.css';
  * - Deliverables acceptance statuses in wide diamond badges.
  */
 export default function MilestonesTab({ projectId }) {
+  const [showNewMsForm, setShowNewMsForm] = useState(false);
   const msFn  = useCallback(() => fetchMilestones(projectId), [projectId]);
   const delFn = useCallback(() => fetchDeliverables(projectId), [projectId]);
 
@@ -26,7 +27,6 @@ export default function MilestonesTab({ projectId }) {
 
   if (msLoading || delLoading) return <LoadingState message="Loading milestones..." />;
   if (msError) return <ErrorState message={msError} onRetry={reload} />;
-  if (!milestones?.length) return <EmptyState title="No milestones found" message="No milestones defined for this project yet." />;
 
   const delivByMilestone = (deliverables ?? []).reduce((acc, d) => {
     (acc[d.milestoneId] = acc[d.milestoneId] || []).push(d);
@@ -35,11 +35,37 @@ export default function MilestonesTab({ projectId }) {
 
   return (
     <div className={styles.container}>
-      <Notice variant="info">
-        Milestone progress indicators and effort estimates are demo fixture values.
-      </Notice>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+        <Notice variant="info" style={{ margin: 0, flex: 1, marginRight: '16px' }}>
+          Milestones represent agreed project execution phases with deliverables and completion tracking.
+        </Notice>
+        {!showNewMsForm && (
+          <Button variant="secondary" size="sm" onClick={() => setShowNewMsForm(true)}>
+            + Assign Milestone ◊
+          </Button>
+        )}
+      </div>
 
-      {milestones.map((ms) => (
+      {showNewMsForm && (
+        <CreateMilestoneForm
+          projectId={projectId}
+          nextOrder={(milestones?.length || 0) + 1}
+          onCancel={() => setShowNewMsForm(false)}
+          onCreated={() => {
+            setShowNewMsForm(false);
+            reload();
+          }}
+        />
+      )}
+
+      {!milestones?.length && !showNewMsForm && (
+        <EmptyState
+          title="No Milestones Found"
+          message="No delivery milestones defined for this project yet. Click '+ Assign Milestone ◊' above to define Phase 1."
+        />
+      )}
+
+      {milestones?.map((ms) => (
         <MilestoneCard
           key={ms.id}
           milestone={ms}
@@ -47,6 +73,97 @@ export default function MilestonesTab({ projectId }) {
         />
       ))}
     </div>
+  );
+}
+
+function CreateMilestoneForm({ projectId, nextOrder = 1, onCancel, onCreated }) {
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [order, setOrder] = useState(nextOrder);
+  const [dueDate, setDueDate] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState(null);
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    if (!title.trim() || title.trim().length < 2) {
+      setError('Milestone title must be at least 2 characters.');
+      return;
+    }
+    setSubmitting(true);
+    setError(null);
+    try {
+      const payload = {
+        projectId,
+        title: title.trim(),
+        description: description.trim(),
+        order: Number(order) || 1,
+      };
+      if (dueDate) payload.dueDate = dueDate;
+      await createMilestone(payload);
+      onCreated();
+    } catch (err) {
+      setError(err.message || 'Failed to create milestone.');
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <Card surface="grey" style={{ padding: '24px', marginBottom: '24px' }}>
+      <h3 style={{ margin: '0 0 16px 0', color: 'var(--text-white)', fontFamily: 'var(--font-display)' }}>
+        Assign New Delivery Milestone (M{order})
+      </h3>
+      {error && <Notice variant="warning">{error}</Notice>}
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <FormField label="MILESTONE TITLE" htmlFor="ms-title" required>
+          <Input
+            id="ms-title"
+            placeholder="e.g. M1: Architecture & Core API Engine"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            disabled={submitting}
+          />
+        </FormField>
+        <FormField label="PHASE DESCRIPTION" htmlFor="ms-desc">
+          <Textarea
+            id="ms-desc"
+            placeholder="Key objectives, technical requirements, and completion criteria..."
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            disabled={submitting}
+            rows={3}
+          />
+        </FormField>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+          <FormField label="SEQUENCE ORDER" htmlFor="ms-order">
+            <Input
+              id="ms-order"
+              type="number"
+              value={order}
+              onChange={(e) => setOrder(e.target.value)}
+              disabled={submitting}
+            />
+          </FormField>
+          <FormField label="TARGET DUE DATE" htmlFor="ms-due">
+            <Input
+              id="ms-due"
+              type="date"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+              disabled={submitting}
+            />
+          </FormField>
+        </div>
+        <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
+          <Button type="submit" variant="primary" size="sm" loading={submitting}>
+            Assign Milestone ◊
+          </Button>
+          <Button type="button" variant="ghost" size="sm" onClick={onCancel} disabled={submitting}>
+            Cancel
+          </Button>
+        </div>
+      </form>
+    </Card>
   );
 }
 

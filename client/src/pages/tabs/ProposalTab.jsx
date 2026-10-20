@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useAsync } from '../../hooks/useAsync.js';
 import { useDemoSession } from '../../hooks/DemoContext.jsx';
-import { fetchProposals, recordProposalDecision, createProposalVersion } from '../../services/scopePilotService.js';
+import { fetchProposals, recordProposalDecision, createProposalVersion, createProposal } from '../../services/scopePilotService.js';
 import {
   Badge, Card, Button, LoadingState, ErrorState, EmptyState,
   KVRow, KVGrid, Divider, Notice,
@@ -11,12 +11,35 @@ import styles from './ProposalTab.module.css';
 export default function ProposalTab({ projectId, proposalId: _proposalId }) {
   const { session } = useDemoSession();
   const [showRevisionForm, setShowRevisionForm] = useState(false);
+  const [showInitialForm, setShowInitialForm] = useState(false);
   const fetchFn = useCallback(() => fetchProposals(projectId), [projectId]);
   const { data: proposals, loading, error, reload } = useAsync(fetchFn, [projectId]);
 
   if (loading) return <LoadingState message="Loading proposals..." />;
   if (error)   return <ErrorState message={error} onRetry={reload} />;
-  if (!proposals?.length) return <EmptyState title="No proposals found" message="No proposals recorded for this project." />;
+  if (!proposals?.length) {
+    return (
+      <div className={styles.container}>
+        <EmptyState title="No proposals found" message="No contractual scope proposal has been formulated for this project yet." />
+        {!showInitialForm ? (
+          <div style={{ textAlign: 'center', marginTop: '16px' }}>
+            <Button variant="primary" size="md" onClick={() => setShowInitialForm(true)}>
+              + Formulate Initial Proposal (v1) ◊
+            </Button>
+          </div>
+        ) : (
+          <CreateInitialProposalForm
+            projectId={projectId}
+            onCancel={() => setShowInitialForm(false)}
+            onCreated={() => {
+              setShowInitialForm(false);
+              reload();
+            }}
+          />
+        )}
+      </div>
+    );
+  }
 
   const approved = proposals.find((p) => p.status === 'approved');
   const pending  = proposals.find((p) => p.status === 'pending_approval');
@@ -364,5 +387,112 @@ function CreateRevisionForm({ approved, onCancel, onCreated }) {
         </div>
       </form>
     </div>
+  );
+}
+
+function CreateInitialProposalForm({ projectId, onCancel, onCreated }) {
+  const [title, setTitle] = useState('Core Architecture & MVP Scope Proposal');
+  const [scopeSummary, setScopeSummary] = useState('');
+  const [deliverablesText, setDeliverablesText] = useState(
+    'User Authentication & Identity Management\nCore Platform API & Database Design\nPayment Gateway & Ledger Integration'
+  );
+  const [totalBudget, setTotalBudget] = useState(15000);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState(null);
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    if (!title.trim() || title.trim().length < 2) {
+      setError('Proposal title must be at least 2 characters.');
+      return;
+    }
+    if (!scopeSummary.trim() || scopeSummary.trim().length < 5) {
+      setError('Scope summary is required (min 5 characters).');
+      return;
+    }
+    setSubmitting(true);
+    setError(null);
+
+    const lines = deliverablesText
+      .split('\n')
+      .map((l) => l.trim())
+      .filter(Boolean);
+
+    const items = lines.map((line) => ({
+      title: line,
+      description: line,
+    }));
+
+    try {
+      await createProposal({
+        projectId,
+        title: title.trim(),
+        scopeSummary: scopeSummary.trim(),
+        scopeItems: items,
+        totalBudget: Number(totalBudget),
+        currency: 'USD',
+      });
+      onCreated();
+    } catch (err) {
+      setError(err.message || 'Failed to submit initial proposal.');
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <Card surface="grey" style={{ padding: '24px', marginTop: '16px', maxWidth: '700px', margin: '16px auto 0' }}>
+      <h3 className={styles.formTitle}>Formulate Initial Scope Proposal (v1)</h3>
+      {error && <Notice variant="warning">{error}</Notice>}
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div>
+          <label className={styles.formLabel}>Proposal Title</label>
+          <input
+            className={styles.formInput}
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            disabled={submitting}
+          />
+        </div>
+        <div>
+          <label className={styles.formLabel}>Scope Summary & Core Commitments</label>
+          <textarea
+            className={styles.formTextarea}
+            rows={3}
+            placeholder="Describe the agreed objectives and scope boundaries..."
+            value={scopeSummary}
+            onChange={(e) => setScopeSummary(e.target.value)}
+            disabled={submitting}
+          />
+        </div>
+        <div>
+          <label className={styles.formLabel}>Agreed Deliverables (One per line)</label>
+          <textarea
+            className={styles.formTextarea}
+            rows={4}
+            value={deliverablesText}
+            onChange={(e) => setDeliverablesText(e.target.value)}
+            disabled={submitting}
+          />
+        </div>
+        <div>
+          <label className={styles.formLabel}>Total Proposed Budget ($)</label>
+          <input
+            type="number"
+            className={styles.formInput}
+            value={totalBudget}
+            onChange={(e) => setTotalBudget(e.target.value)}
+            disabled={submitting}
+          />
+        </div>
+        <div className={styles.formActions}>
+          <Button type="submit" variant="primary" size="sm" loading={submitting}>
+            Submit Proposal for Client Review ◊
+          </Button>
+          <Button type="button" variant="ghost" size="sm" onClick={onCancel} disabled={submitting}>
+            Cancel
+          </Button>
+        </div>
+      </form>
+    </Card>
   );
 }

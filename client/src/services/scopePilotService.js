@@ -383,6 +383,26 @@ export async function createProposalVersion(proposalId, versionData) {
   return proposalApi.createProposalVersion(proposalId, versionData);
 }
 
+export async function createProposal(data) {
+  if (!isLiveBackend || !isObjectId(data.projectId)) {
+    return {
+      id: `prop-${Date.now()}`,
+      proposalId: `prop-${Date.now()}`,
+      version: 1,
+      versionNumber: 1,
+      title: data.title,
+      notes: data.scopeSummary || '',
+      agreedPrice: data.totalBudget || 10000,
+      currency: data.currency || 'USD',
+      status: 'pending_approval',
+      agreedDeliverables: (data.scopeItems || []).map((s) => s.title),
+      revisionLimit: 3,
+      revisionsUsed: 0,
+    };
+  }
+  return proposalApi.createProposal(data);
+}
+
 function normalizeProposalVersion(v, parentProp = {}) {
   const id = (v._id || v.id || '').toString();
   const parentId = (parentProp._id || parentProp.id || v.proposal || '').toString();
@@ -420,6 +440,25 @@ export async function fetchMilestones(projectId) {
   }
   const milestones = await milestoneApi.listMilestones(projectId);
   return (milestones || []).map(normalizeMilestone);
+}
+
+export async function createMilestone(data) {
+  if (!isLiveBackend || !isObjectId(data.projectId)) {
+    return {
+      id: `ms-${Date.now()}`,
+      projectId: data.projectId,
+      title: data.title,
+      description: data.description || '',
+      status: 'pending',
+      dueDate: data.dueDate || 'TBD',
+      completedAt: null,
+      progressPct: 0,
+      order: data.order || 1,
+      deliverables: [],
+    };
+  }
+  const created = await milestoneApi.createMilestone(data);
+  return normalizeMilestone(created);
 }
 
 function normalizeMilestone(ms) {
