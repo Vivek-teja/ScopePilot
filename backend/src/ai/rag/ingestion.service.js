@@ -27,6 +27,22 @@ class IngestionService {
   }
 
   /**
+   * Helper to safely extract a 24-character hexadecimal ObjectId string
+   */
+  _normalizeId(id) {
+    if (!id) return '';
+    let str = '';
+    if (typeof id === 'object') {
+      const raw = id._id || id.id || id;
+      str = raw && typeof raw === 'object' && raw.toString ? raw.toString() : String(raw || '');
+    } else {
+      str = String(id).trim();
+    }
+    const hexMatch = str.match(/[a-f\d]{24}/i);
+    return hexMatch ? hexMatch[0] : str;
+  }
+
+  /**
    * Compute deterministic SHA-256 hash of text content
    */
   hashContent(text) {
@@ -63,10 +79,12 @@ class IngestionService {
    * @returns {Promise<Object>} Ingestion summary
    */
   async ingestApprovedScope(projectId, workspaceId = null, user = null) {
+    const cleanProjectId = this._normalizeId(projectId);
+
     // 1. Verify project exists and get approved proposal
-    const project = await Project.findById(projectId);
+    const project = await Project.findById(cleanProjectId);
     if (!project) {
-      throw ApiError.notFound(`Project "${projectId}" not found`);
+      throw ApiError.notFound(`Project "${cleanProjectId}" not found`);
     }
 
     // Tenancy authorization check if user provided
@@ -92,23 +110,23 @@ class IngestionService {
     }
     if (!approvedVersion) {
       approvedVersion = await ProposalVersion.findOne({
-        project: projectId,
+        project: cleanProjectId,
         status: 'approved',
       }).sort({ versionNumber: -1 });
     }
 
     if (!approvedVersion) {
       throw ApiError.badRequest(
-        `No approved proposal version found for project "${projectId}". Scope ingestion requires an approved proposal.`
+        `No approved proposal version found for project "${cleanProjectId}". Scope ingestion requires an approved proposal.`
       );
     }
 
     // 3. Load project deliverables
-    const deliverables = await Deliverable.find({ project: projectId });
+    const deliverables = await Deliverable.find({ project: cleanProjectId });
 
     // 4. Invalidate and remove any stale chunks for older versions or outdated deliverables
     await ScopeChunk.deleteMany({
-      project: projectId,
+      project: cleanProjectId,
       proposalVersion: { $ne: approvedVersion.versionNumber },
     });
 

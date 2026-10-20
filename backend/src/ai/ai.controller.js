@@ -242,9 +242,18 @@ class AIController {
     }
 
     // Step 4: Load project deliverables from DB (trusted source)
-    const deliverables = await Deliverable.find({ project: project._id });
+    let deliverables = await Deliverable.find({ project: project._id });
+    if (deliverables.length === 0 && Array.isArray(approvedProposalVersion.scopeItems) && approvedProposalVersion.scopeItems.length > 0) {
+      deliverables = approvedProposalVersion.scopeItems.map((item, idx) => ({
+        _id: item._id || new mongoose.Types.ObjectId(),
+        title: item.title,
+        scopeReference: `PROP-ITEM-${idx + 1}`,
+        description: item.description || item.title,
+        acceptanceCriteria: ['Adherence to approved scope specifications'],
+      }));
+    }
     if (deliverables.length === 0) {
-      throw ApiError.conflict('Project has no persisted deliverables for scope analysis');
+      throw ApiError.conflict('Project has no persisted deliverables or scope items for scope analysis');
     }
 
     // Step 5: Run grounded analysis using ONLY trusted DB data (ignore caller snapshots)

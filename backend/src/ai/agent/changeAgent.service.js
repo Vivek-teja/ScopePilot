@@ -28,13 +28,31 @@ class ChangeAgentService {
   }
 
   /**
+   * Helper to safely extract a 24-character hexadecimal ObjectId string
+   * regardless of whether it was passed as an ObjectId, a populated document, or a stringified object.
+   */
+  _normalizeId(id) {
+    if (!id) return '';
+    let str = '';
+    if (typeof id === 'object') {
+      const raw = id._id || id.id || id;
+      str = raw && typeof raw === 'object' && raw.toString ? raw.toString() : String(raw || '');
+    } else {
+      str = String(id).trim();
+    }
+    const hexMatch = str.match(/[a-f\d]{24}/i);
+    return hexMatch ? hexMatch[0] : str;
+  }
+
+  /**
    * Tool A: readApprovedScope(projectId)
    * Retrieves current approved proposal version and deliverables using backend models
    */
   async readApprovedScope(projectId) {
-    const project = await Project.findById(projectId);
+    const cleanProjectId = this._normalizeId(projectId);
+    const project = await Project.findById(cleanProjectId);
     if (!project) {
-      throw ApiError.notFound(`Project "${projectId}" not found`);
+      throw ApiError.notFound(`Project "${cleanProjectId}" not found`);
     }
 
     let approvedVersion = null;
@@ -43,18 +61,35 @@ class ChangeAgentService {
     }
     if (!approvedVersion) {
       approvedVersion = await ProposalVersion.findOne({
-        project: projectId,
+        project: cleanProjectId,
         status: 'approved',
       }).sort({ versionNumber: -1 });
     }
 
     if (!approvedVersion) {
       throw ApiError.badRequest(
-        `Project "${projectId}" has no approved proposal version. An approved baseline is required.`
+        `Project "${cleanProjectId}" has no approved proposal version. An approved baseline is required.`
       );
     }
 
-    const deliverables = await Deliverable.find({ project: projectId }).lean();
+    let deliverables = await Deliverable.find({ project: cleanProjectId }).lean();
+
+    // Fallback: If no separate Deliverable documents exist, synthesize deliverables from approvedVersion.scopeItems
+    if (!deliverables || deliverables.length === 0) {
+      if (Array.isArray(approvedVersion.scopeItems) && approvedVersion.scopeItems.length > 0) {
+        deliverables = approvedVersion.scopeItems.map((item, idx) => ({
+          _id: (item._id || `del-synth-${idx + 1}`).toString(),
+          id: (item._id || `del-synth-${idx + 1}`).toString(),
+          title: item.title,
+          description: item.description || item.title,
+          scopeReference: `PROP-ITEM-${idx + 1}`,
+          acceptanceCriteria: ['Adherence to approved proposal specifications'],
+          project: cleanProjectId,
+        }));
+      } else {
+        deliverables = [];
+      }
+    }
 
     return {
       project,
@@ -118,11 +153,14 @@ class ChangeAgentService {
     const toolLogs = [];
     const runStartTime = Date.now();
 
+    const cleanProjectId = this._normalizeId(projectId);
+    const cleanCrId = changeRequestId ? this._normalizeId(changeRequestId) : undefined;
+
     // Validate changeRequestId if provided
-    if (changeRequestId) {
-      const cr = await ChangeRequest.findById(changeRequestId);
+    if (cleanCrId) {
+      const cr = await ChangeRequest.findById(cleanCrId);
       if (!cr) {
-        throw ApiError.notFound(`Change request "${changeRequestId}" not found`);
+        throw ApiError.notFound(`Change request "${cleanCrId}" not found`);
       }
     }
 
@@ -130,7 +168,7 @@ class ChangeAgentService {
     let scopeData;
     const toolAStart = Date.now();
     try {
-      scopeData = await this.readApprovedScope(projectId);
+      scopeData = await this.readApprovedScope(cleanProjectId);
       toolLogs.push({
         toolName: 'readApprovedScope',
         status: 'success',
@@ -176,7 +214,7 @@ class ChangeAgentService {
         requestObj,
         deliverables,
         approvedVersion,
-        projectId
+        cleanProjectId
       );
       toolLogs.push({
         toolName: 'compareRequestedWork',
@@ -229,12 +267,18 @@ class ChangeAgentService {
     }
 
     // ── Link to Change Request Document if changeRequestId provided ──────────
-    if (changeRequestId) {
+    if (cleanCrId) {
       try {
-        await ChangeRequest.findByIdAndUpdate(changeRequestId, {
+        await ChangeRequest.findByIdAndUpdate(cleanCrId, {
           aiAnalysis: {
+            reviewStatus: comparison.reviewStatus,
             summary: comparison.summary,
             confidenceScore: comparison.confidenceScore,
+            effortCalculation: scheduleImpact,
+            scheduleImpact,
+            outOfScopeItems: comparison.outOfScopeItems || [],
+            inScopeItems: comparison.inScopeItems || [],
+            uncertainItems: comparison.uncertainItems || [],
             rawOutput: comparison,
             analyzedAt: new Date(),
           },

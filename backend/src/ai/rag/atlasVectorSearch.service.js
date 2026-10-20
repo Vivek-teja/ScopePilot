@@ -20,6 +20,19 @@ class AtlasVectorSearchService {
     this.indexName = options.indexName || process.env.ATLAS_VECTOR_INDEX || 'scopepilot_vector_index';
   }
 
+  _normalizeId(id) {
+    if (!id) return '';
+    let str = '';
+    if (typeof id === 'object') {
+      const raw = id._id || id.id || id;
+      str = raw && typeof raw === 'object' && raw.toString ? raw.toString() : String(raw || '');
+    } else {
+      str = String(id).trim();
+    }
+    const hexMatch = str.match(/[a-f\d]{24}/i);
+    return hexMatch ? hexMatch[0] : str;
+  }
+
   /**
    * Main retrieval method
    * @param {string} projectId - Target project ObjectId string
@@ -35,14 +48,15 @@ class AtlasVectorSearchService {
       throw ApiError.badRequest('Search query must be at least 3 characters long');
     }
 
+    const cleanProjectId = this._normalizeId(projectId);
     const topK = options.topK || 3;
     const minThreshold = options.minThreshold !== undefined ? options.minThreshold : 0.35;
     const userContext = options.userContext || null;
 
     // 1. Tenancy & Access Verification
-    const project = await Project.findById(projectId);
+    const project = await Project.findById(cleanProjectId);
     if (!project) {
-      throw ApiError.notFound(`Project "${projectId}" not found`);
+      throw ApiError.notFound(`Project "${cleanProjectId}" not found`);
     }
 
     // If userContext is provided, verify user has access to this project

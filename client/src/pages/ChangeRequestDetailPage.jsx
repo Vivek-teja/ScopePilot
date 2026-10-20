@@ -231,7 +231,14 @@ function ImpactSection({ cr }) {
 
 // ── AI analysis section ───────────────────────────────────────────────────────
 function AIAnalysisSection({ projectId, approvedProposal, deliverables, cr }) {
-  const [analysis, setAnalysis] = useState(cr.aiAnalysis || null);
+  const initialAnalysis = cr.aiAnalysis
+    ? {
+        ...cr.aiAnalysis,
+        reviewStatus: cr.aiAnalysis.reviewStatus || cr.aiAnalysis.rawOutput?.reviewStatus || 'uncertain',
+        effortCalculation: cr.aiAnalysis.effortCalculation || cr.aiAnalysis.scheduleImpact,
+      }
+    : null;
+  const [analysis, setAnalysis] = useState(initialAnalysis);
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState(null);
 
@@ -293,25 +300,44 @@ function AIAnalysisSection({ projectId, approvedProposal, deliverables, cr }) {
     setError(null);
     try {
       const result = await analyzeChangeRequestAi(cr.id);
+      const rawReviewStatus = result.reviewStatus || result.classification || 'uncertain';
       const normalized = {
-        reviewStatus: result.classification || 'uncertain',
-        confidenceScore: result.confidence ?? 0.85,
+        reviewStatus: rawReviewStatus,
+        confidenceScore: result.confidenceScore ?? result.confidence ?? 0.85,
         summary: result.summary,
-        outOfScopeItems: (result.additions || []).map((item) => ({
-          item,
-          reason: 'Identified as additional work beyond approved scope',
-        })),
-        uncertainItems: (result.uncertainty || []).map((u) => ({
-          item: 'Clarification Needed',
-          question: u,
-        })),
+        effortCalculation: result.scheduleImpact || result.effortCalculation,
+        outOfScopeItems: Array.isArray(result.outOfScopeItems) && result.outOfScopeItems.length > 0
+          ? result.outOfScopeItems.map((item) =>
+              typeof item === 'string'
+                ? { item, reason: 'Identified as additional work beyond approved scope' }
+                : item
+            )
+          : (result.additions || []).map((item) => ({
+              item,
+              reason: 'Identified as additional work beyond approved scope',
+            })),
+        uncertainItems: Array.isArray(result.uncertainItems) && result.uncertainItems.length > 0
+          ? result.uncertainItems.map((u) =>
+              typeof u === 'string' ? { item: 'Clarification Needed', question: u } : u
+            )
+          : (result.uncertainty || []).map((u) => ({
+              item: 'Clarification Needed',
+              question: u,
+            })),
         recommendations: [
           result.recommendedAction,
-          result.effortEstimateHours ? `Estimated effort: ${result.effortEstimateHours} hours` : null,
-          result.scheduleImpactDays ? `Estimated schedule impact: ${result.scheduleImpactDays} days` : null,
+          result.scheduleImpact?.estimatedHours != null
+            ? `Estimated effort: ${result.scheduleImpact.estimatedHours} hours`
+            : (result.effortEstimateHours ? `Estimated effort: ${result.effortEstimateHours} hours` : null),
+          result.scheduleImpact?.scheduleImpactDays != null
+            ? `Estimated schedule impact: ${result.scheduleImpact.scheduleImpactDays} days`
+            : (result.scheduleImpactDays ? `Estimated schedule impact: ${result.scheduleImpactDays} days` : null),
         ].filter(Boolean),
-        disclaimer: 'AI Change Agent analysis is an advisory draft grounded in MongoDB scope records. Human authorization required.',
-        executionMetrics: result.executionMetrics,
+        disclaimer:
+          result.humanReviewDraftNotice ||
+          result.disclaimer ||
+          'AI Change Agent analysis is an advisory draft grounded in MongoDB scope records. Human authorization required.',
+        executionMetrics: result.executionMetrics || (result.toolLogs ? { toolLogs: result.toolLogs } : undefined),
       };
       setAnalysis(normalized);
     } catch (err) {

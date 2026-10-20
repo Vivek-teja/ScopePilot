@@ -469,6 +469,16 @@ class ProposalService {
 
       proposal.status = PROPOSAL_STATUS.APPROVED;
       await proposal.save();
+
+      // Asynchronously auto-ingest approved scope into vector store for Scope Chat & AI analysis
+      try {
+        const { defaultIngestionService } = require('../../ai/rag/ingestion.service');
+        defaultIngestionService.ingestApprovedScope(projectId, project.workspace).catch((ingestErr) => {
+          // Non-blocking for proposal approval flow
+        });
+      } catch {
+        // Non-blocking
+      }
     } else {
       // Rule 4: If v2 is rejected after v1 was approved, preserve v1 as approved,
       // preserve project.currentApprovedProposal pointing to v1, and keep parent proposal status approved.
