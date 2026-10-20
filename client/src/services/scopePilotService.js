@@ -279,6 +279,10 @@ export async function createProject(data) {
     const ws = await fetchWorkspace();
     wsId = ws?._id || ws?.id;
   }
+  if (!wsId || !isObjectId(wsId)) {
+    const newWs = await createWorkspace({ name: 'Personal Workspace' });
+    wsId = newWs?._id || newWs?.id;
+  }
   const payload = {
     workspaceId: wsId,
     title: data.title,
