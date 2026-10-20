@@ -21,6 +21,11 @@ router.post(
   validate({ params: workspaceIdParamSchema, body: createInvitationSchema }),
   workspaceController.inviteMember
 );
+router.post(
+  '/:id/invitations/accept',
+  validate({ params: workspaceIdParamSchema }),
+  workspaceController.acceptInvitation
+);
 router.get(
   '/:id/members',
   validate({ params: workspaceIdParamSchema }),

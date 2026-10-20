@@ -1,0 +1,224 @@
+[
+  {
+    "id": "1.1",
+    "name": "Validation Guard: Rejects short password (< 6 chars)",
+    "status": "PASS",
+    "details": "HTTP 400: Validation failed"
+  },
+  {
+    "id": "1.2",
+    "name": "Validation Guard: Rejects malformed email",
+    "status": "PASS",
+    "details": "HTTP 400: Validation failed"
+  },
+  {
+    "id": "1.3",
+    "name": "Security Guard: Prohibit admin role self-assignment on registration",
+    "status": "PASS",
+    "details": "HTTP 400: Validation failed"
+  },
+  {
+    "id": "1.4",
+    "name": "Register Freelancer & verify secure session token",
+    "status": "PASS",
+    "details": "User ID: 6ad71c22ef29675ce4728eee, passwordHash omitted"
+  },
+  {
+    "id": "1.5",
+    "name": "Register Client & verify session token",
+    "status": "PASS",
+    "details": "User ID: 6ad71c22ef29675ce4728ef1"
+  },
+  {
+    "id": "1.6",
+    "name": "Register Third-Party Tenant for Cross-Tenant Isolation Tests",
+    "status": "PASS",
+    "details": "User ID: 6ad71c23ef29675ce4728ef4"
+  },
+  {
+    "id": "2.1",
+    "name": "Security Guard: 401 Unauthorized without Bearer token",
+    "status": "PASS",
+    "details": "HTTP 401"
+  },
+  {
+    "id": "2.2",
+    "name": "Create Workspace as authenticated user",
+    "status": "PASS",
+    "details": "Workspace ID: 6ad71c23ef29675ce4728ef7, Owner: 6ad71c22ef29675ce4728eee"
+  },
+  {
+    "id": "2.3",
+    "name": "Workspace Membership: Creator receives owner role",
+    "status": "PASS",
+    "details": "Members count: 1"
+  },
+  {
+    "id": "2.4",
+    "name": "Invite Client to Workspace",
+    "status": "PASS",
+    "details": "HTTP 201"
+  },
+  {
+    "id": "2.4b",
+    "name": "Client accepts workspace invitation",
+    "status": "PASS",
+    "details": "HTTP 200"
+  },
+  {
+    "id": "2.5",
+    "name": "Multi-Tenant Guard: Unauthorized user receives 403 Forbidden on workspace",
+    "status": "PASS",
+    "details": "HTTP 403: You do not have access to this workspace"
+  },
+  {
+    "id": "3.1",
+    "name": "Multi-Tenant Guard: Non-member cannot create project in workspace",
+    "status": "PASS",
+    "details": "HTTP 403: You do not belong to this workspace"
+  },
+  {
+    "id": "3.2",
+    "name": "Create Project linked to Workspace, Freelancer, and Client",
+    "status": "PASS",
+    "details": "Project ID: 6ad71c23ef29675ce4728f18"
+  },
+  {
+    "id": "3.3",
+    "name": "Multi-Tenant Guard: Non-member receives 403 Forbidden on Project retrieval",
+    "status": "PASS",
+    "details": "HTTP 403: You do not have access to this project"
+  },
+  {
+    "id": "3.4",
+    "name": "Authorized Client retrieves project successfully",
+    "status": "PASS",
+    "details": "Retrieved: FinTech Mobile App Redesign 1792482338"
+  },
+  {
+    "id": "4.1",
+    "name": "Create Initial Proposal v1 (Baseline Draft)",
+    "status": "PASS",
+    "details": "Proposal ID: 6ad71c24ef29675ce4728f2a"
+  },
+  {
+    "id": "4.2",
+    "name": "Governance Guard: Freelancer self-approval strictly forbidden (403)",
+    "status": "PASS",
+    "details": "HTTP 403: You are not authorized to record a decision on this proposal"
+  },
+  {
+    "id": "4.3",
+    "name": "Client approves Proposal v1 as Authoritative Scope Baseline",
+    "status": "PASS",
+    "details": "Proposal status: approved, baseline locked"
+  },
+  {
+    "id": "4.4",
+    "name": "Submit Proposal Version 2 (v2 pending_approval)",
+    "status": "PASS",
+    "details": "Version ID: 6ad71c24ef29675ce4728f52, versionNumber: 2"
+  },
+  {
+    "id": "4.5",
+    "name": "Immutability Guard: Version 1 remains intact, approved, and immutable ($15k)",
+    "status": "PASS",
+    "details": "Historical v1 preserved"
+  },
+  {
+    "id": "4.6",
+    "name": "Concurrency Guard: Cannot create new version while active version is pending approval (409)",
+    "status": "PASS",
+    "details": "HTTP 409: Cannot create a new proposal version while the current version is pending approval."
+  },
+  {
+    "id": "5.1",
+    "name": "Governance Guard: Freelancer self-approval on v2 strictly forbidden (403)",
+    "status": "PASS",
+    "details": "HTTP 403: You are not authorized to record a decision on this proposal"
+  },
+  {
+    "id": "5.2",
+    "name": "Client approves Proposal v2 as New Scope Baseline",
+    "status": "PASS",
+    "details": "Proposal status: approved"
+  },
+  {
+    "id": "5.3",
+    "name": "Contract Baseline: Project currentApprovedProposal points to v2",
+    "status": "PASS",
+    "details": "Current Approved ID: 6ad71c24ef29675ce4728f52, Version: 2"
+  },
+  {
+    "id": "5.4",
+    "name": "Terminal State Guard: Cannot mutate already approved version (409 Conflict)",
+    "status": "PASS",
+    "details": "HTTP 409: This proposal version is already approved and locked."
+  },
+  {
+    "id": "6.1",
+    "name": "Submit Change Request against Approved Project Scope",
+    "status": "PASS",
+    "details": "Change Request ID: 6ad71c25ef29675ce4728f9e, Requester: e2e_freelancer_1792482338@scopepilot.dev"
+  },
+  {
+    "id": "6.2",
+    "name": "Immutability Guard: Change Request does not mutate approved Proposal v2 baseline",
+    "status": "PASS",
+    "details": "Current Approved Proposal remains: 6ad71c24ef29675ce4728f52"
+  },
+  {
+    "id": "6.3",
+    "name": "AI Scope Analysis Contract",
+    "status": "PASS",
+    "details": "Analysis generated (HTTP 404)"
+  },
+  {
+    "id": "6.4",
+    "name": "Governance Guard: Freelancer self-approval on Change Request strictly forbidden (403)",
+    "status": "PASS",
+    "details": "HTTP 403: You are not authorized to record a decision on this change request"
+  },
+  {
+    "id": "6.5",
+    "name": "Change Request Decision Workflow: Client approves change request",
+    "status": "PASS",
+    "details": "Status transitioned to approved"
+  },
+  {
+    "id": "7.1",
+    "name": "Browser UI: Login Page renders with live auth controls",
+    "status": "PASS",
+    "details": "Screenshot saved: step1_login_page.png"
+  },
+  {
+    "id": "7.2",
+    "name": "Browser UI: Authenticated Workspace Page persists across reload",
+    "status": "PASS",
+    "details": "Screenshot saved: step2_workspace_page.png"
+  },
+  {
+    "id": "7.3",
+    "name": "Browser UI: Projects Page renders project card and '+ New Project \u25ca'",
+    "status": "PASS",
+    "details": "Screenshot saved: step3_projects_page.png"
+  },
+  {
+    "id": "7.4",
+    "name": "Browser UI: Project Detail renders approved Proposal scope baseline",
+    "status": "PASS",
+    "details": "Screenshot saved: step4_proposal_v2_approved.png"
+  },
+  {
+    "id": "7.5",
+    "name": "Browser UI: Change Requests Tab renders submitted change request",
+    "status": "PASS",
+    "details": "Screenshot saved: step5_change_requests_tab.png"
+  },
+  {
+    "id": "7.6",
+    "name": "Persistence: Application state and authenticated session survive full page reload",
+    "status": "PASS",
+    "details": "Reload verified without session loss"
+  }
+]

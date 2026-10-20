@@ -192,6 +192,20 @@ export async function fetchWorkspace() {
   return null;
 }
 
+export async function createWorkspace(data) {
+  if (!isLiveBackend) {
+    return {
+      id: `ws-${Date.now()}`,
+      name: data.name,
+      slug: data.slug || data.name.toLowerCase().replace(/[^a-z0-9]/g, '-'),
+      description: 'Workspace for client projects and scope management.',
+      createdAt: new Date().toLocaleDateString(),
+    };
+  }
+  const created = await workspaceApi.createWorkspace(data);
+  return normalizeWorkspace(created);
+}
+
 export async function fetchWorkspaceMembers(workspaceId) {
   if (!isLiveBackend) {
     return demoStore.fetchWorkspaceMembers();

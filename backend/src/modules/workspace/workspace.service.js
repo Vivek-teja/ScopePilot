@@ -121,6 +121,58 @@ class WorkspaceService {
   }
 
   /**
+   * Accept an invitation to join a workspace
+   */
+  async acceptInvitation(workspaceId, userId) {
+    const workspace = await Workspace.findById(workspaceId);
+    if (!workspace) {
+      throw ApiError.notFound('Workspace not found');
+    }
+
+    const User = require('../auth/auth.model');
+    const user = await User.findById(userId);
+    if (!user) {
+      throw ApiError.notFound('User not found');
+    }
+
+    const invite =
+      workspace.invitations &&
+      workspace.invitations.find(
+        (inv) =>
+          inv.email &&
+          user.email &&
+          inv.email.toLowerCase() === user.email.toLowerCase() &&
+          inv.status === 'pending'
+      );
+
+    if (!invite) {
+      throw ApiError.badRequest('No pending invitation found for your email address');
+    }
+
+    invite.status = 'accepted';
+
+    const alreadyMember =
+      workspace.members &&
+      workspace.members.some((m) => {
+        const memberUserId = m.user?._id || m.user;
+        return memberUserId && memberUserId.toString() === userId.toString();
+      });
+
+    if (!alreadyMember) {
+      workspace.members.push({
+        user: userId,
+        role: invite.role,
+        joinedAt: new Date(),
+      });
+    }
+
+    if (typeof workspace.save === 'function') {
+      await workspace.save();
+    }
+    return workspace;
+  }
+
+  /**
    * Get all members of a workspace
    */
   async getWorkspaceMembers(workspaceId, userId) {

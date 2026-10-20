@@ -22,6 +22,11 @@ const getWorkspaceMembers = asyncHandler(async (req, res) => {
   return ApiResponse.success(res, 'Workspace members retrieved successfully', members);
 });
 
+const acceptInvitation = asyncHandler(async (req, res) => {
+  const workspace = await workspaceService.acceptInvitation(req.params.id, req.user._id);
+  return ApiResponse.success(res, 'Invitation accepted successfully', workspace);
+});
+
 const listWorkspaces = asyncHandler(async (req, res) => {
   const workspaces = await workspaceService.listWorkspaces(req.user._id);
   return ApiResponse.success(res, 'Workspaces retrieved successfully', workspaces);
@@ -31,6 +36,7 @@ module.exports = {
   createWorkspace,
   getWorkspaceById,
   inviteMember,
+  acceptInvitation,
   getWorkspaceMembers,
   listWorkspaces,
 };

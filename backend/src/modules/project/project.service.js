@@ -41,10 +41,40 @@ class ProjectService {
         workspace.owner.toString() === clientId.toString() ||
         workspace.members.some(
           (m) => (m.user && (m.user._id || m.user).toString()) === clientId.toString()
-        );
+        ) ||
+        (workspace.invitations &&
+          workspace.invitations.some(
+            (inv) =>
+              inv.email &&
+              clientUser.email &&
+              inv.email.toLowerCase() === clientUser.email.toLowerCase() &&
+              (inv.status === 'pending' || inv.status === 'accepted')
+          ));
 
       if (!isClientInWorkspace) {
         throw ApiError.badRequest('Specified client is not a member of this workspace');
+      }
+
+      const alreadyInMembers = workspace.members.some(
+        (m) => (m.user && (m.user._id || m.user).toString()) === clientId.toString()
+      );
+      if (!alreadyInMembers) {
+        const invite =
+          workspace.invitations &&
+          workspace.invitations.find(
+            (inv) =>
+              inv.email &&
+              clientUser.email &&
+              inv.email.toLowerCase() === clientUser.email.toLowerCase()
+          );
+        workspace.members.push({
+          user: clientId,
+          role: invite ? invite.role : 'client',
+          joinedAt: new Date(),
+        });
+        if (typeof workspace.save === 'function') {
+          await workspace.save();
+        }
       }
     }
 
